@@ -12,7 +12,7 @@ savePath, frameRates, duration = CaptureSettings()
 os.chdir(savePath)
 
 # Settings
-camIndex = 3
+camIndex = 2
 frameRate = frameRates[camIndex]
 
 # PyCapture
@@ -76,7 +76,7 @@ try:
 except Exception as e:
     # Save data and error
     np.save('TimeStamps_' + camID, TS)
-    np.save('SyncTrigger_' + camID, Pin)
+    np.save('SyncPulses_' + camID, Pin)
     errorFile = open('ErrorLog_' + camID + '.txt', 'w')        
     errorFile.write(str(e))
     errorFile.close()
@@ -92,7 +92,7 @@ except Exception as e:
 
 # Save timestamps
 np.save('TimeStamps_' + camID, TS)
-np.save('SyncTrigger_' + camID, Pin)
+np.save('SyncPulses_' + camID, Pin)
 
 # Disconnect cameras
 cam.stopCapture()
