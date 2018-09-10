@@ -15,14 +15,14 @@ if stdout:
 	print(stdout)
 if stderr:
 	print(stderr)
-cam2 = Popen(['gnome-terminal', '-e', 'python /home/vid/iblvideo/CaptureCamera_2.py'], stdout=PIPE, stderr=PIPE, stdin=PIPE)
+cam2 = Popen(['gnome-terminal', '-e', 'python /home/vid/iblvideo/CaptureCamera_2.py'], stdout=PIPE, stderr=PIPE)
 stdout = cam1.stdout.read()
 stderr = cam1.stderr.read()
 if stdout:
 	print(stdout)
 if stderr:
 	print(stderr)
-cam3 = Popen(['gnome-terminal', '-e', 'python /home/vid/iblvideo/CaptureCamera_3.py'], stdout=PIPE, stderr=PIPE, stdin=PIPE)
+cam3 = Popen(['gnome-terminal', '-e', 'python /home/vid/iblvideo/CaptureCamera_3.py'], stdout=PIPE, stderr=PIPE)
 stdout = cam1.stdout.read()
 stderr = cam1.stderr.read()
 if stdout:

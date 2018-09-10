@@ -2,49 +2,49 @@
 Capture from multiple cameras using PyCapture2
 """
 import PyCapture2
-from CameraFunctions import ConfigureCameras
+from CameraFunctions import ConfigureCameras, CaptureSettings
 import time
 import os
 import numpy as np
 
 # Path to save the video
-save_path = '/media/vid/547f640f-3dbc-4419-a8f2-e4e715b088ba/test'
-os.chdir(save_path)
+savePath, frameRates, duration = CaptureSettings()
+os.chdir(savePath)
 
 # Settings
 camIndex = 0
-duration = 30
-frameRate = 60
+frameRate = frameRates[camIndex]
 
 # PyCapture
-bus = PyCapture2.BusManager()
-cam = PyCapture2.Camera()
-avi = PyCapture2.AVIRecorder()
+try:
+    bus = PyCapture2.BusManager()
+    cam = PyCapture2.Camera()
+    avi = PyCapture2.AVIRecorder()
 
-#Check if camera is available
-numCams = bus.getNumOfCameras()
-if camIndex > numCams:
-    print('Camera not found')
-    exit()
+    #Check if camera is available
+    numCams = bus.getNumOfCameras()
+    if camIndex > numCams:
+        print('Camera not found')
+        exit()
 
-#Connect and configure camera
-cam.connect(bus.getCameraFromIndex(camIndex))
-cam.setProperty(type = 16, onOff = True, autoManualMode = False, absValue = frameRate)
-cam.setConfiguration(numBuffers = 500, grabMode = PyCapture2.GRAB_MODE.BUFFER_FRAMES, isochBusSpeed = PyCapture2.BUS_SPEED.S5000, highPerformanceRetrieveBuffer = 1)
-camInfo = cam.getCameraInfo()
-camID = str(camInfo.serialNumber)
+    #Connect and configure camera
+    cam.connect(bus.getCameraFromIndex(camIndex))
+    cam.setProperty(type = 16, onOff = True, autoManualMode = False, absValue = frameRate)
+    #cam.setConfiguration(numBuffers = 500, grabMode = PyCapture2.GRAB_MODE.BUFFER_FRAMES)
+    camInfo = cam.getCameraInfo()
+    camID = str(camInfo.serialNumber)
 
-# Start camera capture
-print('Starting camera ', camID)
-TS = []
-Pin = []
-cam.startCapture()
-camTime = time.time()
-startTime = time.time()
-frameCount = 0
-avi.MJPGOpen(camID.encode('utf-8'), frameRate, 75) # Save to AVI with JPEG compression
-while (time.time()-startTime) < duration:
-    try:
+    # Start camera capture
+    print('Started camera ', camID)
+    TS = []
+    Pin = []
+    cam.startCapture()
+    camTimer = time.time()
+    pulseTimer = time.time()
+    startTime = time.time()
+    frameCount = 0
+    avi.MJPGOpen(camID.encode('utf-8'), frameRate, 75) # Save to AVI with JPEG compression
+    while (time.time()-startTime) < duration:
         # Get image from camera buffer
         try:
             image = cam.retrieveBuffer()
@@ -64,23 +64,31 @@ while (time.time()-startTime) < duration:
         avi.append(image)
         
         # Print output
-        if time.time()-camTime > 10:    
-           print('Elapsed time ' + str(int((time.time()-startTime)/60)) + ' minutes and ' + str(int(np.mod(time.time()-startTime, 60))) + ' seconds') 
-           print('Recorded %s frames with a frame rate of '%frameCount + str(round(frameCount/(time.time()-startTime), 1)))
-           camTime = time.time()
+        if time.time()-camTimer > 10:    
+           print('[' + str(int((time.time()-startTime)/60)) + ':' + str(int(np.mod(time.time()-startTime, 60))) + '] Recorded %s frames with a frame rate of '%frameCount + str(round(frameCount/(time.time()-startTime), 1)))
+           camTimer = time.time()
         frameCount = frameCount + 1
 
-    except Exception as e:
-        # Save timestamps
-        np.save('TimeStamps_' + camID, TS)
-        np.save('SyncTrigger_' + camID, Pin)
+        if (imageData[0] == 48) & (time.time()-pulseTimer > 2):
+            print('[' + str(int((time.time()-startTime)/60)) + ':' + str(int(np.mod(time.time()-startTime, 60))) + '] Received TTL pulse from Bpod')
+            pulseTimer = time.time()
 
-        # Disconnect cameras
+except Exception as e:
+    # Save data and error
+    np.save('TimeStamps_' + camID, TS)
+    np.save('SyncTrigger_' + camID, Pin)
+    errorFile = open('ErrorLog_' + camID + '.txt', 'w')        
+    errorFile.write(str(e))
+    errorFile.close()
+    print('Camera ' + camID + ' has crashed')
+    print('Error message: ' + str(e))
+    print(cam.isConnected)    
+
+    # Disconnect cameras
+    if cam.isConnected == True:  
         cam.stopCapture()
         cam.disconnect()
-        print('Camera ' + camID + ' has crashed')
-        print(e)
-        time.sleep(60)
+    time.sleep(10)
 
 # Save timestamps
 np.save('TimeStamps_' + camID, TS)
@@ -90,7 +98,7 @@ np.save('SyncTrigger_' + camID, Pin)
 cam.stopCapture()
 cam.disconnect()
 print('Camera ' + camID + ' is done')
-time.sleep(60)
+time.sleep(10)
 
 
 
