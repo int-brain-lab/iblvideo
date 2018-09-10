@@ -2,6 +2,7 @@
 Capture from multiple cameras using PyCapture2
 """
 import PyCapture2
+from CameraFunctions import ConfigureCameras
 import threading
 import time
 import os
@@ -13,6 +14,7 @@ os.chdir(save_path)
 
 # Settings
 duration = 10
+frameRate = 60
 
 # Define multi threading class
 class camThread(threading.Thread):
@@ -30,7 +32,8 @@ def camCapture(camIndex):
     avi = PyCapture2.AVIRecorder()
     cam.connect(bus.getCameraFromIndex(camIndex))
     fRateProp = cam.getProperty(PyCapture2.PROPERTY_TYPE.FRAME_RATE)
-    frameRate = fRateProp.absValue
+    frameRateCam = fRateProp.absValue
+    cam.setConfiguration(numBuffers = 300, grabMode = 1)
     camInfo = cam.getCameraInfo()
     camID = str(camInfo.serialNumber)
 
@@ -68,14 +71,14 @@ def camCapture(camIndex):
     cam.disconnect()
     print('Camera ' + camID + ' is done')
 
-# Start parallel threads for all cameras
-bus = PyCapture2.BusManager()
-numCams = bus.getNumOfCameras()
-print('Number of cameras detected: ', numCams)
+# Configure camera settings
+numCams = ConfigureCameras(frameRate)
+
+bus = []
 startTime = time.time()
 for j in range(numCams):
-    thread = camThread(j)
-    thread.start()
+   thread = camThread(numCams)
+   thread.start()
 
 
 
