@@ -7,10 +7,10 @@ def CaptureSettings():
     savePath = '/media/vid/547f640f-3dbc-4419-a8f2-e4e715b088ba/test'
     #savePath = '/home/vid/Videos'
     frameRates = [50,50,50]
-    duration = 60
+    duration = 30
     return savePath, frameRates, duration
     
-def ConfigureCameras(frameRate):
+def ConfigureCameras():
    bus = PyCapture2.BusManager()
    numCams = bus.getNumOfCameras()
    print('Number of cameras detected: ', numCams)
@@ -23,7 +23,7 @@ def ConfigureCameras(frameRate):
        #cam.setConfiguration(numBuffers = 1000, grabMode = 1)
        cam.setEmbeddedImageInfo(GPIOPinState = True, timestamp = False, gain = False, shutter = False, brightness = False, exposure = False, whiteBalance = False, frameCounter = False, strobePattern = False, ROIPosition = False)
        cam.setGPIOPinDirection(pin = 3, direction = 1)
-       cam.setProperty(type = 16, onOff = True, autoManualMode = False, absValue = frameRate)
+       #cam.setProperty(type = 16, onOff = True, autoManualMode = False, absValue = frameRate)
        cam.setTriggerMode(onOff = False)
        cam.setGPIOPinDirection(3, 0)
        #cam.saveToMemoryChannel(1)
