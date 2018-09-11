@@ -6,13 +6,14 @@ from CameraFunctions import ConfigureCameras, CaptureSettings
 import time
 import os
 import numpy as np
+from sys import argv
 
 # Path to save the video
 savePath, frameRates, duration = CaptureSettings()
 os.chdir(savePath)
 
 # Settings
-camIndex = 1
+camIndex = int(argv[1])
 frameRate = frameRates[camIndex]
 
 # PyCapture

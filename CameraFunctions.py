@@ -30,7 +30,7 @@ def ConfigureCameras():
        cam.disconnect()
    return numCams
 
-def CloseCameras(frameRate):
+def CloseCameras():
    bus = PyCapture2.BusManager()
    numCams = bus.getNumOfCameras()
    print('Number of cameras detected: ', numCams)
