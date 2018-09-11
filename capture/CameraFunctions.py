@@ -4,10 +4,9 @@ Configure all connected cameras and save to camera memory
 import PyCapture2
 
 def CaptureSettings():
-    savePath = '/media/vid/547f640f-3dbc-4419-a8f2-e4e715b088ba/test'
-    #savePath = '/home/vid/Videos'
-    frameRates = [50,50,50]
-    duration = 30
+    savePath = '/media/vid/547f640f-3dbc-4419-a8f2-e4e715b088ba/test' #path to video storage disc  
+    frameRates = [50,50,50] #frame rates in Hz
+    duration = 30 #Duration of the recording in sec
     return savePath, frameRates, duration
     
 def ConfigureCameras():
