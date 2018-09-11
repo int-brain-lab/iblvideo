@@ -44,7 +44,7 @@ try:
     pulseTimer = time.time()
     startTime = time.time()
     frameCount = 0
-    avi.MJPGOpen(camID.encode('utf-8'), frameRate, 75) # Save to AVI with JPEG compression
+    avi.MJPGOpen(camID.encode('utf-8'), frameRate, 75) # Save to AVI with MJPG compression, quality 1-100
     while (time.time()-startTime) < duration:
         # Get image from camera buffer
         try:
