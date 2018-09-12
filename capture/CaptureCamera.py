@@ -45,6 +45,11 @@ try:
     startTime = time.time()
     frameCount = 0
     avi.MJPGOpen(camID.encode('utf-8'), frameRate, 75) # Save to AVI with MJPG compression, quality 1-100
+
+    #Alternatively, h.264 compression (across frames compression, while MJPEG is single frame), saving mp4  
+    #image = cam.retrieveBuffer()
+    #avi.H264Open(camID.encode('utf-8'), frameRate, image.getCols(), image.getRows(), 1000000)        
+    
     while (time.time()-startTime) < duration:
         # Get image from camera buffer
         try:
