@@ -1,0 +1,29 @@
+Some useful commands to crop and check your videos using ffmpeg
+
+## check individual frames of video in ipython
+import pims
+v = pims.Video('video.avi')
+imshow(v[0])
+
+## check if crop is good
+ffplay -i video.avi -vf "crop=out_w:out_h:x:y"
+
+##crop one video lossless
+ffmpeg -i input.mp4 -vf "crop=out_w:out_h:x:y" -c:v libx264 -crf 0 -c:a copy output.mp4
+
+## crop all videos lossless in folder 
+for i in *.avi; do ffmpeg -i "$i" -vf "crop=out_w:out_h:x:y" -c:v libx264 -crf 0 -c:a copy ../smaller/"${i%.*}.avi"; done
+
+## from any format (.ANY) to mp4
+ffmpeg -i movie.ANY -c:a aac -b:a 128k -c:v libx264 -crf 23 movie.mp4
+
+## make gifs (first make palette.png then gif)
+
+ffmpeg -y -ss 0 -t 4 -i video.mp4 -vf fps=10,scale=320:-1:flags=lanczos,palettegen palette.png
+ffmpeg -ss 0 -t 4 -i video.mp4 -i palette.png -filter_complex "fps=10,scale=320:-1:flags=lanczos[x];[x][1:v]paletteuse" video.gif
+
+## cut video
+ffmpeg -ss 00:00:00 -i video.avi -t 00:10:00 -vcodec libx264 video_cut.avi
+
+## video to png images
+ffmpeg -i input.mp4 -vf fps=1 out%d.pn
