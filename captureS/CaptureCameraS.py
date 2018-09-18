@@ -63,7 +63,7 @@ system.ReleaseInstance()
 
 print('%s acquired in %s sec' %(len(images),duration))
 avi_recorder = PySpin.SpinVideo()
-avi_filename = '%s/%s.avi' %(savePath,device_serial_number)
+avi_filename = '%s/%s' %(savePath,device_serial_number)
 
 option = PySpin.MJPGOption()
 option.frameRate = frameRate 
