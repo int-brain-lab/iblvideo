@@ -31,7 +31,7 @@ try:
     #Connect and configure camera
     cam.connect(bus.getCameraFromIndex(camIndex))
     cam.setProperty(type = 16, onOff = True, autoManualMode = False, absValue = frameRate)
-    #cam.setConfiguration(numBuffers = 500, grabMode = PyCapture2.GRAB_MODE.BUFFER_FRAMES)
+    cam.setConfiguration(numBuffers = 300, grabMode = PyCapture2.GRAB_MODE.BUFFER_FRAMES, HighPerformanceRetrieveBuffer = True)
     camInfo = cam.getCameraInfo()
     camID = str(camInfo.serialNumber)
 
@@ -44,7 +44,8 @@ try:
     pulseTimer = time.time()
     startTime = time.time()
     frameCount = 0
-    avi.MJPGOpen(camID.encode('utf-8'), frameRate, 75) # Save to AVI with MJPG compression, quality 1-100     
+    avi.AVIOpen(camID.encode('utf-8'), frameRate)    
+    #avi.MJPGOpen(camID.encode('utf-8'), frameRate, 75) # Save to AVI with MJPG compression, quality 1-100     
     
     while (time.time()-startTime) < duration:
         # Get image from camera buffer
@@ -66,14 +67,15 @@ try:
         avi.append(image)
         
         # Print output
-        if time.time()-camTimer > 10:    
+        if time.time()-camTimer > 2:    
            print('[' + str(int((time.time()-startTime)/60)) + ':' + str(int(np.mod(time.time()-startTime, 60))) + '] Recorded %s frames with a frame rate of '%frameCount + str(round(frameCount/(time.time()-startTime), 1)))
            camTimer = time.time()
         frameCount = frameCount + 1
-
-        if (imageData[0] == 48) & (time.time()-pulseTimer > 2):
-            print('[' + str(int((time.time()-startTime)/60)) + ':' + str(int(np.mod(time.time()-startTime, 60))) + '] Received TTL pulse from Bpod')
-            pulseTimer = time.time()
+        
+        if len(Pin) > 2: 
+            if (imageData[0]-Pin[-2] == 16) & (time.time()-pulseTimer > 2):
+                print('[' + str(int((time.time()-startTime)/60)) + ':' + str(int(np.mod(time.time()-startTime, 60))) + '] Received TTL pulse from Bpod')
+                pulseTimer = time.time()
 
 except Exception as e:
     # Save data and error

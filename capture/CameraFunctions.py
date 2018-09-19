@@ -5,8 +5,8 @@ import PyCapture2
 
 def CaptureSettings():
     savePath = '/media/vid/547f640f-3dbc-4419-a8f2-e4e715b088ba/test' #path to video storage disc  
-    frameRates = [50,50,50] #frame rates in Hz
-    duration = 30 #Duration of the recording in sec
+    frameRates = [150,150,150] #frame rates in Hz
+    duration = 5 #Duration of the recording in sec
     return savePath, frameRates, duration
     
 def ConfigureCameras():
