@@ -27,3 +27,7 @@ ffmpeg -ss 00:00:00 -i video.avi -t 00:10:00 -vcodec libx264 video_cut.avi
 
 ## video to png images
 ffmpeg -i input.mp4 -vf fps=1 out%d.pn
+
+## rotate video without re-encoding
+ffmpeg -i input.mp4 -c copy -metadata:s:v:0 rotate=90 output.mp4
+
