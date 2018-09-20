@@ -29,5 +29,12 @@ ffmpeg -ss 00:00:00 -i video.avi -t 00:10:00 -vcodec libx264 video_cut.avi
 ffmpeg -i input.mp4 -vf fps=1 out%d.pn
 
 ## rotate and compress 
-ffmpeg -i original.mp4 -vf "hflip,vflip" -codec:v libx264 -preset slow -crf 20 -codec:a copy flipped.mp4
+ffmpeg -i original.mp4 -vf "transpose=1" -codec:v libx264 -preset slow -crf 20 -codec:a copy flipped.mp4
+
+For the transpose parameter you can pass:
+
+0 = 90CounterCLockwise and Vertical Flip (default) 
+1 = 90Clockwise 
+2 = 90CounterClockwise 
+3 = 90Clockwise and Vertical Flip
 
