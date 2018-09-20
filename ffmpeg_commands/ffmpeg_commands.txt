@@ -38,3 +38,16 @@ For the transpose parameter you can pass:
 2 = 90CounterClockwise 
 3 = 90Clockwise and Vertical Flip
 
+## Apply an ffmpeg command to all videos in a folder (here e.g. cutting)
+
+for i in *.mp4;
+  do name=`echo $i | cut -d'.' -f1`;
+  echo $name;
+  ffmpeg  -ss 00:00:00 -i "$i" -t 00:00:03 -vcodec libx264 "${name}_short.mp4";
+done
+
+
+
+
+
+
