@@ -46,7 +46,9 @@ for i in *.mp4;
   ffmpeg  -ss 00:00:00 -i "$i" -t 00:00:03 -vcodec libx264 "${name}_short.mp4";
 done
 
+## Mosaic of 4 videos side-by-side
 
+ffmpeg -i input0 -i input1 -i input2 -i input3 -filter_complex "[0:v][1:v]hstack[top];[2:v][3:v]hstack[bottom];[top][bottom]vstack[v]" -map "[v]" output
 
 
 
