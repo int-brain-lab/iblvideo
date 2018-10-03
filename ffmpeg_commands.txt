@@ -25,9 +25,6 @@ ffmpeg -hwaccel cuvid -i crf0.avi -c:v h264_nvenc -crf 23 -rc vbr_hq -b:v 8M -ma
 ffmpeg -y -ss 0 -t 4 -i video.mp4 -vf fps=10,scale=320:-1:flags=lanczos,palettegen palette.png
 ffmpeg -ss 0 -t 4 -i video.mp4 -i palette.png -filter_complex "fps=10,scale=320:-1:flags=lanczos[x];[x][1:v]paletteuse" video.gif
 
-## cut video
-ffmpeg -ss 00:00:00 -i video.avi -t 00:10:00 -vcodec libx264 video_cut.avi
-
 ## video to png images
 ffmpeg -i input.mp4 -vf fps=1 out%d.pn
 
@@ -43,11 +40,7 @@ For the transpose parameter you can pass:
 
 ## Apply an ffmpeg command to all videos in a folder (here e.g. cutting)
 
-for i in *.mp4;
-  do name=`echo $i | cut -d'.' -f1`;
-  echo $name;
-  ffmpeg  -ss 00:00:00 -i "$i" -t 00:00:03 -vcodec libx264 "${name}_short.mp4";
-done
+for i in *.mp4; do ffmpeg -i "$i" -vcodec copy -acodec copy -ss 00:00:00 -t 00:10:00 "../short/${i}"; done
 
 ## Mosaic of 4 videos side-by-side
 
