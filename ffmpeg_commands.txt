@@ -14,11 +14,11 @@ ffmpeg -i input.mp4 -vf "crop=out_w:out_h:x:y" -c:v libx264 -crf 0 -c:a copy out
 ## crop all videos lossless in folder 
 for i in *.avi; do ffmpeg -i "$i" -vf "crop=out_w:out_h:x:y" -c:v libx264 -crf 0 -c:a copy ../smaller/"${i%.*}.avi"; done
 
-## from any format (.ANY) to mp4 (CPU only)
+## from any format (.ANY) to mp4 (CPU only) [crf is quality, 0 best, 51 worst]
 ffmpeg -i movie.ANY -c:a aac -b:a 128k -c:v libx264 -crf 23 movie.mp4
 
-## from any format (.ANY) to mp4 (GPU)
-ffmpeg -hwaccel cuvid -i crf0.avi -c:v h264_nvenc -crf 23 -rc vbr_hq -b:v 8M -maxrate:v 10M 23_GPU.mp4
+## from any format (.ANY) to mp4 (GPU) [quality settings are more involved]
+ffmpeg -hwaccel cuvid -i input.avi -c:v h264_nvenc -rc vbr_hq -b:v 8M -maxrate:v 10M output.mp4
 
 ## make gifs (first make palette.png then gif)
 
