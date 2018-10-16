@@ -39,7 +39,7 @@ For the transpose parameter you can pass:
 3 = 90Clockwise and Vertical Flip
 
 ## Apply an ffmpeg command to all videos in a folder (here e.g. cutting)
-for i in *.mp4; do ffmpeg -i "$i" -vcodec copy -acodec copy -ss 00:00:00 -t 00:10:00 "../short/${i}"; done
+for i in *.mp4; do ffmpeg -i "$i" -vcodec libx264 -crf 0 -ss 00:00:00 -t 00:10:00 "../short/${i}"; done
 
 ## Mosaic of 4 videos side-by-side
 ffmpeg -i input0 -i input1 -i input2 -i input3 -filter_complex "[0:v][1:v]hstack[top];[2:v][3:v]hstack[bottom];[top][bottom]vstack[v]" -map "[v]" output
