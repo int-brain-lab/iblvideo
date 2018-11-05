@@ -1,4 +1,5 @@
 Some useful commands to crop and check your videos using ffmpeg
+(https://www.ffmpeg.org/download.html#build-linux)
 
 ## check individual frames of video in ipython
 import pims
