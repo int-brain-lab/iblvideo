@@ -1,9 +1,9 @@
 
-Image acquisition 
+##Image acquisition 
 
 The behavioral rig camera will be recorded at 30 Hz on the Windows computer that runs the behavioral task. The recording software is Bonsai which allows for a video stream window to be displayed to the user during behavioral training. For the recording rig, Bonsai will also run on Windows, with one side view camera and the mouse trunk camera at 60 Hz, and the other side camera at 150 Hz. 
  
-Feature-tracking in side view videos using DeepLabCut	 	 
+##Feature-tracking in side view videos using DeepLabCut	 	 
 	
 We next present tracking body parts using machine learning and how performance depends on video compression. DeepLabCut (DLC, https://github.com/AlexEMG/DeepLabCut) was used to predict the location of 27 features seen from at least one side. The points include 4 for tongue tracking (2 static points on the lick port, 2 points at the edge of the tongue), 4 for pupil tracking for each pupil and the tips of 4 fingers per paw. In addition, nose, chin and ear tip were tracked (Figure 5). The 27 features are as follows, with “r” or “l” indicating the right or left type of the feature, as seen from the right/left camera:
 
