@@ -16,6 +16,6 @@ Performing cross-validation, the manually-labeled images were split randomly int
 	 
 Accurate lick-detection with DLC can be achieved with two points on the tongue tip and two points on the water-port (when the two points of the tube are within a small distance to one of the tongue tip points). We plan to compare these DLC-based lick detections to the lick detections read from a dedicated lick-detector. 
 
-
+![side_view_points](https://user-images.githubusercontent.com/17218515/52708624-ea099680-2f8a-11e9-884b-6c82b1a54ce7.png)
 
 
