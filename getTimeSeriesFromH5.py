@@ -1,15 +1,15 @@
-from pylab import *
-import pandas   
-ion()	
+import pandas   	
 
-d=pandas.read_hdf('pupilDeepCut_resnet50_pupilsep20shuffle1_200000.h5')
+df=pandas.read_hdf('pupilDeepCut_resnet50_pupilsep20shuffle1_200000.h5')
 
-#E.g. you can save that as an excel sheet to see its structure:
-d.to_excel('pupil_tracking.xlsx')	
+'''
+For a particular bodypart, you can access the time series of the 'x', 'y' coordinate and detection certainty 'likelihood'
+E.g. to get the x position of the 'pupil_top_r' point, type:
+'''
+
+s=df[(df.keys()[0][0], 'pupil_top_r', 'x')].values
+
+
+
 	
-# Then you can save them in a dictionary or whatever by getting the values as an array:
-MyArray=d.values
-	
-#And plot: e.g. shape(d.values), (17967, 12)
-for i in range(12):
- plot(d.values[:,i])
+
