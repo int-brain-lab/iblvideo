@@ -45,6 +45,7 @@ for i in *.mp4; do ffmpeg -i "$i" -vcodec libx264 -crf 0 -ss 00:00:00 -t 00:10:0
 ## Mosaic of 4 videos side-by-side
 ffmpeg -i input0 -i input1 -i input2 -i input3 -filter_complex "[0:v][1:v]hstack[top];[2:v][3:v]hstack[bottom];[top][bottom]vstack[v]" -map "[v]" output
 
-
+## Change resolution of frames
+ffmpeg -i input.avi -vf scale=320:240 output.avi
 
 
