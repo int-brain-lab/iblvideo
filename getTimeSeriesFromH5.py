@@ -13,7 +13,9 @@ E.g. to get the x position of the 'pupil_top_r' point, type:
 
 s=df[(df.keys()[0][0], 'pupil_top_r', 'x')].values
 
-
+'''
+In practice it is important only to consider the coordinates where the network was certain, i.e. with a detection likelihood above 0.9
+'''
 
 	
 
