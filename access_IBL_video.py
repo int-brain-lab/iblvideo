@@ -3,6 +3,12 @@ one = ONE()
 from pylab import *
 
 def get_latest_n_videos_from_all_labs():
+ 
+ '''
+ This function gets the n most recent videos for each lab
+ and downloads them locally in the ONE folder,
+ using one.load
+ '''
 
  n=2 #number of most recent videos to download 
  
