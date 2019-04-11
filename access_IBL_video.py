@@ -1,24 +1,34 @@
 from oneibl.one import ONE
-
 one = ONE()
+from pylab import *
 
-def get_most_recent_video_from_all_labs():
+def get_latest_n_videos_from_all_labs():
 
- '''
- this assumes you have oneibl installed and access;
- a couple recent IBL trainig-rig videos across labs will be downloaded
- from flatiron server to your local ONE folder
- '''
+ n=2 #number of most recent videos to download 
  
  for lab in one.list(keyword='lab'):
+  
   sessions, details = one.search(dataset_types='_iblrig_leftCamera.raw', lab=lab, 
   details=True,date_range=['2019-03-01', '2030-04-10'])
-  try:                                             
-   dates=[i['end_time'] for i in details]
-   for jj in range(1,5):
-    idx=argsort(dates)[-jj]   
-    one.load(sessions[argsort(dates)[idx]],dataset_types='_iblrig_leftCamera.raw')
-   print(lab,len(sessions)) 
-  except:                     
-   print(lab,len(sessions))  
+  
+  try:
+   sessions_with_vids=[]
+   for i in range(len(sessions)): #check if there are downloadable videos
+    urls=[d['data_url'] for d in details[i]['data_dataset_session_related']]
+    urls_=[x for x in urls if x is not None]
+    vids=[x for x in urls_ if '_iblrig_leftCamera.raw' in x]
+    if vids!=[]:
+     sessions_with_vids.append([sessions[i],details[i]['end_time']])
+    
+   print('%s vids to download for %s' %(len(sessions_with_vids),lab))
+   #download only the n most recent videos
+   s=sorted(sessions_with_vids,key=lambda x: x[1])
+   print(sessions_with_vids[:n])
+
+   for j in s[:n]:
+    one.load(j[0],dataset_types='_iblrig_leftCamera.raw')
+    print('downloaded %s vids for %s' %(n,lab))
+   
+  except:
+   print('no vids for %s' %(lab)) 
   
