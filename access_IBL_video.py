@@ -1,6 +1,6 @@
 from oneibl.one import ONE
-one = ONE()
 from pylab import *
+one = ONE()
 
 def get_latest_n_videos_from_all_labs():
  
