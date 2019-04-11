@@ -51,7 +51,7 @@ def plot_example_frames():
   title(vid.split('/')[5]+', '+vid.split('/')[7]+', \n '+vid.split('/')[8]+', '+vid.split('/')[9])
   ax.axis('off')
   k+=1
-
+ plt.tight_layout()
 
 
 #Set grayscale colorspace for the frame. 
