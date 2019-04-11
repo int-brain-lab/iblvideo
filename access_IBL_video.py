@@ -28,7 +28,7 @@ def get_latest_n_videos_from_all_labs():
     
    print('%s vids to download for %s' %(len(sessions_with_vids),lab))
    #download only the n most recent videos
-   s=sorted(sessions_with_vids,key=lambda x: x[1])
+   s=list(reversed(sorted(sessions_with_vids,key=lambda x: x[1])))
    print(sessions_with_vids[:n])
 
    for j in s[:n]:
