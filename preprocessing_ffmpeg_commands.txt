@@ -48,4 +48,5 @@ ffmpeg -i input0 -i input1 -i input2 -i input3 -filter_complex "[0:v][1:v]hstack
 ## Change resolution of frames
 ffmpeg -i input.avi -vf scale=320:240 output.avi
 
-
+##
+for i in *.mp4; do ffmpeg -i "$i" -vcodec libx264 -crf 0 -ss 00:00:00 -t 00:10:00 -vf scale=640:512 "small/${i}"; done
