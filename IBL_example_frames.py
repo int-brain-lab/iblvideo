@@ -1,6 +1,6 @@
 import os, fnmatch
 from pylab import *
-import cv2
+import cv2 #conda install -c menpo opencv
 import numpy as np
 ion()
 
