@@ -4,22 +4,29 @@ import os
 import deeplabcut
 
 
-def Analyse_vids_coarsly():
-
- '''
- Cut from all videos a 10 sec sample, the run DLC-coarse on it
- '''
-
- vid_folder='/home/mic/Videos/IBL/training_vids/large/'
- os.makedirs(vid_folder+'short_samples/')
-
- for vid in os.listdir(vid_folder):
-  os.system('ffmpeg -i %s -c:v libx264 -crf 29 -ss 00:10:00 -t 00:10:20 -c:a copy %s' %(vid_folder+vid,vid_folder+'short_samples/'+vid))
+def DLC_vids_coarsly(vid_folder):
 
  short_vids=[vid_folder+'short_samples/'+vid for vid in os.listdir(vid_folder+'short_samples/')]
 
- config_path='/home/mic/DLC2/trainingRig/trainingRig-mic-2019-02-11/config.yaml'
+ config_path='/home/mic/DLC/trainingRig-mic-2019-02-11/config.yaml'
  deeplabcut.analyze_videos(config_path,short_vids)
+
+
+def Get_short_sample_vids(vid_folder):
+
+ '''
+ Cut from all videos a 10 sec sample, then run DLC-coarse on it
+ '''
+
+ #vid_folder='/home/mic/DLC/videos/'
+
+ if not os.path.exists(vid_folder+'short_samples/'):
+  os.makedirs(vid_folder+'short_samples/')
+
+ for vid in os.listdir(vid_folder):
+  os.system('ffmpeg -i %s -c:v libx264 -crf 23 -ss 00:00:00 -t 00:00:15 -c:a copy %s' %(vid_folder+vid,vid_folder+'short_samples/'+vid))
+
+ print('created short sample videos in %s' %(vid_folder+'short_samples/'))
 
 
 def get_coordinates_of_average_pupil(vid_folder,h5):
@@ -54,18 +61,21 @@ def crop_video(XY,vid,vid_folder,cropped_vid_folder):
  '''
 
  #crop square of 100x100 px, centered on the XY point (average pupil center) 
- os.system('ffmpeg -i %s -vf "crop=%s:%s:%s:%s" -c:v libx264 -crf 29 -c:a copy %s' %(vid_folder+vid,100,100,XY[0]-50,XY[1]-50,cropped_vid_folder+vid[:-4]+'_eye.mp4'))
+ os.system('ffmpeg -i %s -vf "crop=%s:%s:%s:%s" -c:v libx264 -crf 23 -c:a copy %s' %(vid_folder+vid,100,100,XY[0]-50,XY[1]-50,cropped_vid_folder+vid[:-4]+'_eye.mp4'))
 
 
 def for_all_videos_crop_eye():
  '''
  this assumes DLC has already found
  ''' 
- vid_folder='/home/mic/DLC2/trainingRig/large_short/'
- vids=[v for v in os.listdir(vid_folder) if v.endswith('.mp4')]
- h5s=[v for v in os.listdir(vid_folder) if v.endswith('.h5')]
+ vid_folder='/home/mic/DLC/videos/'
+ cropped_vid_folder=vid_folder+'eye/'
 
- cropped_vid_folder='/home/mic/DLC2/trainingRig/large_short/eye/'
+ if not os.path.exists(vid_folder+'eye/'):
+  os.makedirs(vid_folder+'eye/')
+
+ vids=[v for v in os.listdir(vid_folder) if v.endswith('.mp4')]
+ h5s=[v for v in os.listdir(vid_folder+'short_samples/') if v.endswith('.h5')] 
 
  d={}
  for vid in vids:
@@ -73,6 +83,6 @@ def for_all_videos_crop_eye():
 
  for vid in d:
   print(vid)
-  XY=get_coordinates_of_average_pupil(vid_folder,d[vid])
+  XY=get_coordinates_of_average_pupil(vid_folder+'short_samples/',d[vid])
   crop_video(XY,vid,vid_folder,cropped_vid_folder)
 
