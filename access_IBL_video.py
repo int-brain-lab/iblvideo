@@ -33,7 +33,7 @@ def get_latest_n_videos_from_all_labs():
 
    for j in s[:n]:
     one.load(j[0],dataset_types='_iblrig_leftCamera.raw')
-   print('downloaded %s vids for %s' %(n,lab))
+   
    
   except:
    print('no vids for %s' %(lab)) 
