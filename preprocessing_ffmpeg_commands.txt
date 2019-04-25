@@ -9,8 +9,8 @@ imshow(v[0])
 ## check if crop is good
 ffplay -i video.avi -vf "crop=out_w:out_h:x:y"
 
-##crop one video lossless
-ffmpeg -i input.mp4 -vf "crop=out_w:out_h:x:y" -c:v libx264 -crf 0 -c:a copy output.mp4
+##crop one video nearly lossless
+ffmpeg -i input.mp4 -vf "crop=out_w:out_h:x:y" -c:v libx264 -crf 17 -c:a copy output.mp4
 ffmpeg -y -hide_banner -i "test.avi" -filter:v "crop=iw-400:ih-40,scale=960:720" -pix_fmt yuv420p output_video.avi
 
 
