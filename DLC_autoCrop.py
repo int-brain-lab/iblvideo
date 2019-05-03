@@ -3,6 +3,7 @@ import os, fnmatch,pandas,deeplabcut
 from datetime import datetime
 ion()
 from shutil import copyfile
+import time
 
 def find(pattern, path):
     result = []
@@ -50,7 +51,7 @@ def DLC_vids_coarsly(vid_folder):
 
  config_path='/home/mic/DLC/trainingRig-mic-2019-02-11/config.yaml'
  deeplabcut.analyze_videos(config_path,short_vids)
-
+ deeplabcut.create_labeled_video(config_path,short_vids)
 
 def get_coordinates_of_average_pivot(ROI,vid_folder,h5):
 
@@ -146,7 +147,7 @@ def for_all_videos_crop(vid_folder):
 def DLC_ROIs(vid_folder):
 
  '''
- 520 fps
+ 520 fps; this also creates labeled videos (you can comment that out if speed counts)
  '''
  
  NNs={'eye':'/home/mic/DLC/eye-mic-2019-04-16/config.yaml',
@@ -163,6 +164,9 @@ def DLC_ROIs(vid_folder):
   #choose network weights according to ROI 
   config_path=NNs[ROI]
   deeplabcut.analyze_videos(config_path,vids)
+  deeplabcut.create_labeled_video(config_path,vids)
+
+
 
 def get_time_series(vid_folder):
  '''
@@ -173,16 +177,18 @@ def get_time_series(vid_folder):
  '''
  #vid_folder='/home/mic/DLC/videos/'
   
+ if vid_folder[-1]!='/':
+  print('the last character of vid-folder string must be /')
+  return
+
+ starttime= time. time()
  print('getting short samples')
  Get_short_sample_vids(vid_folder) # f/200 [sec]
  print('DLC coarsely on short samples')
  DLC_vids_coarsly(vid_folder) # f/20 [sec]
- print('for all videos and ROIs crop')
+ print('for_all_videos_crop_eye')
  for_all_videos_crop(vid_folder) # F/1600 [sec]
- print('DLC_ROIs')
- DLC_eye(vid_folder) # F/520 [sec]
- 
-
-
-
+ print('DLC_eye')
+ DLC_ROIs(vid_folder) # F/520 [sec]
+ print(time.time()-starttime)
 
