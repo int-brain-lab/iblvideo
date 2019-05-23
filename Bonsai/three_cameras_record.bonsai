@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <WorkflowBuilder Version="2.3.0">
-  <Workflow xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:q3="clr-namespace:Bonsai.IO;assembly=Bonsai.System" xmlns:q2="clr-namespace:Bonsai.Vision;assembly=Bonsai.Vision" xmlns:q1="clr-namespace:Bonsai.PointGrey;assembly=Bonsai.PointGrey" xmlns="https://horizongir.org/bonsai">
+  <Workflow xmlns:q1="clr-namespace:Bonsai.PointGrey;assembly=Bonsai.PointGrey" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:q2="clr-namespace:Bonsai.Vision;assembly=Bonsai.Vision" xmlns:q3="clr-namespace:Bonsai.IO;assembly=Bonsai.System" xmlns="https://horizongir.org/bonsai">
     <Nodes>
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q1:FlyCapture">
@@ -13,11 +13,11 @@
       </Expression>
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q2:VideoWriter">
-          <q2:FileName>D:\IBLvideo\cam_left.avi</q2:FileName>
-          <q2:Suffix>None</q2:Suffix>
+          <q2:FileName>D:\cam_left.avi</q2:FileName>
+          <q2:Suffix>Timestamp</q2:Suffix>
           <q2:Buffered>true</q2:Buffered>
           <q2:Overwrite>true</q2:Overwrite>
-          <q2:FourCC>DIB </q2:FourCC>
+          <q2:FourCC>FMP4</q2:FourCC>
           <q2:FrameRate>150</q2:FrameRate>
           <q2:FrameSize>
             <q2:Width>0</q2:Width>
@@ -30,26 +30,26 @@
         <Selector>Source.Metadata.embeddedTimeStamp</Selector>
       </Expression>
       <Expression xsi:type="q3:CsvWriter">
-        <q3:FileName>D:\IBLvideo\cam_left.csv</q3:FileName>
+        <q3:FileName>D:\cam_left.csv</q3:FileName>
         <q3:Append>false</q3:Append>
         <q3:Overwrite>true</q3:Overwrite>
-        <q3:Suffix>None</q3:Suffix>
+        <q3:Suffix>Timestamp</q3:Suffix>
         <q3:IncludeHeader>false</q3:IncludeHeader>
       </Expression>
       <Expression xsi:type="ExternalizedPropertyOfStringVideoWriter">
         <MemberName>FileName</MemberName>
         <Name>CamLeft</Name>
-        <Value>D:\IBLvideo\cam_left.avi</Value>
+        <Value>D:\cam_left.avi</Value>
       </Expression>
       <Expression xsi:type="ExternalizedPropertyOfStringCsvWriter">
         <MemberName>FileName</MemberName>
         <Name>CamLeftTimestamps</Name>
-        <Value>D:\IBLvideo\cam_left.csv</Value>
+        <Value>D:\cam_left.csv</Value>
       </Expression>
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q2:VideoWriter">
-          <q2:FileName>D:\IBLvideo\cam_right.avi</q2:FileName>
-          <q2:Suffix>None</q2:Suffix>
+          <q2:FileName>D:\cam_right.avi</q2:FileName>
+          <q2:Suffix>Timestamp</q2:Suffix>
           <q2:Buffered>true</q2:Buffered>
           <q2:Overwrite>true</q2:Overwrite>
           <q2:FourCC>FMP4</q2:FourCC>
@@ -62,21 +62,21 @@
         </Combinator>
       </Expression>
       <Expression xsi:type="q3:CsvWriter">
-        <q3:FileName>D:\IBLvideo\cam_right.csv</q3:FileName>
+        <q3:FileName>D:\cam_right.csv</q3:FileName>
         <q3:Append>false</q3:Append>
         <q3:Overwrite>true</q3:Overwrite>
-        <q3:Suffix>None</q3:Suffix>
+        <q3:Suffix>Timestamp</q3:Suffix>
         <q3:IncludeHeader>false</q3:IncludeHeader>
       </Expression>
       <Expression xsi:type="ExternalizedPropertyOfStringVideoWriter">
         <MemberName>FileName</MemberName>
         <Name>CamRight</Name>
-        <Value>D:\IBLvideo\cam_right.avi</Value>
+        <Value>D:\cam_right.avi</Value>
       </Expression>
       <Expression xsi:type="ExternalizedPropertyOfStringCsvWriter">
         <MemberName>FileName</MemberName>
         <Name>CamRightTimestamps</Name>
-        <Value>D:\IBLvideo\cam_right.csv</Value>
+        <Value>D:\cam_right.csv</Value>
       </Expression>
       <Expression xsi:type="MemberSelector">
         <Selector>Source.Metadata.embeddedTimeStamp</Selector>
@@ -92,8 +92,8 @@
       </Expression>
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q2:VideoWriter">
-          <q2:FileName>D:\IBLvideo\cam_body.avi</q2:FileName>
-          <q2:Suffix>None</q2:Suffix>
+          <q2:FileName>D:\cam_body.avi</q2:FileName>
+          <q2:Suffix>Timestamp</q2:Suffix>
           <q2:Buffered>true</q2:Buffered>
           <q2:Overwrite>true</q2:Overwrite>
           <q2:FourCC>FMP4</q2:FourCC>
@@ -106,21 +106,21 @@
         </Combinator>
       </Expression>
       <Expression xsi:type="q3:CsvWriter">
-        <q3:FileName>D:\IBLvideo\cam_body.csv</q3:FileName>
+        <q3:FileName>D:\cam_body.csv</q3:FileName>
         <q3:Append>false</q3:Append>
         <q3:Overwrite>true</q3:Overwrite>
-        <q3:Suffix>None</q3:Suffix>
+        <q3:Suffix>Timestamp</q3:Suffix>
         <q3:IncludeHeader>false</q3:IncludeHeader>
       </Expression>
       <Expression xsi:type="ExternalizedPropertyOfStringVideoWriter">
         <MemberName>FileName</MemberName>
         <Name>CamBody</Name>
-        <Value>D:\IBLvideo\cam_body.avi</Value>
+        <Value>D:\cam_body.avi</Value>
       </Expression>
       <Expression xsi:type="ExternalizedPropertyOfStringCsvWriter">
         <MemberName>FileName</MemberName>
         <Name>CamBodyTimestamps</Name>
-        <Value>D:\IBLvideo\cam_body.csv</Value>
+        <Value>D:\cam_body.csv</Value>
       </Expression>
       <Expression xsi:type="MemberSelector">
         <Selector>Source.Metadata.embeddedTimeStamp</Selector>
@@ -132,6 +132,16 @@
         <Combinator xsi:type="q1:FlyCapture">
           <q1:Index>2</q1:Index>
           <q1:ColorProcessing>Default</q1:ColorProcessing>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="q2:Flip">
+          <q2:Mode>Both</q2:Mode>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="q2:Flip">
+          <q2:Mode>Vertical</q2:Mode>
         </Combinator>
       </Expression>
     </Nodes>
@@ -183,7 +193,7 @@
       </Edge>
       <Edge>
         <From>12</From>
-        <To>7</To>
+        <To>21</To>
         <Label>Source1</Label>
       </Edge>
       <Edge>
@@ -213,7 +223,7 @@
       </Edge>
       <Edge>
         <From>19</From>
-        <To>14</To>
+        <To>22</To>
         <Label>Source1</Label>
       </Edge>
       <Edge>
@@ -226,6 +236,16 @@
         <To>18</To>
         <Label>Source1</Label>
       </Edge>
+      <Edge>
+        <From>21</From>
+        <To>7</To>
+        <Label>Source1</Label>
+      </Edge>
+      <Edge>
+        <From>22</From>
+        <To>14</To>
+        <Label>Source1</Label>
+      </Edge>
     </Edges>
   </Workflow>
   <ExtensionTypes>
@@ -234,5 +254,6 @@
     <Type>Bonsai.IO.CsvWriter, Bonsai.System, Version=2.3.0.0, Culture=neutral, PublicKeyToken=null</Type>
     <Type>Bonsai.Expressions.ExternalizedProperty`2[[System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089],[Bonsai.Vision.VideoWriter, Bonsai.Vision, Version=2.3.0.0, Culture=neutral, PublicKeyToken=null]], Bonsai.Core, Version=2.3.0.0, Culture=neutral, PublicKeyToken=null</Type>
     <Type>Bonsai.Expressions.ExternalizedProperty`2[[System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089],[Bonsai.IO.CsvWriter, Bonsai.System, Version=2.3.0.0, Culture=neutral, PublicKeyToken=null]], Bonsai.Core, Version=2.3.0.0, Culture=neutral, PublicKeyToken=null</Type>
+    <Type>Bonsai.Vision.Flip, Bonsai.Vision, Version=2.3.0.0, Culture=neutral, PublicKeyToken=null</Type>
   </ExtensionTypes>
 </WorkflowBuilder>
