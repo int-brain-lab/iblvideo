@@ -29,7 +29,7 @@ ffmpeg -y -ss 0 -t 4 -i video.mp4 -vf fps=10,scale=320:-1:flags=lanczos,paletteg
 ffmpeg -ss 0 -t 4 -i video.mp4 -i palette.png -filter_complex "fps=10,scale=320:-1:flags=lanczos[x];[x][1:v]paletteuse" video.gif
 
 ## video to png images
-ffmpeg -i input.mp4 -vf fps=1 out%d.pn
+ffmpeg -i input.mp4 -vf fps=1 out%d.png
 
 ## rotate and compress 
 ffmpeg -i original.mp4 -vf "transpose=1" -codec:v libx264 -preset slow -crf 20 -codec:a copy flipped.mp4
