@@ -41,6 +41,7 @@ def DLC_vids_coarsly(vid_folder):
 
  '''
  apply coarse DLC to side video, 20 fsp for 1280x1024 (70 frames/sec for vids 640x512)
+ You need to adjust config_path to find network weights for the general network
  '''
 
  if vid_folder[-1]!='/':
@@ -148,6 +149,7 @@ def DLC_ROIs(vid_folder):
 
  '''
  520 fps; this also creates labeled videos (you can comment that out if speed counts)
+ You need to adjust paths to find network weights for the specialised networks.
  '''
  
  NNs={'eye':'/home/mic/DLC/eye-mic-2019-04-16/config.yaml',
