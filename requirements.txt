@@ -1,0 +1,5 @@
+deeplabcut
+dask
+ibllib
+graphviz
+tensorflow-gpu==1.13.1
