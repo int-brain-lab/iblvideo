@@ -1,12 +1,12 @@
 from pathlib import Path
 import logging
 import json
-import random
 import shutil
 
 import numpy as np
 import pandas as pd
 import cv2
+import dask
 
 import deeplabcut
 import segmentation.lib as lib
@@ -23,7 +23,7 @@ SIDE = {
     'eye':
         {'label': 'eye',
          'features': ['pupil_top_r'],
-         'weights': 'eye-mic-2020-01-17',
+         'weights': 'eye-mic-2020-01-24',
          'crop': lambda x, y: [100, 100, x - 50, y - 50]},
     'nose_tip':
         {'label': 'nose_tip',
@@ -171,6 +171,24 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
     return file_out, whxy
 
 
+def _s04_brightness_eye(file_mp4, force=False):
+    """
+       for eye adjusts brightness for better network performance
+    """
+    file_out = file_mp4
+    file_in = file_mp4.parent.joinpath(file_mp4.name.replace('eye', 'eye.nobright'))
+    if file_in.exists() and not force:
+        return file_out
+    _logger.info(f'STEP 04 Adjusting eye brightness')
+    file_out.rename(file_in)
+    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
+           f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
+    pop = lib.run_command(cmd)
+    if pop['process'].returncode != 0:
+        _logger.error(f"DLC 4/6: (str(dlc_params), [str(tfile)]) failed: {file_in}")
+    return file_out
+
+
 def _s04_resample_paws(file_mp4, force=False):
     """
        for paws spatial downsampling after cropping in order to speed up
@@ -180,7 +198,7 @@ def _s04_resample_paws(file_mp4, force=False):
     file_in = file_mp4.parent.joinpath(file_mp4.name.replace('paws', 'paws.big'))
     if file_in.exists() and not force:
         return file_out
-    _logger.info(f'STEP 04 resemple paws')
+    _logger.info(f'STEP 04 resample paws')
     file_out.rename(file_in)
     cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=450:374 -c:v libx264 -crf 17'
            f' -c:a copy {file_out}')
@@ -194,6 +212,7 @@ def _s05_run_dlc_specialized_networks(dlc_params, tfile):
     _logger.info(f'STEP 05 extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
     deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
+    deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
     return True
 
 
@@ -233,7 +252,7 @@ def _s06_extract_dlc_alf(tdir, file_label, whxy, *args):
     return file_alf_dlc, file_meta_data
 
 
-def dlc(file_mp4, path_dlc=None, force=False):
+def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     """
     Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut
 
@@ -260,6 +279,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
     :param file_mp4: file to run
     :return: None
     """
+    assert path_dlc
     file_mp4 = Path(file_mp4)  # _iblrig_leftCamera.raw.mp4
     path_dlc = Path(path_dlc)
     file_label = file_mp4.stem.split('.')[0].split('_')[-1]  # leftCamera/rightCamera/bodyCamera
@@ -274,24 +294,61 @@ def dlc(file_mp4, path_dlc=None, force=False):
     tfile = {k: tdir.joinpath(file_mp4.name.replace('.raw.', f'.{k}.')) for k in networks}
     tfile['mp4_sub'] = tdir / file_mp4.name.replace('.raw.', '.subsampled.')
 
-    # run steps one by one
-    file2segment = _s00_transform_rightCam(file_mp4)  # CPU pure Python
-    file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
-    df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
+    def run_single():
+        # run steps one by one
+        file2segment = _s00_transform_rightCam(file_mp4)  # CPU pure Python
+        file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
+        df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
+    
+        whxy = {}
+        for k in networks:
+            if networks[k]['features'] is None:
+                continue
+            cropped_vid, whxy[k] = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
+            if k == 'paws':
+                cropped_vid = _s04_resample_paws(cropped_vid)
+            if k == 'eye':
+                cropped_vid = _s04_brightness_eye(cropped_vid)
+            status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid)  # GPU dlc
 
-    whxy = {}
-    for k in networks:
-        if networks[k]['features'] is None:
-            continue
-        cropped_vid, whxy[k] = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
-        if k == 'paws':
-            cropped_vid = _s04_resample_paws(cropped_vid)
-        status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid)  # GPU dlc
-    alf_files = _s06_extract_dlc_alf(tdir, file_label, whxy, status)
+        alf_files = _s06_extract_dlc_alf(tdir, file_label, whxy, status)
+        # at the end mop up the mess
+        shutil.rmtree(tdir)
+        if '.raw.transformed' in file2segment.name:
+            file2segment.unlink()
+        return alf_files
+            
+    def run_parallel():
+        pass
+    #     # run steps one by one
+    #     file2segment = dask.delayed(_s00_transform_rightCam)(file_mp4)  # CPU pure Python
+    #     file_sparse = dask.delayed(_s01_subsample)(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
+    #     df_crop = dask.delayed(_s02_detect_rois)(tdir, file_sparse, dlc_params)  # GPU dlc
+    #
+    #     for k in networks:
+    #         if cropped_vid_whxy is None:
+    #             continue
+    #         cropped_vid_whxy = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k], networks[k])  # CPU ffmpeg
+    #         if k == 'paws':
+    #             cropped_vid = dask.delayed(_s04_resample_paws)(cropped_vid_whxy[0])
+    #
+    #
+    #
+    #         status = dask.delayed(_s05_run_dlc_specialized_networks)(dlc_params[k], cropped_vid)  # GPU dlc
+    #         networks[k]['whxy'] = cropped_vid_whxy[1]
+    #
+    #     alf_files = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, whxy, status)
+    #
+    #     a = 1
+    #     # at the end mop up the mess
+    #     shutil.rmtree(tdir)
+    #     if '.raw.transformed' in file2segment.name:
+    #         file2segment.unlink()
+    #     return alf_files
 
-    # at the end mop up the mess
-    shutil.rmtree(tdir)
-    if '.raw.transformed' in file2segment.name:
-        file2segment.unlink()
+    if parallel:
+        alf_files = run_parallel()
+    else:
+        alf_files = run_single()
 
     return alf_files
