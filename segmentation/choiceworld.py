@@ -25,6 +25,11 @@ SIDE = {
          'features': ['pupil_top_r'],
          'weights': 'eye-mic-2020-01-24',
          'crop': lambda x, y: [100, 100, x - 50, y - 50]},
+    'paws':
+        {'label': 'paws',
+         'features': ['nose_tip'],
+         'weights': 'paws-mic-2019-04-26',
+         'crop': lambda x, y: [900, 800, x, y - 100]},
     'nose_tip':
         {'label': 'nose_tip',
          'features': ['nose_tip'],
@@ -35,11 +40,6 @@ SIDE = {
          'features': ['tube_top', 'tube_bottom'],
          'weights': 'tongue-mic-2019-04-26',
          'crop': lambda x, y: [160, 160, x - 60, y - 100]},
-    'paws':
-        {'label': 'paws',
-         'features': ['nose_tip'],
-         'weights': 'paws-mic-2019-04-26',
-         'crop': lambda x, y: [900, 800, x, y - 100]},
 }
 BODY = {
     'roi_detect':
@@ -143,14 +143,15 @@ def _s01_subsample(file_in, file_out, force=False):
     return file_out
 
 
-def _s02_detect_rois(tpath, sparse_video, dlc_params):
+def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     """
     step 2 run DLC to detect ROIS
     returns: df_crop, dataframe used to crop video
     """
     _logger.info(f"STEP 02 Posture detection {sparse_video}")
     out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
-    deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
+    if create_labels:
+        deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
     h5_sub = next(tpath.glob(f'*{out}*.h5'), None)
     return pd.read_hdf(h5_sub)
 
@@ -168,7 +169,8 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
     pop = lib.run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
     if pop['process'].returncode != 0:
         _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI {network["name"]}, file: {file_in}')
-    return file_out, whxy
+    np.save(file_out.parent.joinpath(file_out.stem + '.whxy.npy'), whxy)
+    return file_out
 
 
 def _s04_brightness_eye(file_mp4, force=False):
@@ -208,23 +210,27 @@ def _s04_resample_paws(file_mp4, force=False):
     return file_out
 
 
-def _s05_run_dlc_specialized_networks(dlc_params, tfile):
+def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=False):
     _logger.info(f'STEP 05 extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
-    deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
+    if create_labels:
+        deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
     deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
     return True
 
 
-def _s06_extract_dlc_alf(tdir, file_label, whxy, *args):
+def _s06_extract_dlc_alf(tdir, file_label, networks, *args):
     """
     Output an ALF matrix with column names containing the full DLC results [nframes, nfeatures]
     """
     _logger.info(f'STEP 06 wrap-up and extract ALF files')
     raw_video_path = tdir.parent
     columns = []
-    for roi in whxy:
+    for roi in networks:
+        if networks[roi]['features'] is None:
+            continue
         df = pd.read_hdf(next(tdir.glob(f'*{roi}*.h5')))
+        whxy = np.load(next(tdir.glob(f'*{roi}*.whxy.npy')))
         # get the indices of this multi index hierarchical thing
         # translate and scale the specialized window in the full initial
         # frame
@@ -232,9 +238,9 @@ def _s06_extract_dlc_alf(tdir, file_label, whxy, *args):
         scale = 2 if roi == 'paws' else 1
         for ind in indices:
             if ind[-1] == 'x':
-                df[ind] = df[ind].apply(lambda x: x * scale + whxy[roi][2])
+                df[ind] = df[ind].apply(lambda x: x * scale + whxy[2])
             elif ind[-1] == 'y':
-                df[ind] = df[ind].apply(lambda x: x * scale + whxy[roi][3])
+                df[ind] = df[ind].apply(lambda x: x * scale + whxy[3])
         # concatenate this in a flat matrix
         columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
         if 'A' not in locals():
@@ -300,51 +306,72 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
         file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
         df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
     
-        whxy = {}
         for k in networks:
             if networks[k]['features'] is None:
                 continue
-            cropped_vid, whxy[k] = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
+            cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
             if k == 'paws':
                 cropped_vid = _s04_resample_paws(cropped_vid)
             if k == 'eye':
                 cropped_vid = _s04_brightness_eye(cropped_vid)
             status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid)  # GPU dlc
 
-        alf_files = _s06_extract_dlc_alf(tdir, file_label, whxy, status)
+        alf_files = _s06_extract_dlc_alf(tdir, file_label, networks, status)
         # at the end mop up the mess
         shutil.rmtree(tdir)
         if '.raw.transformed' in file2segment.name:
             file2segment.unlink()
         return alf_files
-            
+
     def run_parallel():
-        pass
-    #     # run steps one by one
-    #     file2segment = dask.delayed(_s00_transform_rightCam)(file_mp4)  # CPU pure Python
-    #     file_sparse = dask.delayed(_s01_subsample)(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
-    #     df_crop = dask.delayed(_s02_detect_rois)(tdir, file_sparse, dlc_params)  # GPU dlc
-    #
-    #     for k in networks:
-    #         if cropped_vid_whxy is None:
-    #             continue
-    #         cropped_vid_whxy = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k], networks[k])  # CPU ffmpeg
-    #         if k == 'paws':
-    #             cropped_vid = dask.delayed(_s04_resample_paws)(cropped_vid_whxy[0])
-    #
-    #
-    #
-    #         status = dask.delayed(_s05_run_dlc_specialized_networks)(dlc_params[k], cropped_vid)  # GPU dlc
-    #         networks[k]['whxy'] = cropped_vid_whxy[1]
-    #
-    #     alf_files = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, whxy, status)
-    #
-    #     a = 1
-    #     # at the end mop up the mess
-    #     shutil.rmtree(tdir)
-    #     if '.raw.transformed' in file2segment.name:
-    #         file2segment.unlink()
-    #     return alf_files
+        # the goal here is to run simultaneously FFMPEG and GPU processes
+        file2segment = dask.delayed(_s00_transform_rightCam)(file_mp4)  # CPU pure Python
+        file_sparse = dask.delayed(_s01_subsample)(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
+        df_crop = dask.delayed(_s02_detect_rois)(tdir, file_sparse, dlc_params)  # GPU dlc
+
+        subnets = {k:networks for k in networks if networks[k]['features'] is not None}
+        cropped_vid = [dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k], subnets[k]) for k in subnets]# CPU ffmpeg
+
+        whxy = {}
+        cropped_vid = []
+        status = []
+        i = 0
+        for k in networks:
+            if networks[k]['features'] is None:
+                continue
+            cropped_vid.append(dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k], networks[k]))  # CPU ffmpeg
+            if k == 'paws':
+                cropped_vid.append(dask.delayed(_s04_resample_paws)(cropped_vid[i]))
+                i += 1
+            if k == 'eye':
+                cropped_vid.append(dask.delayed(_s04_brightness_eye)(cropped_vid[i]))
+                i += 1
+            status.append(dask.delayed(_s05_run_dlc_specialized_networks)(dlc_params[k], cropped_vid[i]))  # GPU dlc
+            i += 1
+
+        alf_files = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, networks, status)
+
+        alf_files.visualize('tutu.png')
+
+
+        resources = {}
+        resources[tuple(file_sparse.__dask_keys__())] = {'GPU': 0, 'FFMPEG': 1}
+        resources[tuple(df_crop.__dask_keys__())] = {'GPU': 1, 'FFMPEG': 0}
+        resources.update({tuple(t.__dask_keys__()): {'GPU': 0, 'FFMPEG': 1} for t in cropped_vid})
+        resources.update({tuple(t.__dask_keys__()): {'GPU': 1, 'FFMPEG': 0} for t in status})
+        # t05.compute()
+
+        from dask.distributed import LocalCluster, Client
+        cluster = LocalCluster(n_workers=2, processes=False, silence_logs=logging.DEBUG,
+                               resources={'GPU': 1, 'FFMPEG': 1})
+        client = Client(cluster)
+        alf_files.compute(resources=resources, optimize_graph=False)
+
+        # at the end mop up the mess
+        shutil.rmtree(tdir)
+        # if '.raw.transformed' in file2segment:
+        #     file2segment.unlink()
+        return
 
     if parallel:
         alf_files = run_parallel()
