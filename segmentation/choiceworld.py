@@ -94,7 +94,7 @@ def _s00_transform_rightCam(file_mp4):
     if 'rightCamera' not in file_mp4.name:
         return file_mp4
 
-    _logger.info('Flipping and turning rightCamera video')
+    _logger.info('STEP 00 Flipping and turning rightCamera video')
     file_out1 = str(file_mp4).replace('.raw.', '.flipped.')
     command_flip = (f'ffmpeg -nostats -y -loglevel 0 -i {file_mp4} -vf '
                     f'"transpose=1,transpose=1" -vf hflip {file_out1}')
@@ -110,6 +110,7 @@ def _s00_transform_rightCam(file_mp4):
     if pop['process'].returncode != 0:
         _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}' + pop['stderr'])
     Path(file_out1).unlink()
+    _logger.info('STEP 00 STOP Flipping and turning rightCamera video')
     return file_out2
 
 
@@ -140,6 +141,7 @@ def _s01_subsample(file_in, file_out, force=False):
         out.write(frame)
 
     out.release()
+    _logger.info(f"STEP 01 STOP Generating sparse frame video {file_out} for posture detection")
     return file_out
 
 
@@ -148,11 +150,12 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     step 2 run DLC to detect ROIS
     returns: df_crop, dataframe used to crop video
     """
-    _logger.info(f"STEP 02 Posture detection {sparse_video}")
+    _logger.info(f"STEP 02 START Posture detection {sparse_video}")
     out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
     if create_labels:
         deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
     h5_sub = next(tpath.glob(f'*{out}*.h5'), None)
+    _logger.info(f"STEP 02 END Posture detection {sparse_video}")
     return pd.read_hdf(h5_sub)
 
 
@@ -161,15 +164,16 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
     step 3 crop videos using ffmpeg
     returns: dictionary of cropping coordinates relative to upper left corner
     """
+    _logger.info(f'STEP 03 START cropping {network["label"]}  video')
     crop_command = (
         'ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
         '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
     whxy = _get_crop_window(df_crop, network)
-    _logger.info(f'STEP 03 cropping {network["label"]}  video')
     pop = lib.run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
     if pop['process'].returncode != 0:
         _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI {network["name"]}, file: {file_in}')
     np.save(file_out.parent.joinpath(file_out.stem + '.whxy.npy'), whxy)
+    _logger.info(f'STEP 03 STOP cropping {network["label"]}  video')
     return file_out
 
 
@@ -181,13 +185,14 @@ def _s04_brightness_eye(file_mp4, force=False):
     file_in = file_mp4.parent.joinpath(file_mp4.name.replace('eye', 'eye.nobright'))
     if file_in.exists() and not force:
         return file_out
-    _logger.info(f'STEP 04 Adjusting eye brightness')
+    _logger.info(f'STEP 04 START Adjusting eye brightness')
     file_out.rename(file_in)
     cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
            f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
     pop = lib.run_command(cmd)
     if pop['process'].returncode != 0:
         _logger.error(f"DLC 4/6: (str(dlc_params), [str(tfile)]) failed: {file_in}")
+    _logger.info(f'STEP 04 STOP Adjusting eye brightness')
     return file_out
 
 
@@ -200,22 +205,24 @@ def _s04_resample_paws(file_mp4, force=False):
     file_in = file_mp4.parent.joinpath(file_mp4.name.replace('paws', 'paws.big'))
     if file_in.exists() and not force:
         return file_out
-    _logger.info(f'STEP 04 resample paws')
+    _logger.info(f'STEP 04 START resample paws')
     file_out.rename(file_in)
     cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=450:374 -c:v libx264 -crf 17'
            f' -c:a copy {file_out}')
     pop = lib.run_command(cmd)
     if pop['process'].returncode != 0:
         _logger.error(f"DLC 4/6: Subsampling paws failed: {file_in}")
+    _logger.info(f'STEP 04 STOP resample paws')
     return file_out
 
 
 def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=False):
-    _logger.info(f'STEP 05 extract dlc feature {tfile}')
+    _logger.info(f'STEP 05 START extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
     if create_labels:
         deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
     deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
+    _logger.info(f'STEP 05 STOP extract dlc feature {tfile}')
     return True
 
 
@@ -223,7 +230,7 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, *args):
     """
     Output an ALF matrix with column names containing the full DLC results [nframes, nfeatures]
     """
-    _logger.info(f'STEP 06 wrap-up and extract ALF files')
+    _logger.info(f'STEP 06 START wrap-up and extract ALF files')
     raw_video_path = tdir.parent
     columns = []
     for roi in networks:
@@ -255,6 +262,8 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, *args):
     np.save(file_alf_dlc, A)
     with open(file_meta_data, 'w+') as fid:
         fid.write(json.dumps({'columns': columns}, indent=1))
+
+    _logger.info(f'STEP 06 STOP wrap-up and extract ALF files')
     return file_alf_dlc, file_meta_data
 
 
