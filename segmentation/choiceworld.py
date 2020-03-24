@@ -102,7 +102,7 @@ def _s00_transform_rightCam(file_mp4):
         _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4}' + pop['stderr'])
 
     _logger.info('Oversampling rightCamera video')
-    file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
+    file_out2 = Path(file_out1.replace('.flipped.', '.raw.transformed.'))
     command_sursample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} '
                          f'-vf scale=1280:1024 {file_out2}')
     pop = lib.run_command(command_sursample)
@@ -283,7 +283,7 @@ def init(file_mp4, path_dlc):
     return file_mp4, dlc_params, networks, tdir, tfile, file_label
 
 
-def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
+def dlc(file_mp4, path_dlc=None):
     """
     Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut
 
@@ -335,35 +335,51 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     return alf_files
 
 
-def dlc_parallel(file_mp4, path_dlc):
-    # the goal here is to run simultaneously FFMPEG and GPU processes. Maximum speed reached when several files laumched together
+def dlc_parallel(files_mp4, path_dlc=None):
+    """
+
+    The goal here is to run simultaneously FFMPEG and GPU processes.
+    Best performance is reached when several files are launched together
+    :param files_mp4: list of video files to extract
+    :param path_dlc:
+    :return:
+    """
+
+    assert path_dlc
+    if isinstance(files_mp4, str) or isinstance(files_mp4, Path):
+        files_mp4 = [files_mp4]
 
     from dask.distributed import LocalCluster, Client
     cluster = LocalCluster(n_workers=1, processes=False, silence_logs=logging.DEBUG,
                            resources={'GPU': 1, 'FFMPEG': 1})
     client = Client(cluster)
 
-    file_mp4, dlc_params, networks, tdir, tfile, file_label = init(file_mp4, path_dlc)
-    file2segment = client.submit(_s00_transform_rightCam, file_mp4)  # CPU pure Python
-    file_sparse = client.submit(_s01_subsample, file2segment, tfile['mp4_sub'], resources={'FFMPEG': 1})  # CPU ffmpeg
-    df_crop = client.submit(_s02_detect_rois, tdir, file_sparse, dlc_params, resources={'GPU': 1})  # GPU dlc
-
     futures = []
-    for i, k in enumerate(networks):
-        if networks[k]['features'] is None:
-            continue
-        vid_f = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k], networks[k], resources={'FFMPEG': 1})  # CPU ffmpeg
-        if k == 'paws':
-            vid_f = client.submit(_s04_resample_paws, vid_f, resources={'FFMPEG': 1}, priority=10)
-        if k == 'eye':
-            vid_f = client.submit(_s04_brightness_eye, vid_f, resources={'FFMPEG': 1}, priority=10)
-        futures.append(client.submit(_s05_run_dlc_specialized_networks, dlc_params[k], vid_f, resources={'GPU': 1}, priority=20))  # GPU dlc
+    run_info = []
+    for file_mp4 in files_mp4:
+        file_mp4, dlc_params, networks, tdir, tfile, file_label = init(file_mp4, path_dlc)
+        run_info.append({'tdir': tdir, 'file_label': file_label, 'networks': networks})
+        file2segment = client.submit(_s00_transform_rightCam, file_mp4)  # CPU pure Python
+        file_sparse = client.submit(_s01_subsample, file2segment, tfile['mp4_sub'], resources={'FFMPEG': 1})  # CPU ffmpeg
+        df_crop = client.submit(_s02_detect_rois, tdir, file_sparse, dlc_params, resources={'GPU': 1})  # GPU dlc
 
-    alf_files = client.submit(_s06_extract_dlc_alf, tdir, file_label, networks)
-    alf_files = alf_files.result()  # this makes the program wait for execution
+        for i, k in enumerate(networks):
+            if networks[k]['features'] is None:
+                continue
+            vid_f = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k], networks[k], resources={'FFMPEG': 1})  # CPU ffmpeg
+            if k == 'paws':
+                vid_f = client.submit(_s04_resample_paws, vid_f, resources={'FFMPEG': 1}, priority=10)
+            if k == 'eye':
+                vid_f = client.submit(_s04_brightness_eye, vid_f, resources={'FFMPEG': 1}, priority=10)
+            futures.append(client.submit(_s05_run_dlc_specialized_networks, dlc_params[k], vid_f, resources={'GPU': 1}, priority=20))  # GPU dlc
+
+    [f.result() for f in futures]  # lock execution until whole queue went through
+
     # at the end mop up the mess
-    shutil.rmtree(tdir)
-    if '.raw.transformed' in file2segment.result():
-        file2segment.unlink()
-    return alf_files
+    alf_files = []
+    for run in run_info:
+        alf_files.extend(_s06_extract_dlc_alf(run['tdir'], run['file_label'], run['networks']))
+        shutil.rmtree(run['tdir'])
+        [f.unlink() for f in file_mp4.parent.glob('*.raw.transformed*')]
 
+    return alf_files
