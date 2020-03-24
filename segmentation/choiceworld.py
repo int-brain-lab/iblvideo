@@ -280,7 +280,7 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
         # get the indices of this multi index hierarchical thing
         # translate and scale the specialized window in the full initial frame
         indices = df.columns.to_flat_index()
-        post_crop_scale = roi['postcrop_downsampling']
+        post_crop_scale = networks[roi]['postcrop_downsampling']
         pre_crop_scale = video_params['sampling']
         for ind in indices:
             if ind[-1] == 'x':
