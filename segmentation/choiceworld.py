@@ -8,52 +8,81 @@ import pandas as pd
 import cv2
 
 import deeplabcut
-#import segmentation.lib as lib
-import lib 
+import segmentation.lib as lib
 
 
 _logger = logging.getLogger('ibllib')
 
-
-SIDE = {
+SIDE_FEATURES = {
     'roi_detect':
         {'label': 'roi_detect',
          'features': None,
          'weights': 'roi_detect-2019-12-11',
-         'crop': None},
+         'crop': None,
+         'postcrop_downsampling': 1},
     'nose_tip':
         {'label': 'nose_tip',
          'features': ['nose_tip'],
          'weights': 'nose_tip-2019-12-23',
-         'crop': lambda x, y: [100, 100, x - 50, y - 50]},
+         'crop': lambda x, y: [100, 100, x - 50, y - 50],
+         'postcrop_downsampling': 1},
     'eye':
         {'label': 'eye',
          'features': ['pupil_top_r'],
          'weights': 'eye-mic-2020-01-24',
-         'crop': lambda x, y: [100, 100, x - 50, y - 50]},
+         'crop': lambda x, y: [100, 100, x - 50, y - 50],
+         'postcrop_downsampling': 1},
     'paws':
         {'label': 'paws',
          'features': ['nose_tip'],
          'weights': 'paw2-mic-2020-03-23',
-         'crop': lambda x, y: [900, 800, x, y - 100]},
+         'crop': lambda x, y: [900, 800, x, y - 100],
+         'postcrop_downsampling': 4},
     'tongue':
         {'label': 'tongue',
          'features': ['tube_top', 'tube_bottom'],
          'weights': 'tongue-mic-2019-04-26',
-         'crop': lambda x, y: [160, 160, x - 60, y - 100]},
+         'crop': lambda x, y: [160, 160, x - 60, y - 100],
+         'postcrop_downsampling': 1},
 }
-BODY = {
+BODY_FEATURES = {
     'roi_detect':
         {'label': 'roi_detect',
          'features': None,
          'weights': 'tail-mic-2019-12-16',
-         'crop': None},
+         'crop': None,
+         'postcrop_downsampling': 1},
     'tail_start':
         {'label': 'tail_start',
          'features': ['tail_start'],
          'weights': 'tail-mic-2019-12-16',
-         'crop': lambda x, y: [220, 220, x - 110, y - 110]}
+         'crop': lambda x, y: [220, 220, x - 110, y - 110],
+         'postcrop_downsampling': 1}
 }
+
+
+LEFT_VIDEO = {
+    'original_size': [1280, 1024],
+    'flip': False,
+    'features': SIDE_FEATURES,
+    'sampling': 1,  # sampling factor applied before cropping, if > 1 means upsampling
+}
+
+RIGHT_VIDEO = {
+    'original_size': [1280 // 2, 1024 // 2],
+    'flip': True,
+    'features': SIDE_FEATURES,
+    'sampling': 2,  # sampling factor applied before cropping, if > 1 means upsampling
+
+}
+
+BODY_VIDEO = {
+    'original_size': [1280 // 2, 1024 // 2],
+    'flip': True,
+    'features': BODY_FEATURES,
+    'sampling': 1,  # sampling factor applied before cropping, if > 1 means upsampling
+}
+
 
 
 def _get_crop_window(df_crop, network):
@@ -92,6 +121,7 @@ def _s00_transform_rightCam(file_mp4):
     such that the rightCamera video looks like the
     leftCamera video
     """
+    # TODO use the video parameters above not to have this hard-coded (sampling + original size)
     if 'rightCamera' not in file_mp4.name:
         return file_mp4
 
@@ -102,12 +132,12 @@ def _s00_transform_rightCam(file_mp4):
     pop = lib.run_command(command_flip)
     if pop['process'].returncode != 0:
         _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4}' + pop['stderr'])
-
     _logger.info('Oversampling rightCamera video')
     file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
-    command_sursample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} '
+
+    command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} '
                          f'-vf scale=1280:1024 {file_out2}')
-    pop = lib.run_command(command_sursample)
+    pop = lib.run_command(command_upsample)
     if pop['process'].returncode != 0:
         _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}' + pop['stderr'])
     Path(file_out1).unlink()
@@ -232,24 +262,33 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     Output an ALF matrix with column names containing the full DLC results [nframes, nfeatures]
     """
     _logger.info(f'STEP 06 START wrap-up and extract ALF files')
+    if 'bodyCamera' in file_label:
+        video_params = BODY_VIDEO
+    elif 'leftCamera' in file_label:
+        video_params = LEFT_VIDEO
+    elif 'rightCamera' in file_label:
+        video_params = RIGHT_VIDEO
+
     raw_video_path = tdir.parent
     columns = []
     for roi in networks:
         if networks[roi]['features'] is None:
             continue
+        # we need to make sure we use filtered traces
         df = pd.read_hdf(next(tdir.glob(f'*{roi}*filtered.h5')))
         whxy = np.load(next(tdir.glob(f'*{roi}*.whxy.npy')))
         # get the indices of this multi index hierarchical thing
-        # translate and scale the specialized window in the full initial
-        # frame
+        # translate and scale the specialized window in the full initial frame
         indices = df.columns.to_flat_index()
-        scale = 4 if roi == 'paws' else 1
-        scale2 = 0.5 if 'rightCamera' in file_mp4.name else 1
+        post_crop_scale = roi['postcrop_downsampling']
+        pre_crop_scale = video_params['sampling']
         for ind in indices:
             if ind[-1] == 'x':
-                df[ind] = df[ind].apply(lambda x: x * scale * scale2 + whxy[2])
+                df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[2]) * pre_crop_scale)
+                if video_params['flip']:
+                    df[ind] = df[ind].apply(lambda x: video_params['original_size'][0] - x)
             elif ind[-1] == 'y':
-                df[ind] = df[ind].apply(lambda x: x * scale * scale2 + whxy[3])
+                df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[3]) * pre_crop_scale)
         # concatenate this in a flat matrix
         columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
         if 'A' not in locals():
@@ -274,7 +313,7 @@ def init(file_mp4, path_dlc):
     path_dlc = Path(path_dlc)
     file_label = file_mp4.stem.split('.')[0].split('_')[-1]  # leftCamera/rightCamera/bodyCamera
     raw_video_path = file_mp4.parent
-    networks = BODY if 'bodyCamera' in file_mp4.name else SIDE
+    networks = BODY_FEATURES if 'bodyCamera' in file_mp4.name else SIDE_FEATURES
 
     lib.set_dlc_paths(path_dlc)
     dlc_params = {k: path_dlc.joinpath(networks[k]['weights'], 'config.yaml') for k in networks}
