@@ -37,7 +37,7 @@ SIDE_FEATURES = {
          'features': ['nose_tip'],
          'weights': 'paw2-mic-2020-03-23',
          'crop': lambda x, y: [900, 800, x, y - 100],
-         'postcrop_downsampling': 4},
+         'postcrop_downsampling': 8},
     'tongue':
         {'label': 'tongue',
          'features': ['tube_top', 'tube_bottom'],
@@ -238,7 +238,7 @@ def _s04_resample_paws(file_mp4, force=False):
         return file_out
     _logger.info(f'STEP 04 START resample paws')
     file_out.rename(file_in)
-    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=226:200 -c:v libx264 -crf 23'
+    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=112:100 -c:v libx264 -crf 23'
            f' -c:a copy {file_out}')
     pop = lib.run_command(cmd)
     if pop['process'].returncode != 0:
