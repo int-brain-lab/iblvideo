@@ -249,7 +249,7 @@ def _s04_resample_paws(file_mp4, force=False):
 
 def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=False):
     _logger.info(f'STEP 05 START extract dlc feature {tfile}')
-    deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
+    deeplabcut.analyze_videos(str(dlc_params), [str(tfile)],dynamic=(True,.5,10))
     if create_labels:
         deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
     deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
