@@ -373,7 +373,7 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
         if networks[k]['features'] is None:
             continue
         if k == 'paws':
-            cropped_vid = file_mp4  
+            cropped_vid = file2segment  
         else:
             cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
         if k == 'paws':
