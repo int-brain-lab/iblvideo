@@ -8,8 +8,9 @@ import pandas as pd
 import cv2
 
 import deeplabcut
-import segmentation.lib as lib
-
+#import segmentation.lib as lib
+import lib
+import time
 
 _logger = logging.getLogger('ibllib')
 
@@ -34,10 +35,10 @@ SIDE_FEATURES = {
          'postcrop_downsampling': 1},
     'paws':
         {'label': 'paws',
-         'features': ['nose_tip'],
+         'features': ['nose_tip'],#,
          'weights': 'paw2-mic-2020-03-23',
-         'crop': lambda x, y: [900, 800, x, y - 100],
-         'postcrop_downsampling': 8},
+         'crop': None, # lambda x, y: [900, 800, x, y - 100],
+         'postcrop_downsampling': 10},
     'tongue':
         {'label': 'tongue',
          'features': ['tube_top', 'tube_bottom'],
@@ -227,19 +228,23 @@ def _s04_brightness_eye(file_mp4, force=False):
     return file_out
 
 
-def _s04_resample_paws(file_mp4, force=False):
+def _s04_resample_paws(file_mp4, tdir, force=False):
     """
-       for paws spatial downsampling after cropping in order to speed up
-       processing x16
+       for paws spatial downsampling using the raw video in order to speed up
+       processing x100
     """
-    file_out = file_mp4
-    file_in = file_mp4.parent.joinpath(file_mp4.name.replace('paws', 'paws.big'))
-    if file_in.exists() and not force:
-        return file_out
-    _logger.info(f'STEP 04 START resample paws')
-    file_out.rename(file_in)
-    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=112:100 -c:v libx264 -crf 23'
-           f' -c:a copy {file_out}')
+#    file_out = file_mp4
+#    file_in = file_mp4.parent.joinpath(file_mp4.name.replace('paws', 'paws.big'))
+#    if file_in.exists() and not force:
+#        return file_out
+#    _logger.info(f'STEP 04 START resample paws')
+#    file_out.rename(file_in)
+
+    file_in = file_mp4
+    file_out = Path(tdir) / file_mp4.name.replace('raw', 'paws_downsampled')
+
+    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
+           f' -c:a copy {file_out}')# was 112:100
     pop = lib.run_command(cmd)
     if pop['process'].returncode != 0:
         _logger.error(f"DLC 4/6: Subsampling paws failed: {file_in}")
@@ -276,7 +281,10 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
             continue
         # we need to make sure we use filtered traces
         df = pd.read_hdf(next(tdir.glob(f'*{roi}*filtered.h5')))
-        whxy = np.load(next(tdir.glob(f'*{roi}*.whxy.npy')))
+        if roi == 'paws':
+            whxy = [0,0,0,0]                       
+        else:
+            whxy = np.load(next(tdir.glob(f'*{roi}*.whxy.npy')))
         # get the indices of this multi index hierarchical thing
         # translate and scale the specialized window in the full initial frame
         indices = df.columns.to_flat_index()
@@ -352,6 +360,8 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     :param file_mp4: file to run
     :return: None
     """
+    start_T = time.time() #Time the whole thing
+
     assert path_dlc
     # run steps one by one
     file_mp4, dlc_params, networks, tdir, tfile, file_label = init(file_mp4, path_dlc)
@@ -362,12 +372,15 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     for k in networks:
         if networks[k]['features'] is None:
             continue
-        cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
         if k == 'paws':
-            cropped_vid = _s04_resample_paws(cropped_vid)
+            cropped_vid = file_mp4  
+        else:
+            cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
+        if k == 'paws':
+            cropped_vid = _s04_resample_paws(cropped_vid, tdir)
         if k == 'eye':
             cropped_vid = _s04_brightness_eye(cropped_vid)
-        status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid, create_labels=True)  # GPU dlc
+        status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid)  # GPU dlc
 
     alf_files = _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, status)
 
@@ -376,6 +389,9 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     # shutil.rmtree(tdir)
     if '.raw.transformed' in file2segment.name:
         file2segment.unlink()
+
+    end_T = time.time()
+    print('In total this took: ', end_T - start_T)
     return alf_files
 
 
