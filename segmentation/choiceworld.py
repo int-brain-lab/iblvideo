@@ -8,8 +8,7 @@ import pandas as pd
 import cv2
 
 import deeplabcut
-#import segmentation.lib as lib
-import lib
+import segmentation.lib as lib
 import time
 
 _logger = logging.getLogger('ibllib')
@@ -239,8 +238,8 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
 #        return file_out
 #    _logger.info(f'STEP 04 START resample paws')
 #    file_out.rename(file_in)
-
-    file_in = Path(file_mp4)
+    file_mp4 = Path(file_mp4)
+    file_in = file_mp4
     file_out = Path(tdir) / file_mp4.name.replace('raw', 'paws_downsampled')
 
     cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
