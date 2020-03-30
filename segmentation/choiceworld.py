@@ -2,13 +2,14 @@ from pathlib import Path
 import logging
 import json
 import shutil
-
+import os
 import numpy as np
 import pandas as pd
 import cv2
 
 import deeplabcut
-import segmentation.lib as lib
+#import segmentation.lib as lib
+import lib
 import time
 
 _logger = logging.getLogger('ibllib')
@@ -238,6 +239,7 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
 #        return file_out
 #    _logger.info(f'STEP 04 START resample paws')
 #    file_out.rename(file_in)
+    
     file_mp4 = Path(file_mp4)
     file_in = file_mp4
     file_out = Path(tdir) / file_mp4.name.replace('raw', 'paws_downsampled')
@@ -251,7 +253,7 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
     return file_out
 
 
-def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=False):
+def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=True):
     _logger.info(f'STEP 05 START extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
     if create_labels:
@@ -385,18 +387,20 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
 
     file2segment = Path(file2segment)
     # at the end mop up the mess
-    # shutil.rmtree(tdir)
+    shutil.rmtree(tdir)
     if '.raw.transformed' in file2segment.name:
         file2segment.unlink()
 
-    end_T = time.time()
-    print('In total this took: ', end_T - start_T)
+    end_T = time.time() 
+    # back to home folder else there  are conflicts in a loop
+    os.chdir(Path.home())
+    print('In total this took in [sec]: ', end_T - start_T)
     return alf_files
 
 
 def dlc_parallel(file_mp4, path_dlc):
     # the goal here is to run simultaneously FFMPEG and GPU processes. Maximum speed reached when several files laumched together
-
+    start_T = time.time() #Time the whole thing
     from dask.distributed import LocalCluster, Client
     cluster = LocalCluster(n_workers=1, processes=False, silence_logs=logging.DEBUG,
                            resources={'GPU': 1, 'FFMPEG': 1})
@@ -411,6 +415,7 @@ def dlc_parallel(file_mp4, path_dlc):
     for i, k in enumerate(networks):
         if networks[k]['features'] is None:
             continue
+        
         vid_f = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k], networks[k], resources={'FFMPEG': 1})  # CPU ffmpeg
         if k == 'paws':
             vid_f = client.submit(_s04_resample_paws, vid_f, resources={'FFMPEG': 1}, priority=10)
@@ -424,4 +429,9 @@ def dlc_parallel(file_mp4, path_dlc):
     shutil.rmtree(tdir)
     if '.raw.transformed' in file2segment.result():
         file2segment.unlink()
+
+    end_T = time.time()
+    print('In total this took: ', end_T - start_T)
+
     return alf_files
+
