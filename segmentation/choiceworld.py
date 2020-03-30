@@ -8,8 +8,7 @@ import pandas as pd
 import cv2
 
 import deeplabcut
-#import segmentation.lib as lib
-import lib
+import segmentation.lib as lib
 import time
 
 _logger = logging.getLogger('ibllib')
