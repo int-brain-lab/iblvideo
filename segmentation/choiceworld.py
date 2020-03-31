@@ -78,7 +78,7 @@ RIGHT_VIDEO = {
 
 BODY_VIDEO = {
     'original_size': [1280 // 2, 1024 // 2],
-    'flip': True,
+    'flip': False,
     'features': BODY_FEATURES,
     'sampling': 1,  # sampling factor applied before cropping, if > 1 means upsampling
 }
@@ -252,7 +252,7 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
     return file_out
 
 
-def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=True):
+def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=False):
     _logger.info(f'STEP 05 START extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
     if create_labels:
