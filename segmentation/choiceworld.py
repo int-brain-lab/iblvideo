@@ -202,7 +202,7 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
     whxy = _get_crop_window(df_crop, network)
     pop = lib.run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
     if pop['process'].returncode != 0:
-        _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI {network["name"]}, file: {file_in}')
+        _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI {network["label"]}, file: {file_in}')
     np.save(file_out.parent.joinpath(file_out.stem + '.whxy.npy'), whxy)
     _logger.info(f'STEP 03 STOP cropping {network["label"]}  video')
     return file_out
