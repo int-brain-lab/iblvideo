@@ -4,11 +4,16 @@ import json
 import shutil
 import os
 import numpy as np
-import pandas as pd
+import pandas as pd # (conda install -c anaconda pandas, in case there's a multi index error)
 import cv2
 
 import deeplabcut
 import segmentation.lib as lib
+import time
+
+import deeplabcut
+#import segmentation.lib as lib
+import lib
 import time
 
 _logger = logging.getLogger('ibllib')
@@ -176,7 +181,7 @@ def _s01_subsample(file_in, file_out, force=False):
     return file_out
 
 
-def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
+def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=True):
     """
     step 2 run DLC to detect ROIS
     returns: df_crop, dataframe used to crop video
@@ -209,7 +214,7 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
 
 
 def _s04_brightness_eye(file_mp4, force=False):
-    """
+    """wget -O- http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 | tar xj
        for eye adjusts brightness for better network performance
     """
     file_out = file_mp4
@@ -433,4 +438,3 @@ def dlc_parallel(file_mp4, path_dlc):
     print('In total this took: ', end_T - start_T)
 
     return alf_files
-
