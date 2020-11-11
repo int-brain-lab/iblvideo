@@ -1,1 +1,3 @@
 __pycache__
+.idea/
+*/dask-worker-space/*.lock
