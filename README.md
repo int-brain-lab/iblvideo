@@ -71,11 +71,10 @@ sudo apt install python3.7 python3.7-dev
 python3.7 --version  
 ```
 
-Create and activate a Python 3.7 environment 
+Create and activate a Python 3.7 environment called e.g. dlc_env
 
 ```bash
-cd ~/Documents/PYTHON/envs  
-virtualenv dlc --python=python3.7  
+conda create -n dlc_env python=3.7 
 source ./dlc/bin/activate  
 ```
 
