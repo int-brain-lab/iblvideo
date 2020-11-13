@@ -5,10 +5,10 @@ Mice are filmed in training rigs and recording rigs. In training rigs there is o
  
 ## Feature-tracking in side view videos using DeepLabCut	 	 
 
-DeepLabCut (DLC) was used fro markerless tracking of animal parts in these videos. For each side video we track the following points:	
+DeepLabCut (DLC) is used for markerless tracking of animal parts in these videos. For each side video we track the following points:	
 
 `'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r', 'nose_tip', 'tube_top', 'tube_bottom', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'`
 
-![side_view_points](https://github.com/int-brain-lab/iblvideo/blob/master/DLC_IBL.png)
+![side_view_points](https://github.com/int-brain-lab/iblvideo/blob/master/DLC_IBL.png | width=100)
 
 
