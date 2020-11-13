@@ -19,7 +19,7 @@ In addition, we track the tail end in the body videos:
 
 DLC results are stored at the Flatrion server, with the `dataset_type` being `camera.dlc` and can be searched as any other IBL datatype via ONE. See https://int-brain-lab.github.io/iblenv/ for details.
 
-## Installing this DLC pipeline locally on an IBL server
+## Installing DLC locally on an IBL server
 
 ### Pre-requisites
 
