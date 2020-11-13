@@ -1,11 +1,11 @@
-# Deeplabcut (DLC) in the international brain laboratory (IBL)
+# DeepLabCut (DLC) in the international brain laboratory (IBL)
 ## Video acquisition in IBL 
 
 Mice are filmed in training rigs and recording rigs. In training rigs there is only one side camera recording at full resolution (1280x1024) and 30 Hz. In the recording rigs, there are three cameras, one called 'left' at full resolution 1280x1024 and 60 Hz filming the mouse from one side, one called 'right' at half resolution (640x512) and 150 Hz filming the mouse symmetrically from the other side, and one called 'body' filming the trunk of the mouse from above.    
  
-## Feature-tracking using DeepLabCut	 	 
+## Feature-tracking using DLCut	 	 
 
-DeepLabCut (DLC) is used for markerless tracking of animal parts in these videos, returning for each frame x,y coordinates in px for each point and a likelihood (how certain was the network to have found that point in a specific frame). For each side video we track the following points:	
+DLC is used for markerless tracking of animal parts in these videos, returning for each frame x,y coordinates in px for each point and a likelihood (how certain was the network to have found that point in a specific frame). For each side video we track the following points:	
 
 ```python
 'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r', 'nose_tip', 'tube_top', 'tube_bottom', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'
