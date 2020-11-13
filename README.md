@@ -9,8 +9,6 @@ DeepLabCut (DLC) was used fro markerless tracking of animal parts in these video
 
 `'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r', 'nose_tip', 'tube_top', 'tube_bottom', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'`
 
-
-
-![side_view_points](https://user-images.githubusercontent.com/17218515/52708624-ea099680-2f8a-11e9-884b-6c82b1a54ce7.png)
+![side_view_points](https://github.com/int-brain-lab/iblvideo/blob/master/DLC_IBL.png)
 
 
