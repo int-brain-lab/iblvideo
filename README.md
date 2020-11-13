@@ -48,20 +48,19 @@ https://drive.google.com/open?id=1Ofad1VvHR5s4m-F30jjBUn_9zWjTNwd8
 
 Then unpack the archive and copy the libraries with appropriate permissions:
 
-
-`wget --user iblmember -- password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz`  
-`tar -xvf cudnn-10.0-linux-x64-v7.6.5.32.tgz`  
-`sudo cp cuda/include/cudnn.h /usr/local/cuda-10.0/include`  
-`sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64`  
-`sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*`  
+```bash
+wget --user iblmember -- password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz  
+tar -xvf cudnn-10.0-linux-x64-v7.6.5.32.tgz  
+sudo cp cuda/include/cudnn.h /usr/local/cuda-10.0/include  
+sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64  
+sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*  
+```
 
 ### Install the Python environment with Tensor Flow and Deep Lab Cut 2.1.5.2
 
 Install a few things system wide
 
-
 `sudo apt-get install tk-dev`  
-
 
 Install python3.7
 
