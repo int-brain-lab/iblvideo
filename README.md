@@ -21,12 +21,12 @@ DLC results are stored at the Flatrion server, with the `dataset_type` being `ca
 
 ## Installing this DLC pipeline locally on an IBL server
 
-# Pre-requisites
+### Pre-requisites
 
 Install spike sorting server as per https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4
 Install CUDA libraries matching the TensorFlow version (10.0 for DeepLabCut 2.0 as of January 2020) https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo
 
-# Before starting
+### Before starting
 
 Official installation instructions are here: https://github.com/AlexEMG/DeepLabCut/blob/master/docs/installation.md
 
