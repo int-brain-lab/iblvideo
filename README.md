@@ -21,14 +21,15 @@ DLC results are stored at the Flatrion server, with the `dataset_type` being `ca
 
 ## Installing DLC locally on an IBL server
 
+Official installation instructions for deeplabcut: https://github.com/AlexEMG/DeepLabCut/blob/master/docs/installation.md
+
 ### Pre-requisites
 
 Install spike sorting server as per https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4
+
+### Installation of cuda
+
 Install CUDA libraries matching the TensorFlow version (10.0 for DeepLabCut 2.0 as of January 2020) https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo
-
-### Before starting
-
-Official installation instructions are here: https://github.com/AlexEMG/DeepLabCut/blob/master/docs/installation.md
 
 As mentioned in the CUDA install guide, the installation procedure may differ a bit given the fact that we need to support several CUDA toolkit versions.
 In order to install DLC properly we will have to:
@@ -53,12 +54,14 @@ sudo cp cuda/include/cudnn.h /usr/local/cuda-10.0/include
 sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64
 sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*`
 
-Install the Python environment with Tensor Flow and Deep Lab Cut 2.1.5.2
+### Install the Python environment with Tensor Flow and Deep Lab Cut 2.1.5.2
 
 Install a few things system wide
+
 `sudo apt-get install tk-dev`
 
 Install python3.7
+
 `sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
@@ -66,19 +69,23 @@ sudo apt install python3.7 python3.7-dev
 python3.7 --version`
 
 Create and activate a Python 3.7 environment 
+
 `cd ~/Documents/PYTHON/envs
 virtualenv dlc --python=python3.7
 source ./dlc/bin/activate`
 
 Install packages (please observe order of those commands!)	
+
 `pip install ibllib
 pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl
 pip install tensorflow-gpu==1.13.1
 pip install deeplabcut`
 
+### Test if installation was successful 
 
 Before starting a DLC program or console, make sure you link the proper CUDA version through the LD_LIBRARY_PATH environment variable.
 Then the simplest test to check if it works properly is to import deeplabcut as shown above
+
 `export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH
 source ~/Documents/PYTHON/envs/dlc/bin/activate`
 
