@@ -7,7 +7,9 @@ Mice are filmed in training rigs and recording rigs. In training rigs there is o
 
 DeepLabCut (DLC) is used for markerless tracking of animal parts in these videos, returning for each frame x,y coordinates in px for each point and a likelihood (how certain was the network to have found that point in a specific frame). For each side video we track the following points:	
 
-`'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r', 'nose_tip', 'tube_top', 'tube_bottom', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'`
+```python
+'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r', 'nose_tip', 'tube_top', 'tube_bottom', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'
+```
 
 <img src="https://github.com/int-brain-lab/iblvideo/blob/master/DLC_IBL.png" width="50%" height="50%">
 
@@ -58,49 +60,52 @@ sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/l
 
 ### Install the Python environment with Tensor Flow and Deep Lab Cut 2.1.5.2
 
-Install a few things system wide
+Install a few things system wide and then python3.7
 
-`sudo apt-get install tk-dev`  
-
-Install python3.7
-
-
-`sudo apt update`  
-`sudo apt install software-properties-common`  
-`sudo add-apt-repository ppa:deadsnakes/ppa`  
-`sudo apt install python3.7 python3.7-dev`  
-`python3.7 --version`  
-
+```bash
+sudo apt-get install tk-dev  
+sudo apt update  
+sudo apt install software-properties-common  
+sudo add-apt-repository ppa:deadsnakes/ppa  
+sudo apt install python3.7 python3.7-dev  
+python3.7 --version  
+```
 
 Create and activate a Python 3.7 environment 
 
-
-`cd ~/Documents/PYTHON/envs`  
-`virtualenv dlc --python=python3.7`  
-`source ./dlc/bin/activate`  
+```bash
+cd ~/Documents/PYTHON/envs  
+virtualenv dlc --python=python3.7  
+source ./dlc/bin/activate  
+```
 
 Install packages (please observe order of those commands!)	
 
-`pip install ibllib`  
-`pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl`  
-`pip install tensorflow-gpu==1.13.1`  
-`pip install deeplabcut`  
-
+```bash
+pip install ibllib  
+pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl  
+pip install tensorflow-gpu==1.13.1  
+pip install deeplabcut  
+```
 
 ### Test if installation was successful 
 
 Before starting a DLC program or console, make sure you link the proper CUDA version through the LD_LIBRARY_PATH environment variable.
 Then the simplest test to check if it works properly is to import deeplabcut as shown above
 
+```bash
+export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
+source ~/Documents/PYTHON/envs/dlc/bin/activate 
+```
 
-`export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH`  
-`source ~/Documents/PYTHON/envs/dlc/bin/activate`  
+```bash
+ipython 
+```
 
-
-
-`ipython`  
-`import tensorflow as tf`  
-`import deeplabcut`  
+```ipython
+import tensorflow as tf  
+import deeplabcut  
+```
 
 
 
