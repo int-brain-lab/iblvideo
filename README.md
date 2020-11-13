@@ -102,7 +102,7 @@ source ~/Documents/PYTHON/envs/dlc/bin/activate
 ipython 
 ```
 
-```ipython
+```python
 import tensorflow as tf  
 import deeplabcut  
 ```
