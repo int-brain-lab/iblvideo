@@ -58,6 +58,13 @@ sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64
 sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*  
 ```
 
+Before starting a DLC program or console, make sure you link the proper CUDA version through the LD_LIBRARY_PATH environment variable. 
+
+```bash
+export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
+source ~/Documents/PYTHON/envs/dlc/bin/activate 
+```
+
 ### Install the Python environment with Tensor Flow and Deep Lab Cut 2.1.5.2
 
 Install a few things system wide and then python3.7
@@ -89,13 +96,7 @@ pip install deeplabcut
 
 ### Test if installation was successful 
 
-Before starting a DLC program or console, make sure you link the proper CUDA version through the LD_LIBRARY_PATH environment variable.
-Then the simplest test to check if it works properly is to import deeplabcut as shown above
-
-```bash
-export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
-source ~/Documents/PYTHON/envs/dlc/bin/activate 
-```
+The simplest test to check if it works properly is to import deeplabcut as shown above
 
 ```bash
 ipython 
