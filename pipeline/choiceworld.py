@@ -8,10 +8,6 @@ import pandas as pd # (conda install -c anaconda pandas, in case there's a multi
 import cv2
 
 import deeplabcut
-import segmentation.lib as lib
-import time
-
-import deeplabcut
 #import segmentation.lib as lib
 import lib
 import time
@@ -438,3 +434,4 @@ def dlc_parallel(file_mp4, path_dlc):
     print('In total this took: ', end_T - start_T)
 
     return alf_files
+
