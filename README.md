@@ -81,8 +81,10 @@ python3.7 --version
 Create and activate a Python 3.7 environment called e.g. dlc_env
 
 ```bash
-conda create -n dlc_env python=3.7 
-source ./dlc/bin/activate  
+mkdir ~/Documents/PYTHON/envs
+cd ~/Documents/PYTHON/envs
+virtualenv dlc --python=python3.7
+source ./dlc/bin/activate
 ```
 
 Install packages (please observe order of those commands!)	
@@ -96,18 +98,21 @@ pip install deeplabcut
 
 ### Test if installation was successful 
 
-The simplest test to check if it works properly is to import deeplabcut as shown above
+The simplest test to check if it works properly is to import deeplabcut.
 
+First link the CUDA libraries if not already done
+```bash
+export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
+source ~/Documents/PYTHON/envs/dlc/bin/activate 
+```
+
+Then start Python
 ```bash
 ipython 
 ```
 
+And try importing tensorflow and deeplabcut
 ```python
 import tensorflow as tf  
 import deeplabcut  
 ```
-
-
-
-
-
