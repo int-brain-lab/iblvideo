@@ -81,7 +81,7 @@ python3.7 --version
 Create and activate a Python 3.7 environment called e.g. dlc_env
 
 ```bash
-mkdir ~/Documents/PYTHON/envs
+mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
 virtualenv dlc --python=python3.7
 source ./dlc/bin/activate
