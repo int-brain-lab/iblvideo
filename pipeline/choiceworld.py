@@ -6,11 +6,19 @@ import os
 import numpy as np
 import pandas as pd # (conda install -c anaconda pandas, in case there's a multi index error)
 import cv2
-
+import time
 import deeplabcut
 #import segmentation.lib as lib
-import lib
-import time
+#import lib
+
+
+import importlib.util
+spec = importlib.util.spec_from_file_location('lib','/home/mic/Dropbox/scripts/IBL/DLC_pipeline/lib.py')
+lib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(lib)
+
+
+
 
 _logger = logging.getLogger('ibllib')
 
@@ -177,7 +185,7 @@ def _s01_subsample(file_in, file_out, force=False):
     return file_out
 
 
-def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=True):
+def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     """
     step 2 run DLC to detect ROIS
     returns: df_crop, dataframe used to crop video
@@ -386,8 +394,9 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     alf_files = _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, status)
 
     file2segment = Path(file2segment)
-    # at the end mop up the mess
+    # at the end mop up the mess    
     shutil.rmtree(tdir)
+    
     if '.raw.transformed' in file2segment.name:
         file2segment.unlink()
 
