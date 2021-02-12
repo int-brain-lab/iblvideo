@@ -7,17 +7,11 @@ import numpy as np
 import pandas as pd # (conda install -c anaconda pandas, in case there's a multi index error)
 import cv2
 import time
+from . import lib
+
+import matplotlib
+matplotlib.use('Agg')
 import deeplabcut
-#import segmentation.lib as lib
-#import lib
-
-
-import importlib.util
-spec = importlib.util.spec_from_file_location('lib','/home/mic/Dropbox/scripts/IBL/DLC_pipeline/lib.py')
-lib = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(lib)
-
-
 
 
 _logger = logging.getLogger('ibllib')
