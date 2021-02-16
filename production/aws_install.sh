@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Use p2.xlarge instance with Deep Learning AMI (Ubuntu 18.04) Version 36.0
 # Install requirements for IBL https://docs.google.com/document/d/1_31_4oafqSY8YsOweMXA2jMJOT_4hBrcF1YQWPLCYnc/edit#
