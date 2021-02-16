@@ -1,4 +1,4 @@
-import os
+"""Functions to handle DLC weights."""
 import shutil
 from pathlib import Path
 from datetime import date
@@ -7,12 +7,12 @@ from oneibl.webclient import http_download_file
 
 
 def download_weights_flatiron(version_date=None):
-
+    """Download the DLC weights from FlatIron."""
     # Read one_params file
     par = params.read('one_params')
 
     # Create target directory if it doesn't exist
-    weights_path = Path(par.CACHE_DIR).joinpath('resources','DLC')
+    weights_path = Path(par.CACHE_DIR).joinpath('resources', 'DLC')
     weights_path.mkdir(exist_ok=True, parents=True)
 
     # Check if version date was given, if not use current day
