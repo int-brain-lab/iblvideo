@@ -40,4 +40,6 @@ pip install ibllib
 mkdir ~/dlc
 cd ~/dlc
 git clone https://github.com/int-brain-lab/iblvideo.git --branch aws
+echo
 echo "Installation finished, source sourcefile to set paths"
+echo
