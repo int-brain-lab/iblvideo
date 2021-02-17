@@ -10,10 +10,7 @@ def download_weights_flatiron(version_date=None):
     """Download the DLC weights from FlatIron."""
     # Read one_params file
     par = params.read('one_params')
-
-    # Create target directory if it doesn't exist
-    weights_path = Path(par.CACHE_DIR).joinpath('resources', 'DLC')
-    weights_path.mkdir(exist_ok=True, parents=True)
+    weights_dir = 'resources/DLC'
 
     # Check if version date was given, if not use current day
     if version_date is None:
@@ -22,9 +19,14 @@ def download_weights_flatiron(version_date=None):
     # the available version dates and chooses the one closest before the given
     # date for download.
 
+    # Create target directory if it doesn't exist
+    weights_path = Path(par.CACHE_DIR).joinpath(weights_dir)
+    weights_path.mkdir(exist_ok=True, parents=True)
+
     # Construct URL and call download
-    url = '{}/resources/DLC/DLC_weights_{}.zip'.format(par.HTTP_DATA_SERVER,
-                                                       version_date)
+    url = '{}/{}/DLC_weights_{}.zip'.format(par.HTTP_DATA_SERVER,
+                                            weights_dir,
+                                            version_date)
     file_name = http_download_file(url,
                                    cache_dir=weights_path,
                                    username=par.HTTP_DATA_SERVER_LOGIN,
@@ -33,4 +35,4 @@ def download_weights_flatiron(version_date=None):
     # unzip file
     shutil.unpack_archive(file_name, weights_path)
 
-    return weights_path
+    return Path(file_name.split('.')[0])

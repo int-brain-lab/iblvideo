@@ -3,9 +3,15 @@
 # Use p2.xlarge instance with Deep Learning AMI (Ubuntu 18.04) Version 36.0
 # Install requirements for IBL https://docs.google.com/document/d/1_31_4oafqSY8YsOweMXA2jMJOT_4hBrcF1YQWPLCYnc/edit#
 # As well as requirements for DLC https://github.com/int-brain-lab/iblvide
+
+# First remove anaconda to make space, we will use our own PYTHON
+rm -rf /home/ubuntu/anaconda3
+
+# Make a directory for the virutalenv (consistent with server install)
 mkdir -p ~/Documents/PYTHON
 cd ~/Documents/PYTHON
 
+# Install Ubuntu packages
 sudo apt install -y tmux
 sudo apt install -y virtualenv
 sudo apt install -y git
@@ -16,12 +22,13 @@ sudo apt install -y python3-pip
 sudo apt install -y sox
 sudo apt install -y tk-dev
 sudo apt install -y libnotify-dev libsdl1.2-dev
+sudo apt install -y ffmpeg
 
+# Install Python
+# Here we need to use Python 3.7 as DLC does not currently tensorflow 2, and tensorflow 1 does not work on Python 3.8
 sudo apt update -y
 sudo apt install -y software-properties-common
 sudo add-apt-repository -y ppa:deadsnakes/ppa
-
-# Here we need to use Python 3.7 as DLC does not currently tensorflow 2, and tensorflow 1 does not work on Python 3.8
 sudo apt install -y python3.7 python3.7-dev
 
 # Create virtual env
@@ -41,5 +48,6 @@ mkdir ~/dlc
 cd ~/dlc
 git clone https://github.com/int-brain-lab/iblvideo.git --branch aws
 echo
-echo "Installation finished, source sourcefile to set paths"
+echo "Installation finished."
+echo "Run source /home/ubuntu/dlc/iblvideo/production/sourcefile to set paths."
 echo

@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import cv2
+from dask import delayed
 from dlc_params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, \
                         RIGHT_VIDEO, BODY_VIDEO
 
@@ -54,11 +55,35 @@ def _set_dlc_paths(path_dlc):
                     yaml_data['project_path'], str(yaml_file.parent)))
 
 
+def _dlc_init(file_mp4, path_dlc):
+    """Prepare inputs and create temporary filenames."""
+    # Prepare inputs
+    file_mp4 = Path(file_mp4)  # _iblrig_leftCamera.raw.mp4
+    file_label = file_mp4.stem.split('.')[0].split('_')[-1]
+    if 'bodyCamera' in file_label:
+        networks = BODY_FEATURES
+    else:
+        networks = SIDE_FEATURES
+
+    path_dlc = Path(path_dlc)
+    _set_dlc_paths(path_dlc)
+    dlc_params = {k: path_dlc.joinpath(networks[k]['weights'],
+                  'config.yaml') for k in networks}
+
+    # Create a dictionary with the paths of temporary files
+    raw_video_path = file_mp4.parent
+    tdir = raw_video_path.joinpath(f'dlc_tmp_{file_mp4.name[:-4]}')
+    tdir.mkdir(exist_ok=True)
+    tfile = {k: tdir.joinpath(file_mp4.name.replace('.raw.', f'.{k}.'))
+             for k in networks}
+    tfile['mp4_sub'] = tdir / file_mp4.name.replace('.raw.', '.subsampled.')
+
+    return file_mp4, dlc_params, networks, tdir, tfile, file_label
+
+
 def _get_crop_window(df_crop, network):
     """
     Get average position of a pivot point for autocropping.
-
-    h5 is local file name only;
 
     :param df_crop: data frame from hdf5 file from video data
     :param network: dictionary describing the networks.
@@ -66,8 +91,6 @@ def _get_crop_window(df_crop, network):
     :return: list of floats [width, height, x, y] defining window used for
              ffmpeg crop command
     """
-    # choose parts to find pivot point which is used to crop around a ROI
-
     XYs = []
     for part in network['features']:
         x_values = df_crop[(df_crop.keys()[0][0], part, 'x')].values
@@ -87,6 +110,7 @@ def _get_crop_window(df_crop, network):
     return network['crop'](*xy)
 
 
+@delayed
 def _s00_transform_rightCam(file_mp4):
     """
     Flip and rotate the right cam and increase spatial resolution.
@@ -105,7 +129,7 @@ def _s00_transform_rightCam(file_mp4):
                         f'"transpose=1,transpose=1" -vf hflip {file_out1}')
         pop = _run_command(command_flip)
         if pop['process'].returncode != 0:
-            _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4}'
+            _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4} '
                           + pop['stderr'])
         _logger.info('Oversampling rightCamera video')
         file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
@@ -122,6 +146,7 @@ def _s00_transform_rightCam(file_mp4):
         return file_out2
 
 
+@delayed
 def _s01_subsample(file_in, file_out, force=False):
     """
     Step 1 subsample video for detection.
@@ -157,6 +182,7 @@ def _s01_subsample(file_in, file_out, force=False):
     return file_out
 
 
+@delayed
 def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     """
     Step 2 run DLC to detect ROIS.
@@ -174,6 +200,7 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     return pd.read_hdf(h5_sub)
 
 
+@delayed
 def _s03_crop_videos(df_crop, file_in, file_out, network):
     """
     Step 3 crop videos using ffmpeg.
@@ -195,6 +222,7 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
     return file_out
 
 
+@delayed
 def _s04_brightness_eye(file_mp4, force=False):
     """
     Adjust brightness for eye for better network performance.
@@ -219,6 +247,7 @@ def _s04_brightness_eye(file_mp4, force=False):
     return file_out
 
 
+@delayed
 def _s04_resample_paws(file_mp4, tdir, force=False):
     """For paws, spatially downsample to speed up processing x100."""
     file_mp4 = Path(file_mp4)
@@ -308,7 +337,7 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     return file_alf_dlc, file_meta_data
 
 
-def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
+def dlc(file_mp4, path_dlc=None, force=False):
     """
     Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut.
 
@@ -333,29 +362,13 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     #   _iblrig_leftCamera.tongue.mp4 # tfile['tongue']
     #   _iblrig_leftCamera.pose.mp4 # tfile['pose']
 
-    :param file_mp4: file to run
+    :param file_mp4: Video file to run
+    :param path_dlc: Path to folder with DLC weights
     :return: None
     """
-    # Process inputs
-    file_mp4 = Path(file_mp4)  # _iblrig_leftCamera.raw.mp4
-    file_label = file_mp4.stem.split('.')[0].split('_')[-1]
-    if 'bodyCamera' in file_label:
-        networks = BODY_FEATURES
-    else:
-        networks = SIDE_FEATURES
-
-    path_dlc = Path(path_dlc)
-    _set_dlc_paths(path_dlc)
-    dlc_params = {k: path_dlc.joinpath(networks[k]['weights'],
-                  'config.yaml') for k in networks}
-
-    # Create a dictionary with the paths of temporary files
-    raw_video_path = file_mp4.parent
-    tdir = raw_video_path.joinpath(f'dlc_tmp_{file_mp4.name[:-4]}')
-    tdir.mkdir(exist_ok=True)
-    tfile = {k: tdir.joinpath(file_mp4.name.replace('.raw.', f'.{k}.'))
-             for k in networks}
-    tfile['mp4_sub'] = tdir / file_mp4.name.replace('.raw.', '.subsampled.')
+    # Initiate
+    file_mp4, dlc_params, networks, tdir,\
+        tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
     file2segment = _s00_transform_rightCam(file_mp4)  # CPU pure Python
@@ -390,3 +403,32 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     # Back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())
     return alf_files
+
+
+# def dlc_parallel(file_mp4, path_dlc=None, force=False):
+#     # Initiate
+#     file_mp4, dlc_params, networks, tdir,\
+#         tfile, file_label = _dlc_init(file_mp4, path_dlc)
+#
+#     # Run the processing steps in parallel
+#     file2segment = _s00_transform_rightCam(file_mp4)  # CPU pure Python
+#     file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
+#     df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
+#
+#     for k in networks:
+#         if networks[k]['features'] is None:
+#             continue
+#         if k == 'paws':
+#             cropped_vid = file2segment
+#         else:
+#             cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k],
+#                                            networks[k])   # CPU ffmpeg
+#         if k == 'paws':
+#             cropped_vid = _s04_resample_paws(cropped_vid, tdir)
+#         if k == 'eye':
+#             cropped_vid = _s04_brightness_eye(cropped_vid)
+#         status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid)
+#
+#
+#     alf_files = delayed(_s06_extract_dlc_alf)(tdir, file_label,
+#                                               networks, file_mp4, status)
