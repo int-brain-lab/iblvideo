@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import cv2
-from dask import delayed
 from dlc_params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, \
                         RIGHT_VIDEO, BODY_VIDEO
 
@@ -110,7 +109,6 @@ def _get_crop_window(df_crop, network):
     return network['crop'](*xy)
 
 
-@delayed
 def _s00_transform_rightCam(file_mp4):
     """
     Flip and rotate the right cam and increase spatial resolution.
@@ -146,7 +144,6 @@ def _s00_transform_rightCam(file_mp4):
         return file_out2
 
 
-@delayed
 def _s01_subsample(file_in, file_out, force=False):
     """
     Step 1 subsample video for detection.
@@ -182,7 +179,6 @@ def _s01_subsample(file_in, file_out, force=False):
     return file_out
 
 
-@delayed
 def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     """
     Step 2 run DLC to detect ROIS.
@@ -200,7 +196,6 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     return pd.read_hdf(h5_sub)
 
 
-@delayed
 def _s03_crop_videos(df_crop, file_in, file_out, network):
     """
     Step 3 crop videos using ffmpeg.
@@ -222,7 +217,6 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
     return file_out
 
 
-@delayed
 def _s04_brightness_eye(file_mp4, force=False):
     """
     Adjust brightness for eye for better network performance.
@@ -247,7 +241,6 @@ def _s04_brightness_eye(file_mp4, force=False):
     return file_out
 
 
-@delayed
 def _s04_resample_paws(file_mp4, tdir, force=False):
     """For paws, spatially downsample to speed up processing x100."""
     file_mp4 = Path(file_mp4)
@@ -264,14 +257,15 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
     return file_out
 
 
-def _s05_run_dlc_specialized_networks(dlc_params, tfile, create_labels=False):
+def _s05_run_dlc_specialized_networks(dlc_params, tfile, network,
+                                      create_labels=False):
     _logger.info(f'STEP 05 START extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
     if create_labels:
         deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
     deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
     _logger.info(f'STEP 05 STOP extract dlc feature {tfile}')
-    return
+    return network
 
 
 def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
@@ -375,23 +369,27 @@ def dlc(file_mp4, path_dlc=None, force=False):
     file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
     df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
 
+    networks_run = {}
     for k in networks:
         if networks[k]['features'] is None:
             continue
         if k == 'paws':
-            cropped_vid = file2segment
+            cropped_vid = _s04_resample_paws(file2segment, tdir)
+        elif k == 'eye':
+            cropped_vid_a = _s03_crop_videos(df_crop, file2segment, tfile[k],
+                                             networks[k])   # CPU ffmpeg
+            cropped_vid = _s04_brightness_eye(cropped_vid_a)
         else:
             cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k],
                                            networks[k])   # CPU ffmpeg
-        if k == 'paws':
-            cropped_vid = _s04_resample_paws(cropped_vid, tdir)
-        if k == 'eye':
-            cropped_vid = _s04_brightness_eye(cropped_vid)
-        status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid)
+        network_run = _s05_run_dlc_specialized_networks(dlc_params[k],
+                                                        cropped_vid,
+                                                        networks[k])
         # GPU dlc
+        networks_run[k] = network_run
 
     alf_files = _s06_extract_dlc_alf(tdir, file_label,
-                                     networks, file_mp4, status)
+                                     networks_run, file_mp4)
 
     file2segment = Path(file2segment)
     # at the end mop up the mess
@@ -403,32 +401,3 @@ def dlc(file_mp4, path_dlc=None, force=False):
     # Back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())
     return alf_files
-
-
-# def dlc_parallel(file_mp4, path_dlc=None, force=False):
-#     # Initiate
-#     file_mp4, dlc_params, networks, tdir,\
-#         tfile, file_label = _dlc_init(file_mp4, path_dlc)
-#
-#     # Run the processing steps in parallel
-#     file2segment = _s00_transform_rightCam(file_mp4)  # CPU pure Python
-#     file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
-#     df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
-#
-#     for k in networks:
-#         if networks[k]['features'] is None:
-#             continue
-#         if k == 'paws':
-#             cropped_vid = file2segment
-#         else:
-#             cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k],
-#                                            networks[k])   # CPU ffmpeg
-#         if k == 'paws':
-#             cropped_vid = _s04_resample_paws(cropped_vid, tdir)
-#         if k == 'eye':
-#             cropped_vid = _s04_brightness_eye(cropped_vid)
-#         status = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid)
-#
-#
-#     alf_files = delayed(_s06_extract_dlc_alf)(tdir, file_label,
-#                                               networks, file_mp4, status)
