@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import cv2
+import time
 from dlc_params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, \
                         RIGHT_VIDEO, BODY_VIDEO
 
@@ -360,6 +361,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
     :param path_dlc: Path to folder with DLC weights
     :return: None
     """
+    start_T = time.time()
     # Initiate
     file_mp4, dlc_params, networks, tdir,\
         tfile, file_label = _dlc_init(file_mp4, path_dlc)
@@ -400,4 +402,8 @@ def dlc(file_mp4, path_dlc=None, force=False):
 
     # Back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())
+    end_T = time.time()
+    print(file_label)
+    print('In total this took: ', end_T - start_T)
+
     return alf_files

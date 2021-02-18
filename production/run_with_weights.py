@@ -12,4 +12,3 @@ files_mp4 = one.load(eid, dataset_types=['_iblrig_Camera.raw'],
                      download_only=True)
 
 alf_files = dlc_parallel(files_mp4[0], path_dlc)
-print(alf_files)

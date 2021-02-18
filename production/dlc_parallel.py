@@ -2,6 +2,7 @@
 import deeplabcut
 import os
 import shutil
+import time
 import logging
 import subprocess
 import json
@@ -413,6 +414,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
 
 def dlc_parallel(file_mp4, path_dlc=None, force=False):
     """Run DLC analysis in parallel using dask."""
+    start_T = time.time()
     # Initiate
     file_mp4, dlc_params, networks, tdir,\
         tfile, file_label = _dlc_init(file_mp4, path_dlc)
@@ -449,7 +451,17 @@ def dlc_parallel(file_mp4, path_dlc=None, force=False):
     # at the end mop up the mess
     shutil.rmtree(tdir)
 
+    # removed flipped right camera if applicable
+    flipped_cam = Path(str(file_mp4).replace('.raw.mp4',
+                                             '.raw.transformed.mp4'))
+    if os.path.exists(flipped_cam):
+        os.remove(flipped_cam)
+
     # Back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())
+
+    end_T = time.time()
+    print(file_label)
+    print('In total this took: ', end_T - start_T)
 
     return alf_files
