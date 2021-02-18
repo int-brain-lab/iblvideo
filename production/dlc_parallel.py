@@ -328,8 +328,8 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
 
     # write the ALF files without depending on ibllib
     file_alf_dlc = raw_video_path.joinpath(f'_ibl_{file_label}.dlc.npy')
-    file_meta_data = raw_video_path.joinpath(f'_ibl_\
-                                             {file_label}.dlc.metadata.json')
+    file_meta_data =\
+        raw_video_path.joinpath(f'_ibl_{file_label}.dlc.metadata.json')
 
     np.save(file_alf_dlc, A)
     with open(file_meta_data, 'w+') as fid:
@@ -448,10 +448,6 @@ def dlc_parallel(file_mp4, path_dlc=None, force=False):
 
     # at the end mop up the mess
     shutil.rmtree(tdir)
-
-    file2segment = Path(file2segment)
-    if '.raw.transformed' in file2segment.name:
-        file2segment.unlink()
 
     # Back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())

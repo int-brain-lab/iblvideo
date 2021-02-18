@@ -38,10 +38,13 @@ virtualenv dlcenv --python=python3.7
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 
 #Install dlc and ibllib (in this order, ignore the numpy version warning for deeplabcut)
+pip install "dask[complete]"
 pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl
 pip install tensorflow-gpu==1.13.1
 pip install deeplabcut
 pip install ibllib
+
+
 
 # clone iblvideo
 mkdir ~/dlc
