@@ -291,6 +291,8 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
                     df[ind] = df[ind].apply(lambda x: video_params['original_size'][0] - x)
             elif ind[-1] == 'y':
                 df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[3]) * pre_crop_scale)
+        columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
+        df.columns = columns
         # concatenate this in a flat dataframe
         if 'df_full' not in locals():
             df_full = df.copy()
