@@ -11,8 +11,7 @@ import numpy as np
 import pandas as pd
 import cv2
 import time
-from dlc_params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, \
-                        RIGHT_VIDEO, BODY_VIDEO
+from dlc_params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 
 _logger = logging.getLogger('ibllib')
 
@@ -67,15 +66,13 @@ def _dlc_init(file_mp4, path_dlc):
 
     path_dlc = Path(path_dlc)
     _set_dlc_paths(path_dlc)
-    dlc_params = {k: path_dlc.joinpath(networks[k]['weights'],
-                  'config.yaml') for k in networks}
+    dlc_params = {k: path_dlc.joinpath(networks[k]['weights'], 'config.yaml') for k in networks}
 
     # Create a dictionary with the paths of temporary files
     raw_video_path = file_mp4.parent
     tdir = raw_video_path.joinpath(f'dlc_tmp_{file_mp4.name[:-4]}')
     tdir.mkdir(exist_ok=True)
-    tfile = {k: tdir.joinpath(file_mp4.name.replace('.raw.', f'.{k}.'))
-             for k in networks}
+    tfile = {k: tdir.joinpath(file_mp4.name.replace('.raw.', f'.{k}.')) for k in networks}
     tfile['mp4_sub'] = tdir / file_mp4.name.replace('.raw.', '.subsampled.')
 
     return file_mp4, dlc_params, networks, tdir, tfile, file_label
@@ -95,8 +92,7 @@ def _get_crop_window(df_crop, network):
     for part in network['features']:
         x_values = df_crop[(df_crop.keys()[0][0], part, 'x')].values
         y_values = df_crop[(df_crop.keys()[0][0], part, 'y')].values
-        likelyhoods = df_crop[(df_crop.keys()[0][0],
-                               part, 'likelihood')].values
+        likelyhoods = df_crop[(df_crop.keys()[0][0], part, 'likelihood')].values
 
         mx = np.ma.masked_where(likelyhoods < 0.9, x_values)
         x = np.ma.compressed(mx)
@@ -128,8 +124,7 @@ def _s00_transform_rightCam(file_mp4):
                         f'"transpose=1,transpose=1" -vf hflip {file_out1}')
         pop = _run_command(command_flip)
         if pop['process'].returncode != 0:
-            _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4} '
-                          + pop['stderr'])
+            _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4} ' + pop['stderr'])
         _logger.info('Oversampling rightCamera video')
         file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
 
@@ -137,8 +132,7 @@ def _s00_transform_rightCam(file_mp4):
                             f'-vf scale=1280:1024 {file_out2}')
         pop = _run_command(command_upsample)
         if pop['process'].returncode != 0:
-            _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}'
-                          + pop['stderr'])
+            _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}' + pop['stderr'])
         Path(file_out1).unlink()
         _logger.info('STEP 00 STOP Flipping and turning rightCamera video')
 
@@ -151,8 +145,7 @@ def _s01_subsample(file_in, file_out, force=False):
 
     Put 500 uniformly sampled frames into new video.
     """
-    _logger.info(f"STEP 01 Generating sparse frame video {file_out} \
-                 for posture detection")
+    _logger.info(f"STEP 01 Generating sparse frame video {file_out} for posture detection")
     file_in = Path(file_in)
     file_out = Path(file_out)
 
@@ -167,16 +160,14 @@ def _s01_subsample(file_in, file_out, force=False):
     samples = np.int32(np.round(np.linspace(0, frameCount - 1, nsamples)))
 
     size = (int(cap.get(3)), int(cap.get(4)))
-    out = cv2.VideoWriter(str(file_out), cv2.VideoWriter_fourcc(*'mp4v'),
-                          5, size)
+    out = cv2.VideoWriter(str(file_out), cv2.VideoWriter_fourcc(*'mp4v'), 5, size)
     for i in samples:
         cap.set(1, i)
         _, frame = cap.read()
         out.write(frame)
 
     out.release()
-    _logger.info(f"STEP 01 STOP Generating sparse frame video {file_out} \
-                 for posture detection")
+    _logger.info(f"STEP 01 STOP Generating sparse frame video {file_out} for posture detection")
     return file_out
 
 
@@ -187,11 +178,9 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
     returns: df_crop, dataframe used to crop video
     """
     _logger.info(f"STEP 02 START Posture detection {sparse_video}")
-    out = deeplabcut.analyze_videos(dlc_params['roi_detect'],
-                                    [str(sparse_video)])
+    out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
     if create_labels:
-        deeplabcut.create_labeled_video(dlc_params['roi_detect'],
-                                        [str(sparse_video)])
+        deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
     h5_sub = next(tpath.glob(f'*{out}*.h5'), None)
     _logger.info(f"STEP 02 END Posture detection {sparse_video}")
     return pd.read_hdf(h5_sub)
@@ -204,12 +193,10 @@ def _s03_crop_videos(df_crop, file_in, file_out, network):
     returns: dictionary of cropping coordinates relative to upper left corner
     """
     _logger.info(f'STEP 03 START cropping {network["label"]}  video')
-    crop_command = (
-        'ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
-        '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
+    crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
+                    '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
     whxy = _get_crop_window(df_crop, network)
-    pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out,
-                                           w=whxy))
+    pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
     if pop['process'].returncode != 0:
         _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI \
                       {network["label"]}, file: {file_in}')
@@ -225,19 +212,16 @@ def _s04_brightness_eye(file_mp4, force=False):
     wget -O- http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 | tar xj
     """
     file_out = file_mp4
-    file_in = file_mp4.parent.joinpath(file_mp4.name.replace('eye',
-                                                             'eye.nobright'))
+    file_in = file_mp4.parent.joinpath(file_mp4.name.replace('eye', 'eye.nobright'))
     if file_in.exists() and not force:
         return file_out
     _logger.info('STEP 04 START Adjusting eye brightness')
     file_out.rename(file_in)
     cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
-           f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 \
-           -c:a copy {file_out}')
+           f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
     pop = _run_command(cmd)
     if pop['process'].returncode != 0:
-        _logger.error(f"DLC 4/6: (str(dlc_params), [str(tfile)]) failed: \
-                      {file_in}")
+        _logger.error(f"DLC 4/6: (str(dlc_params), [str(tfile)]) failed: {file_in}")
     _logger.info('STEP 04 STOP Adjusting eye brightness')
     return file_out
 
@@ -248,8 +232,7 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
     file_in = file_mp4
     file_out = Path(tdir) / file_mp4.name.replace('raw', 'paws_downsampled')
 
-    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 \
-           -c:v libx264 -crf 23'
+    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
            f' -c:a copy {file_out}')  # was 112:100
     pop = _run_command(cmd)
     if pop['process'].returncode != 0:
@@ -258,8 +241,7 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
     return file_out
 
 
-def _s05_run_dlc_specialized_networks(dlc_params, tfile, network,
-                                      create_labels=False):
+def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False):
     _logger.info(f'STEP 05 START extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
     if create_labels:
@@ -283,7 +265,10 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     elif 'rightCamera' in file_label:
         video_params = RIGHT_VIDEO
 
-    raw_video_path = tdir.parent
+    # Create alf path to store final files
+    alf_path = tdir.parent.parent.joinpath('alf')
+    alf_path.mkdir(exist_ok=True, parents=True)
+
     columns = []
     for roi in networks:
         if networks[roi]['features'] is None:
@@ -301,17 +286,11 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
         pre_crop_scale = 1.0 / video_params['sampling']
         for ind in indices:
             if ind[-1] == 'x':
-                df[ind] = df[ind].apply(lambda x:
-                                        (x * post_crop_scale + whxy[2])
-                                        * pre_crop_scale)
+                df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[2]) * pre_crop_scale)
                 if video_params['flip']:
-                    df[ind] = df[ind].apply(lambda x:
-                                            video_params['original_size'][0]
-                                            - x)
+                    df[ind] = df[ind].apply(lambda x: video_params['original_size'][0] - x)
             elif ind[-1] == 'y':
-                df[ind] = df[ind].apply(lambda x:
-                                        (x * post_crop_scale + whxy[3])
-                                        * pre_crop_scale)
+                df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[3]) * pre_crop_scale)
         # concatenate this in a flat matrix
         columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
         if 'A' not in locals():
@@ -320,9 +299,8 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     assert (len(columns) == A.shape[1])
 
     # write the ALF files without depending on ibllib
-    file_alf_dlc = raw_video_path.joinpath(f'_ibl_{file_label}.dlc.npy')
-    file_meta_data = raw_video_path.joinpath(f'_ibl_\
-                                             {file_label}.dlc.metadata.json')
+    file_alf_dlc = alf_path.joinpath(f'_ibl_{file_label}.dlc.npy')
+    file_meta_data = alf_path.joinpath(f'_ibl_{file_label}.dlc.metadata.json')
 
     np.save(file_alf_dlc, A)
     with open(file_meta_data, 'w+') as fid:
@@ -363,8 +341,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
     """
     start_T = time.time()
     # Initiate
-    file_mp4, dlc_params, networks, tdir,\
-        tfile, file_label = _dlc_init(file_mp4, path_dlc)
+    file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
     file2segment = _s00_transform_rightCam(file_mp4)  # CPU pure Python
@@ -378,20 +355,14 @@ def dlc(file_mp4, path_dlc=None, force=False):
         if k == 'paws':
             cropped_vid = _s04_resample_paws(file2segment, tdir)
         elif k == 'eye':
-            cropped_vid_a = _s03_crop_videos(df_crop, file2segment, tfile[k],
-                                             networks[k])   # CPU ffmpeg
+            cropped_vid_a = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])
             cropped_vid = _s04_brightness_eye(cropped_vid_a)
         else:
-            cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k],
-                                           networks[k])   # CPU ffmpeg
-        network_run = _s05_run_dlc_specialized_networks(dlc_params[k],
-                                                        cropped_vid,
-                                                        networks[k])
-        # GPU dlc
+            cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])
+        network_run = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid, networks[k])
         networks_run[k] = network_run
 
-    alf_files = _s06_extract_dlc_alf(tdir, file_label,
-                                     networks_run, file_mp4)
+    out_file = _s06_extract_dlc_alf(tdir, file_label, networks_run, file_mp4)
 
     file2segment = Path(file2segment)
     # at the end mop up the mess
@@ -406,4 +377,4 @@ def dlc(file_mp4, path_dlc=None, force=False):
     print(file_label)
     print('In total this took: ', end_T - start_T)
 
-    return alf_files
+    return out_file
