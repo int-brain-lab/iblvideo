@@ -291,23 +291,18 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
                     df[ind] = df[ind].apply(lambda x: video_params['original_size'][0] - x)
             elif ind[-1] == 'y':
                 df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[3]) * pre_crop_scale)
-        # concatenate this in a flat matrix
-        columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
-        if 'A' not in locals():
-            A = np.zeros([df.shape[0], 0], np.float)
-        A = np.c_[A, np.array(df).astype(np.float)]
-    assert (len(columns) == A.shape[1])
+        # concatenate this in a flat dataframe
+        if 'df_full' not in locals():
+            df_full = df.copy()
+        else:
+            df_full.append(df, ignore_index=True)
 
-    # write the ALF files without depending on ibllib
-    file_alf_dlc = alf_path.joinpath(f'_ibl_{file_label}.dlc.npy')
-    file_meta_data = alf_path.joinpath(f'_ibl_{file_label}.dlc.metadata.json')
-
-    np.save(file_alf_dlc, A)
-    with open(file_meta_data, 'w+') as fid:
-        fid.write(json.dumps({'columns': columns}, indent=1))
+    # save in alf path
+    file_alf = alf_path.joinpath(f'_ibl_{file_label}.dlc.pqt')
+    df_full.to_parquet(file_alf)
 
     _logger.info('STEP 06 STOP wrap-up and extract ALF files')
-    return file_alf_dlc, file_meta_data
+    return file_alf
 
 
 def dlc(file_mp4, path_dlc=None, force=False):
@@ -321,8 +316,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
     3- crop videos for each ROIs using ffmpeg, subsample paws videos
     4- downsample the paw videos
     5- run DLC specialized networks on each ROIs
-    6- output ALF dataset for the raw DLC output in
-       ./session/alf/_ibl_leftCamera.dlc.json
+    6- output ALF dataset for the raw DLC output
 
     # This is a directory tree of the temporary files created
     # ./raw_video_data/dlc_tmp/  # tpath: temporary path
