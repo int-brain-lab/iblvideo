@@ -8,13 +8,13 @@ Mice are filmed in training rigs and recording rigs. In training rigs there is o
 DLC is used for markerless tracking of animal parts in these videos, returning for each frame x,y coordinates in px for each point and a likelihood (how certain was the network to have found that point in a specific frame). For each side video we track the following points:
 
 ```python
-'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r', 'nose_tip',
-'tube_top', 'tube_bottom', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'
+'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r',
+'nose_tip', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'
 ```
 
 <img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/side_view.png" width="50%" height="50%">
 
-In addition, we track the tail end in the body videos:
+In addition, we track the `'tail_start'` in the body videos:
 
 <img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/body_view.png" width="50%" height="50%">
 
@@ -30,7 +30,7 @@ Install local server as per [this instruction](https://docs.google.com/document/
 
 Install CUDA 10.0 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo) to match the TensorFlow version 1.13.1 required for DLC.
 
-Install cuDNN, an extension of the Cuda Toolkit for deep neural networks. Download cuDNN from FlatIron as shown below, or find it online.
+Install cuDNN, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
 
 ```bash
 wget --user iblmember -- password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz  
@@ -40,7 +40,7 @@ sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64
 sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*  
 ```
 
-Before starting a DLC program or console, make sure you link the proper CUDA version through the LD_LIBRARY_PATH environment variable.
+Before starting a DLC program or console, make sure you point to the proper CUDA version through the LD_LIBRARY_PATH environment variable.
 
 ```bash
 export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
