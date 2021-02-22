@@ -1,0 +1,2 @@
+export PYTHONPATH=$PYTHONPATH:/home/ubuntu/dlc/iblvideo/production
+source /home/ubuntu/Documents/PYTHON/envs/dlcenv/bin/activate
