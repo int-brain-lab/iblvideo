@@ -1,5 +1,5 @@
 """Functions to run DLC on IBL data with existing networks."""
-import deeplabcut
+#import deeplabcut
 import os
 import shutil
 import logging
@@ -319,20 +319,9 @@ def dlc(file_mp4, path_dlc=None, force=False):
     5- run DLC specialized networks on each ROIs
     6- output ALF dataset for the raw DLC output
 
-    # This is a directory tree of the temporary files created
-    # ./raw_video_data/dlc_tmp/  # tpath: temporary path
-    #   _iblrig_leftCamera.raw.mp4'  # file_mp4
-    #   _iblrig_leftCamera.subsampled.mp4  # file_temp['mp4_sub']
-    #   _iblrig_leftCamera.subsampledDeepCut_resnet50_trainingRigFeb11shuffle1_550000.h5
-    # tfile['h5_sub']
-    #   _iblrig_leftCamera.eye.mp4 # tfile['eye']
-    #   _iblrig_leftCamera.nose_tip.mp4 # tfile['nose_tip']
-    #   _iblrig_leftCamera.tongue.mp4 # tfile['tongue']
-    #   _iblrig_leftCamera.pose.mp4 # tfile['pose']
-
     :param file_mp4: Video file to run
     :param path_dlc: Path to folder with DLC weights
-    :return: None
+    :return out_file: Path to DLC table in parquet file format
     """
     start_T = time.time()
     # Initiate
@@ -373,3 +362,65 @@ def dlc(file_mp4, path_dlc=None, force=False):
     print('In total this took: ', end_T - start_T)
 
     return out_file
+
+
+def dlc_parallel(file_mp4, path_dlc=None, force=False):
+    """
+    Run dlc in parallel.
+    """
+    import dask
+    from dask.distributed import LocalCluster, Client
+
+    with dask.config.set({"distributed.worker.resources.GPU": 2}):
+        cluster = LocalCluster()
+    client = Client(cluster)
+
+    start_T = time.time()
+    # Initiate
+    file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
+
+    # Run the processing steps in order
+    file2segment = dask.delayed(_s00_transform_rightCam)(file_mp4)  # CPU pure Python
+    file_sparse = dask.delayed(_s01_subsample)(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
+    df_crop = dask.delayed(_s02_detect_rois)(tdir, file_sparse, dlc_params)   # GPU dlc
+
+    networks_run = {}
+    for k in networks:
+        if networks[k]['features'] is None:
+            continue
+        if k == 'paws':
+            cropped_vid = dask.delayed(_s04_resample_paws)(file2segment, tdir)
+        elif k == 'eye':
+            cropped_vid_a = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k],
+                                                           networks[k])
+            cropped_vid = dask.delayed(_s04_brightness_eye)(cropped_vid_a)
+        else:
+            cropped_vid = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k],
+                                                         networks[k])
+        network_run = dask.delayed(_s05_run_dlc_specialized_networks)(dlc_params[k], cropped_vid,
+                                                                      networks[k])
+        networks_run[k] = network_run
+
+    pipeline = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, networks_run, file_mp4)
+
+    client.submit(pipeline.compute())
+
+    # file2segment = Path(file2segment)
+    # at the end mop up the mess
+    # shutil.rmtree(tdir)
+
+    # if '.raw.transformed' in file2segment.name:
+    #     file2segment.unlink()
+    # removed flipped right camera if applicable
+    # flipped_cam = Path(str(file_mp4).replace('.raw.mp4',
+    #                                          '.raw.transformed.mp4'))
+    # if os.path.exists(flipped_cam):
+    #     os.remove(flipped_cam)
+
+    # Back to home folder else there  are conflicts in a loop
+    os.chdir(Path.home())
+    end_T = time.time()
+    print(file_label)
+    print('In total this took: ', end_T - start_T)
+
+    # return out_file
