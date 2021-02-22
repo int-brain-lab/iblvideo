@@ -1,5 +1,5 @@
 """Functions to run DLC on IBL data with existing networks."""
-#import deeplabcut
+import deeplabcut
 import os
 import shutil
 import logging
@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import cv2
 import time
-from dlc_params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
+from params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 
 _logger = logging.getLogger('ibllib')
 
