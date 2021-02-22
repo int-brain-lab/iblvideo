@@ -11,11 +11,11 @@ DLC is used for markerless tracking of animal parts in these videos, returning f
 'pupil_top_r', 'pupil_right_r', 'pupil_bottom_r', 'pupil_left_r', 'nose_tip', 'tube_top', 'tube_bottom', 'tongue_end_r', 'tongue_end_l', 'paw_r', 'paw_l'
 ```
 
-<img src="https://github.com/int-brain-lab/iblvideo/blob/master/DLC_IBL.png" width="50%" height="50%">
+<img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/side_view.png" width="50%" height="50%">
 
 In addition, we track the tail end in the body videos:
 
-<img src="https://github.com/int-brain-lab/iblvideo/blob/master/Screenshot%20from%202020-11-13%2011-00-15.png" width="50%" height="50%">
+<img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/body_view.png" width="50%" height="50%">
 
 ## Accessing results
 
