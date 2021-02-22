@@ -4,7 +4,6 @@ import os
 import shutil
 import logging
 import subprocess
-import json
 import yaml
 from pathlib import Path
 import numpy as np
