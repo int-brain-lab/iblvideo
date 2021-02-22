@@ -7,11 +7,17 @@ import numpy as np
 import pandas as pd # (conda install -c anaconda pandas, in case there's a multi index error)
 import cv2
 import time
-from . import lib
-
-import matplotlib
-matplotlib.use('Agg')
 import deeplabcut
+#import segmentation.lib as lib
+#import lib
+
+
+import importlib.util
+spec = importlib.util.spec_from_file_location('lib','/home/mic/Dropbox/scripts/IBL/DLC_pipeline/lib.py')
+lib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(lib)
+
+
 
 
 _logger = logging.getLogger('ibllib')
@@ -241,7 +247,7 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
 #        return file_out
 #    _logger.info(f'STEP 04 START resample paws')
 #    file_out.rename(file_in)
-
+    
     file_mp4 = Path(file_mp4)
     file_in = file_mp4
     file_out = Path(tdir) / file_mp4.name.replace('raw', 'paws_downsampled')
@@ -285,7 +291,7 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
         # we need to make sure we use filtered traces
         df = pd.read_hdf(next(tdir.glob(f'*{roi}*filtered.h5')))
         if roi == 'paws':
-            whxy = [0,0,0,0]
+            whxy = [0,0,0,0]                       
         else:
             whxy = np.load(next(tdir.glob(f'*{roi}*.whxy.npy')))
         # get the indices of this multi index hierarchical thing
@@ -376,7 +382,7 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
         if networks[k]['features'] is None:
             continue
         if k == 'paws':
-            cropped_vid = file2segment
+            cropped_vid = file2segment  
         else:
             cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])   # CPU ffmpeg
         if k == 'paws':
@@ -394,7 +400,7 @@ def dlc(file_mp4, path_dlc=None, force=False, parallel=False):
     if '.raw.transformed' in file2segment.name:
         file2segment.unlink()
 
-    end_T = time.time()
+    end_T = time.time() 
     # back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())
     print('In total this took in [sec]: ', end_T - start_T)
@@ -418,7 +424,7 @@ def dlc_parallel(file_mp4, path_dlc):
     for i, k in enumerate(networks):
         if networks[k]['features'] is None:
             continue
-
+        
         vid_f = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k], networks[k], resources={'FFMPEG': 1})  # CPU ffmpeg
         if k == 'paws':
             vid_f = client.submit(_s04_resample_paws, vid_f, resources={'FFMPEG': 1}, priority=10)
@@ -437,3 +443,4 @@ def dlc_parallel(file_mp4, path_dlc):
     print('In total this took: ', end_T - start_T)
 
     return alf_files
+
