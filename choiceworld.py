@@ -370,48 +370,48 @@ def dlc_parallel(file_mp4, path_dlc=None, force=False):
     Run dlc in parallel.
     """
 
-import dask
-cluster, client = create_cpu_gpu_cluster()
+    import dask
+    cluster, client = create_cpu_gpu_cluster()
 
-start_T = time.time()
-# Initiate
-file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
+    start_T = time.time()
+    # Initiate
+    file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
-# Run the processing steps in order
-file2segment = dask.delayed(_s00_transform_rightCam)(file_mp4, tdir)  # CPU
-client.submit(file2segment, workers=[cluster.workers['CPU'].address])
+    # Run the processing steps in order
+    file2segment = dask.delayed(_s00_transform_rightCam)(file_mp4, tdir)  # CPU
+    client.submit(file2segment, workers=[cluster.workers['CPU'].address])
 
-file_sparse = dask.delayed(_s01_subsample)(file2segment, tfile['mp4_sub'])  # CPU
-client.submit(file_sparse, workers=[cluster.workers['CPU'].address])
+    file_sparse = dask.delayed(_s01_subsample)(file2segment, tfile['mp4_sub'])  # CPU
+    client.submit(file_sparse, workers=[cluster.workers['CPU'].address])
 
-df_crop = dask.delayed(_s02_detect_rois)(tdir, file_sparse, dlc_params)  # GPU
-client.submit(df_crop, workers=[cluster.workers['GPU'].address])
+    df_crop = dask.delayed(_s02_detect_rois)(tdir, file_sparse, dlc_params)  # GPU
+    client.submit(df_crop, workers=[cluster.workers['GPU'].address])
 
-networks_run = {}
-for k in networks:
-    if networks[k]['features'] is None:
-        continue
-    if k == 'paws':
-        cropped_vid = dask.delayed(_s04_resample_paws)(file2segment, tdir)
-    elif k == 'eye':
-        cropped_vid_a = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k],
-                                                       networks[k])
-        client.submit(cropped_vid_a, workers=[cluster.workers['CPU'].address])
-        cropped_vid = dask.delayed(_s04_brightness_eye)(cropped_vid_a)
-    else:
-        cropped_vid = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k],
-                                                     networks[k])
+    networks_run = {}
+    for k in networks:
+        if networks[k]['features'] is None:
+            continue
+        if k == 'paws':
+            cropped_vid = dask.delayed(_s04_resample_paws)(file2segment, tdir)
+        elif k == 'eye':
+            cropped_vid_a = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k],
+                                                           networks[k])
+            client.submit(cropped_vid_a, workers=[cluster.workers['CPU'].address])
+            cropped_vid = dask.delayed(_s04_brightness_eye)(cropped_vid_a)
+        else:
+            cropped_vid = dask.delayed(_s03_crop_videos)(df_crop, file2segment, tfile[k],
+                                                         networks[k])
 
-    client.submit(cropped_vid, workers=[cluster.workers['CPU'].address])
+        client.submit(cropped_vid, workers=[cluster.workers['CPU'].address])
 
-    network_run = dask.delayed(_s05_run_dlc_specialized_networks)(dlc_params[k], cropped_vid,
-                                                                  networks[k])
-    client.submit(network_run, workers=[cluster.workers['CPU'].address])
-    networks_run[k] = network_run
+        network_run = dask.delayed(_s05_run_dlc_specialized_networks)(dlc_params[k], cropped_vid,
+                                                                      networks[k])
+        client.submit(network_run, workers=[cluster.workers['CPU'].address])
+        networks_run[k] = network_run
 
-pipeline = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, networks_run, file_mp4)
-future = client.compute(pipeline)
-out_file = future.result()
+    pipeline = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, networks_run, file_mp4)
+    future = client.compute(pipeline)
+    out_file = future.result()
 
     shutil.rmtree(tdir)
 
