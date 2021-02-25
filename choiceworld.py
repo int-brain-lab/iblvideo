@@ -269,7 +269,6 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     alf_path = tdir.parent.parent.joinpath('alf')
     alf_path.mkdir(exist_ok=True, parents=True)
 
-    columns = []
     for roi in networks:
         if networks[roi]['features'] is None:
             continue
@@ -279,25 +278,28 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
             whxy = [0, 0, 0, 0]
         else:
             whxy = np.load(next(tdir.glob(f'*{roi}*.whxy.npy')))
-        # get the indices of this multi index hierarchical thing
+
+        # Simplify the indices of the multi index df
+        columns = [f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()]
+        df.columns = columns
+
         # translate and scale the specialized window in the full initial frame
-        indices = df.columns.to_flat_index()
         post_crop_scale = networks[roi]['postcrop_downsampling']
         pre_crop_scale = 1.0 / video_params['sampling']
-        for ind in indices:
+        for ind in columns:
             if ind[-1] == 'x':
                 df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[2]) * pre_crop_scale)
                 if video_params['flip']:
                     df[ind] = df[ind].apply(lambda x: video_params['original_size'][0] - x)
             elif ind[-1] == 'y':
                 df[ind] = df[ind].apply(lambda x: (x * post_crop_scale + whxy[3]) * pre_crop_scale)
-        columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
-        df.columns = columns
-        # concatenate this in a flat dataframe
+
+        # concatenate this in one dataframe for all networks
         if 'df_full' not in locals():
             df_full = df.copy()
         else:
-            df_full.append(df, ignore_index=True)
+            df_full = pd.concat([df_full.reset_index(drop=True),
+                                 df.reset_index(drop=True)], axis=1)
 
     # save in alf path
     file_alf = alf_path.joinpath(f'_ibl_{file_label}.dlc.pqt')
