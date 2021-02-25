@@ -331,7 +331,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
-    file2segment = _s00_transform_rightCam(file_mp4)  # CPU pure Python
+    file2segment = _s00_transform_rightCam(file_mp4, tdir)  # CPU pure Python
     file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
     df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
 
