@@ -27,7 +27,8 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-
+# pesky IDEs
+.idea
 
 # Dask
 */dask-worker-space/*.lock
