@@ -1,4 +1,4 @@
-import os
+import shutil
 import numpy as np
 import pandas as pd
 from ..choiceworld import dlc
@@ -21,9 +21,11 @@ def test_dlc(version=__version__):
         assert (tmp_dir.is_dir() is False)
 
         out_pqt = pd.read_parquet(out_file)
-        ctrl_pqt = pd.read_parquet(test_data.joinpath('output', f'v{version}',
-                                                      f'_iblrig_{cam}Camera.dlc.pqt'))
+        ctrl_pqt = pd.read_parquet(
+            test_data.joinpath('output', f'_ibl_{cam}Camera.dlc.pqt'))
 
         assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2)
         assert np.all(out_pqt.columns, ctrl_pqt.columns)
-        os.remove(out_pqt)
+
+    alf_path = test_data.joinpath('alf')
+    shutil.rmtree(alf_path)
