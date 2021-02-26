@@ -2,7 +2,7 @@ from datetime import datetime
 from oneibl.one import ONE
 from oneibl.patcher import FTPPatcher
 from .choiceworld import dlc
-from .weights import download_weights_flatiron
+from .weights import download_weights
 from . import __version__
 
 
@@ -14,7 +14,7 @@ def run_session(session_id, version=__version__, one=None, ftp_patcher=None):
         ftp_patcher = FTPPatcher(one=one)
 
     # Download weights into ONE Cache diretory under 'resources/DLC' if not exist
-    path_dlc = download_weights_flatiron(version=version)
+    path_dlc = download_weights(version=version)
 
     # Download camera files
     files_mp4 = one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
