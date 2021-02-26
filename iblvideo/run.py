@@ -1,11 +1,12 @@
 from datetime import datetime
 from oneibl.one import ONE
 from oneibl.patcher import FTPPatcher
-from choiceworld import dlc
-from weights import download_weights_flatiron
+from .choiceworld import dlc
+from .weights import download_weights_flatiron
+from . import __version__
 
 
-def run_session(session_id, version_date='2021-02-15', one=None, ftp_patcher=None):
+def run_session(session_id, version=__version__, one=None, ftp_patcher=None):
     # Create ONE and FTPPatcher instance if none are given
     if one is None:
         one = ONE()
@@ -13,7 +14,7 @@ def run_session(session_id, version_date='2021-02-15', one=None, ftp_patcher=Non
         ftp_patcher = FTPPatcher(one=one)
 
     # Download weights into ONE Cache diretory under 'resources/DLC' if not exist
-    path_dlc = download_weights_flatiron(version_date=version_date)
+    path_dlc = download_weights_flatiron(version=version)
 
     # Download camera files
     files_mp4 = one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
@@ -24,7 +25,7 @@ def run_session(session_id, version_date='2021-02-15', one=None, ftp_patcher=Non
     # Log starttime and set status on Alyx to running
     start_time = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
     one.alyx.rest('tasks', 'partial_update', id=task['id'],
-                  data={'status': 'Started', 'version': f'DLC_weights_{version_date}',
+                  data={'status': 'Started', 'version': f'{version}',
                         'log': f'Started {start_time}'})
 
     # Run dlc on all three videos and upload data, set status to complete
@@ -43,7 +44,7 @@ def run_session(session_id, version_date='2021-02-15', one=None, ftp_patcher=Non
                       data={'status': 'Errored', 'log': f'{e}'})
 
 
-def run_queue(version_date='2021-02-15'):
+def run_queue(version=__version__):
     """Run the entire queue of DLC tasks on Alyx."""
 
     # Create ONE and FTPPatcher instances
@@ -72,4 +73,4 @@ def run_queue(version_date='2021-02-15'):
 
     # On list of sessions, download, run DLC, upload
     for session_id in sessions:
-        run_session(session_id, version_date=version_date, one=one, ftp_patcher=ftp_patcher)
+        run_session(session_id, version=version, one=one, ftp_patcher=ftp_patcher)

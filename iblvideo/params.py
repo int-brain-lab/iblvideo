@@ -19,9 +19,9 @@ SIDE_FEATURES = {
          'postcrop_downsampling': 1},
     'paws':
         {'label': 'paws',
-         'features': ['nose_tip'],#,
+         'features': ['nose_tip'],
          'weights': 'paw2-mic-2020-03-23',
-         'crop': None, # lambda x, y: [900, 800, x, y - 100],
+         'crop': None,  # lambda x, y: [900, 800, x, y - 100],
          'postcrop_downsampling': 10},
     'tongue':
         {'label': 'tongue',
