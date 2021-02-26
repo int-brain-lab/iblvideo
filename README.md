@@ -40,10 +40,11 @@ sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/l
 Install a few things system wide and then python3.7
 
 ```bash
-sudo apt install tk-dev  
+#sudo apt install tk-dev
 sudo apt update  
 sudo apt install software-properties-common  
-sudo add-apt-repository ppa:deadsnakes/ppa  
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get install python3.7-tk  
 sudo apt install python3.7 python3.7-dev  
 ```
 
@@ -83,7 +84,7 @@ python -c 'import deeplabcut, tensorflow'
 ```
 git clone https://github.com/int-brain-lab/iblvideo.git
 cd iblvideo
-pip install .
+pip install -e .
 ```
 
 Test if you install was successful
