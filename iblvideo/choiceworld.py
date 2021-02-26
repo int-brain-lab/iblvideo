@@ -1,5 +1,5 @@
 """Functions to run DLC on IBL data with existing networks."""
-#import deeplabcut
+import deeplabcut
 import os
 import shutil
 import logging
