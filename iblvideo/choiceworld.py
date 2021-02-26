@@ -70,7 +70,7 @@ def _dlc_init(file_mp4, path_dlc):
 
     # Create a dictionary with the paths of temporary files
     raw_video_path = file_mp4.parent
-    tdir = raw_video_path.joinpath(f'dlc_tmp_{file_mp4.name[:-4]}')
+    tdir = raw_video_path.joinpath(f'dlc_tmp{file_mp4.name[:-4]}')
     tdir.mkdir(exist_ok=True)
     tfile = {k: tdir.joinpath(file_mp4.name.replace('.raw.', f'.{k}.')) for k in networks}
     tfile['mp4_sub'] = tdir / file_mp4.name.replace('.raw.', '.subsampled.')
