@@ -20,7 +20,7 @@ SIDE_FEATURES = {
     'paws':
         {'label': 'paws',
          'features': ['nose_tip'],
-         'weights': 'paw2-mic-2020-03-23',
+         'weights': 'paw2-mic-2021-02-21',
          'crop': None,  # lambda x, y: [900, 800, x, y - 100],
          'postcrop_downsampling': 10},
     'tongue':
