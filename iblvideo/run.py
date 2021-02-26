@@ -13,14 +13,15 @@ def run_session(session_id, version=__version__, one=None, ftp_patcher=None):
     if ftp_patcher is None:
         ftp_patcher = FTPPatcher(one=one)
 
-    # Download weights into ONE Cache diretory under 'resources/DLC' if not exist
+    # Download weights into ONE Cache directory under 'resources/DLC' if not exist
     path_dlc = download_weights(version=version)
 
     # Download camera files
     files_mp4 = one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
 
     # Find task for session
-    task = one.alyx.rest('tasks', 'list', django=f"name,EphysDLC,session__id,{session_id}")[0]
+    task = one.alyx.rest('tasks', 'list',
+                         django=f"name__icontains,DLC,session__id,{session_id}")[0]
 
     # Log starttime and set status on Alyx to running
     start_time = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
