@@ -35,12 +35,6 @@ sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64
 sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*  
 ```
 
-Before starting a DLC program or console, make sure you point to the proper CUDA version through the LD_LIBRARY_PATH environment variable.
-
-```bash
-export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
-```
-
 ### Create a Python environment with TensorFlow and DLC
 
 Install a few things system wide and then python3.7
@@ -72,23 +66,27 @@ pip install tensorflow-gpu==1.13.1
 pip install deeplabcut  
 ```
 
-### Test if installation was successful
+### Test if tensorflow and deeplabcut installation was successful
 
-The simplest test to check if it works properly is to import deeplabcut.
-
-First, if you haven't yet done so, point to CUDA libraries and source the virtual environment
+Point to CUDA libraries and source the virtual environment
 ```bash
 export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 ```
 
-Then start Python
-```bash
-ipython
+Try importing tensorflow and deeplabcut
+```
+python -c 'import deeplabcut, tensorflow'
 ```
 
-And try importing tensorflow and deeplabcut
-```python
-import deeplabcut 
-import tensorflow as tf  
+### Clone and install iblvideo
+```
+git clone https://github.com/int-brain-lab/iblvideo.git
+cd iblvideo
+pip install .
+```
+
+Test if you install was successful
+```
+python -c 'import iblvideo'
 ```
