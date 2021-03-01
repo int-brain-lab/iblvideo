@@ -370,13 +370,16 @@ def dlc(file_mp4, path_dlc=None, force=False):
 def dlc_parallel(file_mp4, path_dlc=None, force=False):
     """
     Run dlc in parallel.
+
+    :param file_mp4: Video file to run
+    :param path_dlc: Path to folder with DLC weights
+    :return out_file: Path to DLC table in parquet file format
     """
 
     import dask
     cluster, client = create_cpu_gpu_cluster()
 
     start_T = time.time()
-    # Initiate
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order

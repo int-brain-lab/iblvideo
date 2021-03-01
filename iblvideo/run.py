@@ -1,55 +1,81 @@
-from datetime import datetime
+import logging
+
 from oneibl.one import ONE
 from oneibl.patcher import FTPPatcher
-from .choiceworld import dlc
-from .weights import download_weights
-from . import __version__
+from iblvideo.choiceworld import dlc
+from iblvideo.weights import download_weights
+from iblvideo import __version__
+from ibllib.pipes import tasks
+
+_logger = logging.getLogger('ibllib')
 
 
-def run_session(session_id, version=__version__, one=None, ftp_patcher=None):
-    # Create ONE and FTPPatcher instance if none are given
-    if one is None:
-        one = ONE()
-    if ftp_patcher is None:
-        ftp_patcher = FTPPatcher(one=one)
+# re-using the Task class allows to not re-write all the logging, error management
+# and automatic settings of task statuses in the database
+class TaskDLC(tasks.Task):
+    gpu = 1
+    cpu = 4
+    io_charge = 90
+    level = 0
 
-    # Download weights into ONE Cache diretory under 'resources/DLC' if not exist
-    path_dlc = download_weights(version=version)
-
-    # Download camera files
-    files_mp4 = one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
-
-    # Find task for session
-    task = one.alyx.rest('tasks', 'list', django=f"name,EphysDLC,session__id,{session_id}")[0]
-
-    # Log starttime and set status on Alyx to running
-    start_time = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-    one.alyx.rest('tasks', 'partial_update', id=task['id'],
-                  data={'status': 'Started', 'version': f'{version}',
-                        'log': f'Started {start_time}'})
-
-    # Run dlc on all three videos and upload data, set status to complete
-    try:
+    def _run(self, version=__version__):
+        # Download weights into ONE Cache directory under 'resources/DLC' if not exist
+        path_dlc = download_weights(version=version)
+        files_mp4 = list(self.session_path.joinpath('raw_video_data').glob('*.mp4'))
+        if len(files_mp4) == 0:
+            raise FileNotFoundError('no video file found')
+        # Run dlc on all three videos and upload data, set status to complete
+        out_files = []
         for cam in range(len(files_mp4)):
             dlc_result = dlc(files_mp4[cam], path_dlc)
-            end_time = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-            ftp_patcher.create_dataset(path=dlc_result)
-        one.alyx.rest('tasks', 'partial_update', id=task['id'],
-                      data={'status': 'Complete',
-                            'log': f'Started  {start_time}\nFinished {end_time}'})
-    # Catch any exceptions and log them, set status to errored
-    except Exception as e:
-        raise
-        one.alyx.rest('tasks', 'partial_update', id=task['id'],
-                      data={'status': 'Errored', 'log': f'{e}'})
+            out_files.append(dlc_result)
+            _logger.info(dlc_result)
+        [_logger.info(f) for f in out_files]
+        pqts = list(self.session_path.joinpath('alf').glob('*.pqt'))
+        return pqts
+
+
+def run_session(session_id, one=None, version=__version__):
+    """
+    Run DLC on a single session in the database.
+
+    :param session_id: Alyx eID of session to run
+    :param one: ONE instance to use for query (optional)
+    :param version: Version of iblvideo / DLC weights to use (default is current version)
+    :return task: ibllib task instance
+    """
+    # Create ONE instance if none are given
+    if one is None:
+        one = ONE()
+    # Download camera files
+    one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
+    session_path = one.path_from_eid(session_id)
+    # Find task for session
+    tdict = one.alyx.rest('tasks', 'list',
+                          django=f"name__icontains,DLC,session__id,{session_id}")[0]
+    # create the task instance and run it
+    task = TaskDLC(session_path, one=one, taskid=tdict['id'])
+    status = task.run(version=version)
+    patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
+                  'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
+    # register the data using the FTP patcher
+    one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
+    if task.outputs:
+        # it is safer to instantiate the FTP right before transfer as there may be a time-out error
+        ftp_patcher = FTPPatcher(one=one)
+        ftp_patcher.create_dataset(path=task.outputs)
+    return task
 
 
 def run_queue(version=__version__):
-    """Run the entire queue of DLC tasks on Alyx."""
+    """
+    Run the entire queue of DLC tasks on Alyx.
 
-    # Create ONE and FTPPatcher instances
+    :param version: Version of iblvideo / DLC weights to use (default is current version)
+    """
+
+    # Create ONE instance
     one = ONE()
-    ftp_patcher = FTPPatcher(one=one)
 
     # Find EphysDLC tasks that have not been run
     tasks = one.alyx.rest('tasks', 'list', status='Empty', name='EphysDLC')
@@ -73,4 +99,4 @@ def run_queue(version=__version__):
 
     # On list of sessions, download, run DLC, upload
     for session_id in sessions:
-        run_session(session_id, version=version, one=one, ftp_patcher=ftp_patcher)
+        run_session(session_id, one=one, version=version)

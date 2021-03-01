@@ -5,7 +5,7 @@ from oneibl.webclient import http_download_file
 from .. import __version__
 
 
-def download_test_data(version=__version__):
+def _download_test_data(version=__version__):
     """Download test data from FlatIron."""
     # Read one_params file
     par = params.read('one_params')

@@ -7,7 +7,7 @@ from . import __version__
 
 
 def download_weights(version=__version__):
-    """Download the DLC weights from FlatIron."""
+    """Download the DLC weights associated with current version from FlatIron."""
     # Read one_params file
     par = params.read('one_params')
     weights_dir = Path('resources', 'DLC')
@@ -18,12 +18,12 @@ def download_weights(version=__version__):
 
     # Construct URL and call download
     url = '{}/{}/DLC_weights_v{}.zip'.format(par.HTTP_DATA_SERVER, str(weights_dir), version)
-    file_name = http_download_file(url,
-                                   cache_dir=weights_path,
-                                   username=par.HTTP_DATA_SERVER_LOGIN,
-                                   password=par.HTTP_DATA_SERVER_PWD)
-
-    # unzip file
-    shutil.unpack_archive(file_name, weights_path)
-
-    return Path(file_name.split('.')[0])
+    file_name = Path(http_download_file(url,
+                                        cache_dir=weights_path,
+                                        username=par.HTTP_DATA_SERVER_LOGIN,
+                                        password=par.HTTP_DATA_SERVER_PWD))
+    weights_dir = file_name.parent.joinpath(Path(file_name).stem)
+    # we assume that user side, any change will be labeled by a version bump
+    if not weights_dir.exists():
+        shutil.unpack_archive(file_name, weights_path)  # unzip file
+    return weights_dir

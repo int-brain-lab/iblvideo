@@ -1,1 +1,1 @@
-from iblvideo.tests.download_test_data import download_test_data
+from iblvideo.tests.download_test_data import _download_test_data
