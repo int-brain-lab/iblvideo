@@ -70,10 +70,11 @@ def run_session(session_id, one=None, version=__version__):
     return task
 
 
-def run_queue(version=__version__):
+def run_queue(n_sessions=None, version=__version__):
     """
     Run the entire queue of DLC tasks on Alyx.
 
+    :param n_sessions: Number of sessions to run from queue. If 'None' run all.
     :param version: Version of iblvideo / DLC weights to use (default is current version)
     """
 
@@ -100,6 +101,10 @@ def run_queue(version=__version__):
             one.alyx.rest('tasks', 'partial_update', id=task['id'],
                           data={'status': 'Errored',
                                 'log': f"Found only {len(dsets)} video files."})
+
+    # Keep only n_sessions
+    if n_sessions is not None:
+        sessions = sessions[:n_sessions]
 
     # On list of sessions, download, run DLC, upload
     for session_id in sessions:
