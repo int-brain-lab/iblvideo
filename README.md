@@ -3,7 +3,7 @@
 
 Mice are filmed in training rigs and recording rigs. In training rigs there is only one side camera recording at full resolution (1280x1024) and 30 Hz. In the recording rigs, there are three cameras, one called 'left' at full resolution 1280x1024 and 60 Hz filming the mouse from one side, one called 'right' at half resolution (640x512) and 150 Hz filming the mouse symmetrically from the other side, and one called 'body' filming the trunk of the mouse from above.    
 
-## Feature-tracking using DLC 	 
+## Feature-tracking using DLC 
 
 DLC is used for markerless tracking of animal parts in these videos, returning for each frame x,y coordinates in px for each point and a likelihood (how certain was the network to have found that point in a specific frame). For each side video we track the following points: `'pupil_top_r'`, `'pupil_right_r'`, `'pupil_bottom_r'`, `'pupil_left_r'`, `'nose_tip'`, `'tongue_end_r'`, `'tongue_end_l'`, `'paw_r'`, `'paw_l'`
 
@@ -13,6 +13,22 @@ In addition, we track the `'tail_start'` in the body videos:
 
 <img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/body_view.png" width="50%" height="50%">
 
+## Getting started
+### Running DLC for one mp4 video - stand-alone local run
+```python
+from iblvideo import run_session
+run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
+```
+
+### Running DLC for one session given its EID
+```python
+from iblvideo import run_session
+run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
+```
+### Running DLC queue
+```python
+from iblvideo import run_session
+```
 ## Accessing results
 
 DLC results are stored on the Flatrion server, with the `dataset_type` being `camera.dlc` and can be searched as any other IBL datatype via ONE. See https://int-brain-lab.github.io/iblenv/ for details. There is further a script to produce labelled videos as seen in the images above for the inspection of particular trials: https://github.com/int-brain-lab/iblapps/blob/develop/dlc/DLC_labeled_video.py

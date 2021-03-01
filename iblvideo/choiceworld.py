@@ -376,7 +376,6 @@ def dlc_parallel(file_mp4, path_dlc=None, force=False):
     cluster, client = create_cpu_gpu_cluster()
 
     start_T = time.time()
-    # Initiate
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
