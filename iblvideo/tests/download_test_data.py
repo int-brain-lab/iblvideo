@@ -23,6 +23,6 @@ def download_test_data(version=__version__):
                                    password=par.HTTP_DATA_SERVER_PWD)
 
     # unzip file
-    shutil.unpack_archive(file_name, local_path.joinpath(f"v{__version__}"))
+    shutil.unpack_archive(file_name, local_path)
 
     return Path(file_name[:-4])
