@@ -370,6 +370,10 @@ def dlc(file_mp4, path_dlc=None, force=False):
 def dlc_parallel(file_mp4, path_dlc=None, force=False):
     """
     Run dlc in parallel.
+
+    :param file_mp4: Video file to run
+    :param path_dlc: Path to folder with DLC weights
+    :return out_file: Path to DLC table in parquet file format
     """
 
     import dask

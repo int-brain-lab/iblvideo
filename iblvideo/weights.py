@@ -7,7 +7,7 @@ from . import __version__
 
 
 def download_weights(version=__version__):
-    """Download the DLC weights from FlatIron."""
+    """Download the DLC weights associated with current version from FlatIron."""
     # Read one_params file
     par = params.read('one_params')
     weights_dir = Path('resources', 'DLC')

@@ -35,8 +35,16 @@ class TaskDLC(tasks.Task):
         return pqts
 
 
-def run_session(session_id, version=__version__, one=None):
-    # Create ONE and FTPPatcher instance if none are given
+def run_session(session_id, one=None, version=__version__):
+    """
+    Run DLC on a single session in the database.
+
+    :param session_id: Alyx eID of session to run
+    :param one: ONE instance to use for query (optional)
+    :param version: Version of iblvideo / DLC weights to use (default is current version)
+    :return task: ibllib task instance
+    """
+    # Create ONE instance if none are given
     if one is None:
         one = ONE()
     # Download camera files
@@ -60,11 +68,14 @@ def run_session(session_id, version=__version__, one=None):
 
 
 def run_queue(version=__version__):
-    """Run the entire queue of DLC tasks on Alyx."""
+    """
+    Run the entire queue of DLC tasks on Alyx.
 
-    # Create ONE and FTPPatcher instances
+    :param version: Version of iblvideo / DLC weights to use (default is current version)
+    """
+
+    # Create ONE instance
     one = ONE()
-    ftp_patcher = FTPPatcher(one=one)
 
     # Find EphysDLC tasks that have not been run
     tasks = one.alyx.rest('tasks', 'list', status='Empty', name='EphysDLC')
@@ -88,4 +99,4 @@ def run_queue(version=__version__):
 
     # On list of sessions, download, run DLC, upload
     for session_id in sessions:
-        run_session(session_id, version=version, one=one, ftp_patcher=ftp_patcher)
+        run_session(session_id, one=one, version=version)
