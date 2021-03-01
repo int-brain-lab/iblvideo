@@ -22,17 +22,20 @@ class TaskDLC(tasks.Task):
         # Download weights into ONE Cache directory under 'resources/DLC' if not exist
         path_dlc = download_weights(version=version)
         files_mp4 = list(self.session_path.joinpath('raw_video_data').glob('*.mp4'))
-        if len(files_mp4) == 0:
-            raise FileNotFoundError('no video file found')
-        # Run dlc on all three videos and upload data, set status to complete
-        out_files = []
-        for cam in range(len(files_mp4)):
-            dlc_result = dlc(files_mp4[cam], path_dlc)
-            out_files.append(dlc_result)
-            _logger.info(dlc_result)
-        [_logger.info(f) for f in out_files]
-        pqts = list(self.session_path.joinpath('alf').glob('*.pqt'))
-        return pqts
+        if len(files_mp4) != 3:
+            _logger.error(f'Found only {len(files_mp4)} video files.')
+            return
+        else:
+            _logger.info('Found 3 video files.')
+            # Run dlc on all three videos and upload data, set status to complete
+            out_files = []
+            for cam in range(len(files_mp4)):
+                dlc_result = dlc(files_mp4[cam], path_dlc)
+                out_files.append(dlc_result)
+                _logger.info(dlc_result)
+            [_logger.info(f) for f in out_files]
+            pqts = list(self.session_path.joinpath('alf').glob('*.pqt'))
+            return pqts
 
 
 def run_session(session_id, one=None, version=__version__):
@@ -95,7 +98,8 @@ def run_queue(version=__version__):
         # Else set status to errored and write in log
         else:
             one.alyx.rest('tasks', 'partial_update', id=task['id'],
-                          data={'status': 'Errored', 'log': f"Only {len(dsets)} camera datasets"})
+                          data={'status': 'Errored',
+                                'log': f"Found only {len(dsets)} video files."})
 
     # On list of sessions, download, run DLC, upload
     for session_id in sessions:
