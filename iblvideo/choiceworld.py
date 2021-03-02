@@ -1,6 +1,7 @@
 """Functions to run DLC on IBL data with existing networks."""
 import deeplabcut
 import os
+from glob import glob
 import shutil
 import logging
 import subprocess
@@ -66,7 +67,8 @@ def _dlc_init(file_mp4, path_dlc):
 
     path_dlc = Path(path_dlc)
     _set_dlc_paths(path_dlc)
-    dlc_params = {k: path_dlc.joinpath(networks[k]['weights'], 'config.yaml') for k in networks}
+    dlc_params = {k: Path(glob(str(path_dlc.joinpath(networks[k]['weights'], 'config.yaml')))[0])
+                  for k in networks}
 
     # Create a dictionary with the paths of temporary files
     raw_video_path = file_mp4.parent
