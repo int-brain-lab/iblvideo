@@ -9,14 +9,15 @@ def _download_test_data(version=__version__):
     """Download test data from FlatIron."""
     # Read one_params file
     par = params.read('one_params')
-    data_dir = Path('resources', 'DLC', 'test_data')
+    data_dir = Path('integration', 'dlc', 'test_data')
 
     # Create target directory if it doesn't exist
     local_path = Path(par.CACHE_DIR).joinpath(data_dir)
     local_path.mkdir(exist_ok=True, parents=True)
 
     # Construct URL and call download
-    url = '{}/{}/v{}.zip'.format(par.HTTP_DATA_SERVER, str(data_dir), version)
+    url = '{}/{}/test_data_v{}.zip'.format(par.HTTP_DATA_SERVER, str(data_dir),
+                                           '.'.join(version.split('.')[:-1]))
     file_name = http_download_file(url,
                                    cache_dir=local_path,
                                    username=par.HTTP_DATA_SERVER_LOGIN,

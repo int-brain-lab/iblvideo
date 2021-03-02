@@ -10,14 +10,17 @@ def download_weights(version=__version__):
     """Download the DLC weights associated with current version from FlatIron."""
     # Read one_params file
     par = params.read('one_params')
-    weights_dir = Path('resources', 'DLC')
+    weights_dir = Path('resources', 'dlc')
 
     # Create target directory if it doesn't exist
     weights_path = Path(par.CACHE_DIR).joinpath(weights_dir)
     weights_path.mkdir(exist_ok=True, parents=True)
 
     # Construct URL and call download
-    url = '{}/{}/DLC_weights_v{}.zip'.format(par.HTTP_DATA_SERVER, str(weights_dir), version)
+    # Weights versions are synchronized with minor versions of iblvideo
+    # Therefore they are named only by major.minor excluding the patch
+    url = '{}/{}/weights_v{}.zip'.format(par.HTTP_DATA_SERVER, str(weights_dir),
+                                         '.'.join(version.split('.')[:-1]))
     file_name = Path(http_download_file(url,
                                         cache_dir=weights_path,
                                         username=par.HTTP_DATA_SERVER_LOGIN,
