@@ -1,4 +1,5 @@
 import logging
+import shutil
 from datetime import datetime
 
 from oneibl.one import ONE
@@ -81,6 +82,7 @@ def run_session(session_id, n_cams=3, one=None, version=__version__):
             ftp_patcher = FTPPatcher(one=one)
             ftp_patcher.create_dataset(path=task.outputs)
 
+        shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
     return status
 
 
