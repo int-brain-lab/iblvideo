@@ -16,8 +16,8 @@ In addition, we track the `'tail_start'` in the body videos:
 ## Getting started
 ### Running DLC for one mp4 video - stand-alone local run
 ```python
-from iblvideo import run_session
-run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
+from iblvideo import dlc
+output = dlc("Path/to/file.mp4")
 ```
 
 ### Running DLC for one session given its EID
