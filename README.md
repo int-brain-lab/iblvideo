@@ -25,9 +25,10 @@ run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
 from iblvideo import run_session
 run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
 ```
-### Running DLC queue
+### Running 10 sessions from the queue
 ```python
-from iblvideo import run_session
+from iblvideo import run_queue
+run_queue(n_sessions=10)
 ```
 ## Accessing results
 
@@ -56,7 +57,6 @@ sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/l
 Install a few things system wide and then python3.7
 
 ```bash
-#sudo apt install tk-dev
 sudo apt update  
 sudo apt install software-properties-common  
 sudo add-apt-repository ppa:deadsnakes/ppa
