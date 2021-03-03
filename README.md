@@ -3,7 +3,7 @@
 
 Mice are filmed in training rigs and recording rigs. In training rigs there is only one side camera recording at full resolution (1280x1024) and 30 Hz. In the recording rigs, there are three cameras, one called 'left' at full resolution 1280x1024 and 60 Hz filming the mouse from one side, one called 'right' at half resolution (640x512) and 150 Hz filming the mouse symmetrically from the other side, and one called 'body' filming the trunk of the mouse from above.    
 
-## Feature-tracking using DLC 
+## Feature-tracking using DLC
 
 DLC is used for markerless tracking of animal parts in these videos, returning for each frame x,y coordinates in px for each point and a likelihood (how certain was the network to have found that point in a specific frame). For each side video we track the following points: `'pupil_top_r'`, `'pupil_right_r'`, `'pupil_bottom_r'`, `'pupil_left_r'`, `'nose_tip'`, `'tongue_end_r'`, `'tongue_end_l'`, `'paw_r'`, `'paw_l'`
 
@@ -106,4 +106,20 @@ pip install -e .
 Test if you install was successful
 ```
 python -c 'import iblvideo'
+```
+## Releasing a new version (for devs)
+
+We use semantic versioning MAJOR.MINOR.PATCH. If you update the version, see below for what to adapt. Afterwards, tag the new version on Github.
+
+### Any version update
+Update the version in
+```
+iblvideo/iblvideo/__init__.py
+```
+
+### Update MINOR or MAJOR
+The version of weights and test data are synchronized with the MAJOR.MINOR version of this code. In addition to updating the version you have to upload two new zip files to FlatIron (note that the patch version is not included in the name):
+```
+/resources/dlc/weights_v{MAJOR}.{MINOR}.zip
+/integration/dlc/test_data/test_data_v{MAJOR}.{MINOR}.zip
 ```
