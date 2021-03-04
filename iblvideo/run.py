@@ -1,6 +1,7 @@
 import logging
 import shutil
 from datetime import datetime
+import numpy as np
 
 from oneibl.one import ONE
 from oneibl.patcher import FTPPatcher
@@ -86,11 +87,11 @@ def run_session(session_id, n_cams=3, one=None, version=__version__):
     return status
 
 
-def run_queue(n_sessions=None, version=__version__, delta_query=600):
+def run_queue(n_sessions=np.inf, version=__version__, delta_query=600):
     """
     Run the entire queue of DLC tasks on Alyx.
 
-    :param n_sessions: Number of sessions to run from queue. If 'None' run all.
+    :param n_sessions: Number of sessions to run from queue (default is run whole queue)
     :param version: Version of iblvideo / DLC weights to use (default is current version)
     :param delta_query: Time between querying the database for Empty tasks, in sec
     """
