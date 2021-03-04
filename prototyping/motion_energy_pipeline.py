@@ -15,8 +15,10 @@ import time
 For a session where there is DLC already computed,
 load DLC traces to cut video ROIs and then
 compute motion energy for these ROIS.
+
 bodyCamera: cut ROI such that mouse body
             but not wheel motion is in ROI
+            
 left(right)Camera: cut whisker pad region
 '''
 
@@ -28,10 +30,11 @@ def get_dlc_XYs(eid, video_type):
     dataset_types = ['camera.dlc',                     
                      'camera.times',
                      'trials.intervals']
-    a = one.list(eid,'dataset-types')
-    if not all([x in a for x in dataset_types]):
+                     
+    a = one.list(eid,'dataset-types')   
+    if not all([x['dataset_type'] for x in a]):
         print('not all data available')    
-        return
+        return   
     
                  
     one.load(eid, dataset_types = dataset_types)
@@ -90,7 +93,7 @@ def motion_energy(video_path):
     save the average across pixels
     '''
     
-    make_video = False
+    make_video = True
     
     cap = cv2.VideoCapture(video_path)
     total_frames = cap.get(7) 
@@ -98,14 +101,18 @@ def motion_energy(video_path):
     frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     D = np.zeros(frameCount) 
     if make_video:  
+        output_path = video_path.replace('.mp4', '_ME.mp4')
         out = cv2.VideoWriter(output_path,cv2.VideoWriter_fourcc(*'mp4v'), 30.0, size)
     ret0, frame0 = cap.read()
+    # turn into grayscale to avoid RGB artefacts
+    frame0 = cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY)
     k = 0
     while cap.isOpened():     
-        ret1, frame1 = cap.read()        
+        ret1, frame1 = cap.read()     
+        frame1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)   
         if (ret0==True) and (ret1==True):
             difference = cv2.absdiff(frame0, frame1) 
-            D[k] = difference.mean()
+            D[k] = difference.median()
             k +=1
             
             if make_video: 
@@ -118,9 +125,7 @@ def motion_energy(video_path):
     cap.release()
     cv2.destroyAllWindows()
     
-    f = video_path.replace('.mp4', '_ME.npy')    
-    np.save(f,D)
-    #return D   
+    return D 
 
 
 def get_mean_positions(XYs):
@@ -152,7 +157,8 @@ def cut_whisker(file_in,XYs):
         '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
     pop = run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
 
-    return file_out
+    return file_out, whxy
+
 
 
 def cut_body(file_in,XYs):
@@ -171,7 +177,8 @@ def cut_body(file_in,XYs):
         '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
     pop = run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
 
-    return file_out
+    return file_out, whxy
+
 
 
 def compute_ROI_ME(eid):
@@ -184,7 +191,7 @@ def compute_ROI_ME(eid):
                      '_iblrig_Camera.raw']                     
                      
     a = one.list(eid,'dataset-types')   
-    if not all([x in a for x in dataset_types]):
+    if not all([x['dataset_type'] for x in a]):
         print('not all data available')    
         return    
 
@@ -201,25 +208,26 @@ def compute_ROI_ME(eid):
 
         _, XYs = get_dlc_XYs(eid, video_type)
         
-        # cut ROI
-        if video_type == 'body':
-            file_out = cut_body(str(video_path),XYs)
-            motion_energy(file_out)
-            #os.remove(file_out)            
-            print(eid, video_type, 'done')
-
+        # compute results
+        if video_type == 'body':       
+            file_out, whxy = cut_body(str(video_path),XYs)
         else:
-            file_out = cut_whisker(str(video_path),XYs)
-            motion_energy(file_out)
-            #os.remove(file_out)              
-            print(eid, video_type, 'done')    
+            file_out, whxy = cut_whisker(str(video_path),XYs)
+                   
+        D = motion_energy(file_out)    
+                
+        # save ROI location
+        p0 =  f'{video_type}ROIMotionEnergy.position.npy'
+        np.save(Path(video_path).parent / p0, whxy)
+
+        # save ME
+        p1 =  f'{video_type}.ROIMotionEnergy.npy'    
+        np.save(Path(video_path).parent / p1, D)    
+
+        #os.remove(file_out)            
+        print(eid, video_type, 'done')  
                     
     end_T = time.time() 
     print(eid, 'done in', np.round((end_T - start_T),2))
-    
-    
-    
-    
-    
     
     
