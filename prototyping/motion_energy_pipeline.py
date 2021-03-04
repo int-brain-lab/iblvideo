@@ -20,6 +20,12 @@ bodyCamera: cut ROI such that mouse body
             but not wheel motion is in ROI
             
 left(right)Camera: cut whisker pad region
+
+
+Usage: 
+compute_ROI_ME(eid)
+saves the ROI position and motion energy
+where the mp4 was found
 '''
 
 
