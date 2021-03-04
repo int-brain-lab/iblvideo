@@ -1,14 +1,13 @@
 import cv2 
 import numpy as np
-import matplotlib.pyplot as plt
 import subprocess
 import alf.io
 from oneibl.one import ONE
 from pathlib import Path
-import pandas as pd
-import matplotlib.pyplot as plt
 import os
 import time
+import logging
+_logger = logging.getLogger('ibllib')
 
 
 '''
@@ -20,6 +19,8 @@ bodyCamera: cut ROI such that mouse body
             but not wheel motion is in ROI
             
 left(right)Camera: cut whisker pad region
+
+(takes 30 min for one session, without download)
 '''
 
 
@@ -53,7 +54,7 @@ def get_dlc_XYs(eid, video_type):
     points = np.unique(['_'.join(x.split('_')[:-1]) for x in cam.keys()])
 
 
-    # Set values to nan if likelyhood is too low # for pqt: .to_numpy()
+    # Set values to nan if likelihood is too low 
     XYs = {}
     for point in points:
         x = np.ma.masked_where(
@@ -96,23 +97,24 @@ def motion_energy(video_path):
     make_video = True
     
     cap = cv2.VideoCapture(video_path)
-    total_frames = cap.get(7) 
-    size = (int(cap.get(3)), int(cap.get(4)))
     frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    size = (int(cap.get(3)), int(cap.get(4)))
+    
     D = np.zeros(frameCount) 
     if make_video:  
         output_path = video_path.replace('.mp4', '_ME.mp4')
-        out = cv2.VideoWriter(output_path,cv2.VideoWriter_fourcc(*'mp4v'), 30.0, size)
+        out = cv2.VideoWriter(output_path,cv2.VideoWriter_fourcc(*'mp4v'), 30.0, size, 0)
     ret0, frame0 = cap.read()
     # turn into grayscale to avoid RGB artefacts
     frame0 = cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY)
     k = 0
     while cap.isOpened():     
         ret1, frame1 = cap.read()     
-        frame1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)   
+           
         if (ret0==True) and (ret1==True):
+            frame1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
             difference = cv2.absdiff(frame0, frame1) 
-            D[k] = difference.median()
+            D[k] = np.mean(difference)
             k +=1
             
             if make_video: 
@@ -150,13 +152,18 @@ def cut_whisker(file_in,XYs):
     p_anchor = np.mean([p_nose,p_pupil],axis=0)
     squared_dist = np.sum((p_nose-p_pupil)**2, axis=0)
     dist = np.sqrt(squared_dist)
-    whxy = [dist/2, dist/3, p_anchor[0] - dist/4, p_anchor[1]]
+    whxy = [int(dist/2), int(dist/3), int(p_anchor[0] - dist/4), int(p_anchor[1])]
 
     crop_command = (
-        'ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
-        '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
+        f'ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={whxy[0]}:{whxy[1]}:'
+        f'{whxy[2]}:{whxy[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
     pop = run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
-
+    if pop['process'].returncode != 0:
+        _logger.error(f' cropping failed, {file_in}' + pop['stderr'])
+        return        
+        
+    _logger.info(f'cropping ROI done, {file_in}')
+    
     return file_out, whxy
 
 
@@ -170,18 +177,70 @@ def cut_body(file_in,XYs):
     mloc = get_mean_positions(XYs)
     p_anchor = np.array(mloc['tail_start']) 
     dist = p_anchor[0] 
-    whxy = [dist*3/5, 210, p_anchor[0] - dist*3/5, p_anchor[1] - 120]
+    whxy = [int(dist*3/5), 210, int(p_anchor[0] - dist*3/5), int(p_anchor[1] - 120)]
 
     crop_command = (
-        'ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
-        '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
+        f'ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={whxy[0]}:{whxy[1]}:'
+        f'{whxy[2]}:{whxy[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
+        
     pop = run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
-
+    if pop['process'].returncode != 0:
+        _logger.error(f' cropping failed, {file_in}' + pop['stderr'])
+        return 
+        
+    _logger.info(f'cropping ROI done, {file_in}')
+    
     return file_out, whxy
 
 
 
-def compute_ROI_ME(eid):
+def compute_ROI_ME(video_path, video_type, XYs):
+    '''
+    Compute ROI motion energy on a single video
+    
+    :param video_path: path to IBL video
+    :param video_type: 'body', 'left' or 'right'
+    :param XYs: dlc traces for this video
+
+     
+    '''   
+    start_T = time.time()
+    
+    if not os.path.isfile(video_path):
+        print(f'no {video_type} video found at {video_path}')
+        return
+    
+    # compute results
+    if video_type == 'body':       
+        file_out, whxy = cut_body(str(video_path),XYs)
+        
+    else:
+        file_out, whxy = cut_whisker(str(video_path),XYs)
+            
+    _logger.info(f'{video_type} ROI cut, now computing ME')   
+    D = motion_energy(file_out)    
+            
+#    if len(D) != len(XYs[list(XYs.keys())[0]][0]):
+#        _logger.error(f'dropped frames, {eid}, {video_type}' + pop['stderr'])           
+            
+    # save ROI location
+    p0 =  f'{video_type}ROIMotionEnergy.position.npy'
+    np.save(Path(video_path).parent / p0, whxy)
+
+    # save ME
+    p1 =  f'{video_type}.ROIMotionEnergy.npy'    
+    np.save(Path(video_path).parent / p1, D)    
+
+    os.remove(file_out)             
+    _logger.info(f'Motion energy and ROI location for {video_type} video,'
+                  'computed and saved')     
+               
+    end_T = time.time() 
+    print(f' {video_type} video done in', np.round((end_T - start_T),2))
+
+
+
+def load_compute_ROI_ME(eid):
     start_T = time.time() 
     
     one = ONE()
@@ -199,35 +258,11 @@ def compute_ROI_ME(eid):
     one.load(eid, dataset_types)
     video_data = one.path_from_eid(eid) / 'raw_video_data'
     
-    for video_type in ['body']:#['left','right',
-        # get DLC for anchor points
+    for video_type in ['body','left','right']:
+    
         video_path = video_data / str('_iblrig_%sCamera.raw.mp4' % video_type)
-        if not os.path.isfile(video_path):
-            print(f'no {video_type} found at {video_path}')
-            continue
-
         _, XYs = get_dlc_XYs(eid, video_type)
+        compute_ROI_ME(video_path, video_type, XYs)
         
-        # compute results
-        if video_type == 'body':       
-            file_out, whxy = cut_body(str(video_path),XYs)
-        else:
-            file_out, whxy = cut_whisker(str(video_path),XYs)
-                   
-        D = motion_energy(file_out)    
-                
-        # save ROI location
-        p0 =  f'{video_type}ROIMotionEnergy.position.npy'
-        np.save(Path(video_path).parent / p0, whxy)
-
-        # save ME
-        p1 =  f'{video_type}.ROIMotionEnergy.npy'    
-        np.save(Path(video_path).parent / p1, D)    
-
-        #os.remove(file_out)            
-        print(eid, video_type, 'done')  
-                    
-    end_T = time.time() 
-    print(eid, 'done in', np.round((end_T - start_T),2))
     
     
