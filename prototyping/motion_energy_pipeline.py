@@ -20,12 +20,6 @@ bodyCamera: cut ROI such that mouse body
             but not wheel motion is in ROI
             
 left(right)Camera: cut whisker pad region
-
-
-Usage: 
-compute_ROI_ME(eid)
-saves the ROI position and motion energy
-where the mp4 was found
 '''
 
 
@@ -37,10 +31,10 @@ def get_dlc_XYs(eid, video_type):
                      'camera.times',
                      'trials.intervals']
                      
-    a = one.list(eid,'dataset-types')
-    if not all([x in a for x in dataset_types]):
+    a = one.list(eid,'dataset-types')   
+    if not all([x['dataset_type'] for x in a]):
         print('not all data available')    
-        return
+        return   
     
                  
     one.load(eid, dataset_types = dataset_types)
