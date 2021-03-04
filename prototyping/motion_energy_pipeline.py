@@ -94,7 +94,7 @@ def motion_energy(video_path):
     save the average across pixels
     '''
     
-    make_video = True
+    make_video = False
     
     cap = cv2.VideoCapture(video_path)
     frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -231,6 +231,7 @@ def compute_ROI_ME(video_path, video_type, XYs):
     p1 =  f'{video_type}.ROIMotionEnergy.npy'    
     np.save(Path(video_path).parent / p1, D)    
 
+    # remove cropped video
     os.remove(file_out)             
     _logger.info(f'Motion energy and ROI location for {video_type} video,'
                   'computed and saved')     
