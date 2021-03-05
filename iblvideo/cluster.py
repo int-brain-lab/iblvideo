@@ -1,7 +1,7 @@
 from distributed import LocalCluster, Client, Nanny
 
 
-def create_cpu_gpu_cluster(cpu_lim=10e9, gpu_lim=50e9):
+def create_cpu_gpu_cluster(cpu_lim=50e9, gpu_lim=10e9):
     """
     Create a Dask cluster with 1 CPU and 1 GPU worker.
 
