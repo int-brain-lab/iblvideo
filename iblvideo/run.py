@@ -9,6 +9,7 @@ from iblvideo.choiceworld import dlc
 from iblvideo.weights import download_weights
 from iblvideo import __version__
 from ibllib.pipes import tasks
+import traceback
 
 _logger = logging.getLogger('ibllib')
 
@@ -46,44 +47,52 @@ def run_session(session_id, n_cams=3, one=None, version=__version__):
     :param version: Version of iblvideo / DLC weights to use (default is current version)
     :return task: ibllib task instance
     """
-    # Create ONE instance if none are given
-    if one is None:
-        one = ONE()
+    # Catch all errors that are not caught inside run function and put them in the log
+    try:
+        # Create ONE instance if none are given
+        if one is None:
+            one = ONE()
 
-    # Find task for session and set to running
-    session_path = one.path_from_eid(session_id)
-    tdict = one.alyx.rest('tasks', 'list',
-                          django=f"name__icontains,DLC,session__id,{session_id}")[0]
-    one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'status': 'Started'})
+        # Find task for session and set to running
+        session_path = one.path_from_eid(session_id)
+        tdict = one.alyx.rest('tasks', 'list',
+                              django=f"name__icontains,DLC,session__id,{session_id}")[0]
+        one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'status': 'Started'})
 
-    # Before starting to download, check if required number of cameras are available
-    dsets = one.alyx.rest('datasets', 'list', django=(f'session__id,{session_id},'
-                                                      'data_format__name,mp4,'
-                                                      'name__icontains,camera'))
+        # Before starting to download, check if required number of cameras are available
+        dsets = one.alyx.rest('datasets', 'list', django=(f'session__id,{session_id},'
+                                                          'data_format__name,mp4,'
+                                                          'name__icontains,camera'))
 
-    if len(dsets) < n_cams:
-        # If less datasets, update task and raise error
-        patch_data = {'log': f"Found only {len(dsets)} video files, user required {n_cams}.",
+        if len(dsets) < n_cams:
+            # If less datasets, update task and raise error
+            patch_data = {'log': f"Found only {len(dsets)} video files, user required {n_cams}.",
+                          'version': version, 'status': 'Errored'}
+            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
+            status = -1
+        else:
+            # Download camera files
+            one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
+            # create the task instance and run it, update task
+            task = TaskDLC(session_path, one=one, taskid=tdict['id'])
+            status = task.run(version=version)
+            patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
+                          'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
+            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
+            # register the data using the FTP patcher
+            if task.outputs:
+                # it is safer to instantiate the FTP right before transfer to prevent time-out
+                ftp_patcher = FTPPatcher(one=one)
+                ftp_patcher.create_dataset(path=task.outputs)
+
+            shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
+
+    except BaseException:
+        patch_data = {'log': traceback.format_exc(),
                       'version': version, 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
-        raise FileNotFoundError(f"Found only {len(dsets)} video files, user required {n_cams}.")
         status = -1
-    else:
-        # Download camera files
-        one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
-        # create the task instance and run it, update task
-        task = TaskDLC(session_path, one=one, taskid=tdict['id'])
-        status = task.run(version=version)
-        patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
-                      'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
-        one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
-        # register the data using the FTP patcher
-        if task.outputs:
-            # it is safer to instantiate the FTP right before transfer to prevent time-out error
-            ftp_patcher = FTPPatcher(one=one)
-            ftp_patcher.create_dataset(path=task.outputs)
 
-        shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
     return status
 
 
@@ -98,6 +107,8 @@ def run_queue(n_sessions=np.inf, version=__version__, delta_query=600):
 
     # Create ONE instance
     one = ONE()
+
+    status_dict = {}
 
     # Loop until n_sessions is reached or something breaks
     count = 0
@@ -115,10 +126,9 @@ def run_queue(n_sessions=np.inf, version=__version__, delta_query=600):
             print("No sessions to run")
             return
 
-        # Run next session in the list
-        status = run_session(sessions.pop(0), one=one, version=version)
+        # Run next session in the list, capture status in dict and move on to next session
+        eid = sessions[0]
+        status_dict[eid] = run_session(sessions.pop(0), one=one, version=version)
         count += 1
-        # Currently, stop the queue if there is an error
-        if status == -1:
-            return
-    return
+
+    return status_dict
