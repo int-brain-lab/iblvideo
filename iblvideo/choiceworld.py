@@ -185,7 +185,8 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
         deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
     h5_sub = next(tpath.glob(f'*{out}*.h5'), None)
     _logger.info(f"STEP 02 END Posture detection {sparse_video}")
-    return pd.read_hdf(h5_sub)
+    file_out = pd.read_hdf(h5_sub)
+    return file_out
 
 
 def _s03_crop_videos(df_crop, file_in, file_out, network):
@@ -420,6 +421,9 @@ def dlc_parallel(file_mp4, path_dlc=None, force=False):
     pipeline = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, networks_run, file_mp4)
     future = client.compute(pipeline)
     out_file = future.result()
+
+    cluster.close()
+    client.close()
 
     shutil.rmtree(tdir)
 
