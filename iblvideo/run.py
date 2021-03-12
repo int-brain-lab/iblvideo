@@ -1,15 +1,17 @@
 import logging
 import shutil
+import traceback
 from datetime import datetime
 import numpy as np
 
 from oneibl.one import ONE
 from oneibl.patcher import FTPPatcher
 from iblvideo.choiceworld import dlc
+from iblvideo.motion_energy import compute_ROI_ME
 from iblvideo.weights import download_weights
 from iblvideo import __version__
 from ibllib.pipes import tasks
-import traceback
+from ibllib.qc.dlc import run_all_qc
 
 _logger = logging.getLogger('ibllib')
 
@@ -22,9 +24,10 @@ class TaskDLC(tasks.Task):
     io_charge = 90
     level = 0
 
-    def _run(self, machine, version=__version__):
+    def _run(self, machine=None, version=__version__):
         # Download weights into ONE Cache directory under 'resources/DLC' if not exist
-        _logger.info(f'Running on {machine}')
+        if machine is not None:
+            _logger.info(f'Running on {machine}')
         path_dlc = download_weights(version=version)
         files_mp4 = list(self.session_path.joinpath('raw_video_data').glob('*.mp4'))
         _logger.info(f'Running DLC on {len(files_mp4)} video files.')
@@ -38,7 +41,8 @@ class TaskDLC(tasks.Task):
         return pqts
 
 
-def run_session(session_id, machine, n_cams=3, one=None, version=__version__):
+def run_session(session_id, machine=None, n_cams=3, one=None, version=__version__,
+                remove_data=True):
     """
     Run DLC on a single session in the database.
 
@@ -47,7 +51,8 @@ def run_session(session_id, machine, n_cams=3, one=None, version=__version__):
     :param n_cams: Minimum number of camera datasets required
     :param one: ONE instance to use for query (optional)
     :param version: Version of iblvideo / DLC weights to use (default is current version)
-    :return task: ibllib task instance
+    :param remove_data: Whether to remove the local raw_video_data after DLC (default is True)
+    :return status: final status of the task
     """
     # Catch all errors that are not caught inside run function and put them in the log
     try:
@@ -87,7 +92,8 @@ def run_session(session_id, machine, n_cams=3, one=None, version=__version__):
                 ftp_patcher = FTPPatcher(one=one)
                 ftp_patcher.create_dataset(path=task.outputs)
 
-            shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
+            if remove_data is True:
+                shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
     except BaseException:
         patch_data = {'log': traceback.format_exc(),
@@ -98,7 +104,7 @@ def run_session(session_id, machine, n_cams=3, one=None, version=__version__):
     return status
 
 
-def run_queue(machine, n_sessions=np.inf, version=__version__, delta_query=600):
+def run_queue(machine=None, n_sessions=np.inf, version=__version__, delta_query=600):
     """
     Run the entire queue, or n_sessions, of DLC tasks on Alyx.
 
