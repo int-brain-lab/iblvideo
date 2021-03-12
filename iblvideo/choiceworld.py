@@ -4,7 +4,6 @@ import os
 from glob import glob
 import shutil
 import logging
-import subprocess
 import yaml
 from pathlib import Path
 import numpy as np
@@ -13,27 +12,9 @@ import cv2
 import time
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 from iblvideo.cluster import create_cpu_gpu_cluster
+from iblvideo.utils import _run_command
 
 _logger = logging.getLogger('ibllib')
-
-
-def _run_command(command):
-    """
-    Run a shell command using subprocess.
-
-    :param command: command to run
-    :return: dictionary with keys: process, stdout, stderr
-    """
-    process = subprocess.Popen(
-        command,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
-    info, error = process.communicate()
-    return {
-        'process': process,
-        'stdout': info.decode(),
-        'stderr': error.decode()}
 
 
 def _set_dlc_paths(path_dlc):
