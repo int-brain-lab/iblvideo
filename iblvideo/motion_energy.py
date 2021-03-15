@@ -17,6 +17,7 @@ import cv2
 
 from oneibl.one import ONE
 import alf.io
+from ibllib.io.video import get_video_frames_preload, url_from_eid
 _logger = logging.getLogger('ibllib')
 
 
@@ -25,7 +26,8 @@ def get_dlc_midpoints(eid, side, one=None):
     if one is None:
         one = ONE()
 
-    _ = one.load(eid, dataset_types='camera.dlc')
+    # Download dlc data if not available locally
+    _ = one.load(eid, dataset_types='camera.dlc', download_only=True)
     local_path = one.path_from_eid(eid)
     alf_path = Path(local_path).joinpath('alf')
 
@@ -42,62 +44,60 @@ def get_dlc_midpoints(eid, side, one=None):
     return mloc
 
 
-def crop_body(eid):
+def compute_ROI_ME(eid, side, frame_numbers=None, one=None):
     '''
-    Cut body without tail and wheel
+    Compute motion energy on cropped frames of a single video
+
+    :param eid: Session ID
+    :param side: 'body', 'left' or 'right'
     '''
-    mloc = get_dlc_midpoints(eid, 'body')
-    anchor = np.array(mloc['tail_start'])
-    whxy = [int(anchor[0] * 3 / 5),  # width of output rectangle
-            210,                # height of output rectangle
-            int(anchor[0] - anchor[0] * 3 / 5),  # x position of upper left corner of output rectangle
-            int(anchor[1] - 120)]  # y position of upper left corner of output rectangle
-    # CROP AND STREAM
-    # file_out = file_in.replace('.mp4', '.body_core.mp4')
-    _logger.info(f'cropping ROI done, {file_in}')
 
-    return file_out, whxy
+    if one is None:
+        one = ONE()
 
-
-
-def compute_ROI_ME(video_path, dlc):
-    '''
-    Compute ROI motion energy on a single video
-
-    :param video_path: path to IBL video
-    :param video_type: 'body', 'left' or 'right'
-    :param XYs: dlc traces for this video
-
-    '''
     start_T = time.time()
-    side = [x for x in ['left', 'right', 'body'] if x in video_path.stem][0]
-
+    video_path = one.path_from_eid(eid).joinpath('raw_video_data',
+                                                 f'_iblrig_{side}Camera.raw.mp4')
+    # Check if video available locally, else create url
     if not os.path.isfile(video_path):
-        print(f'{video_path} not found')
-        return
+        video_path = url_from_eid(eid, label=side, one=one)
 
     # Crop ROI
     _logger.info('{side}Camera Cropping ROI')
+    mloc = get_dlc_midpoints(eid, side, one=one)
     if side == 'body':
-        file_out, whxy = cut_body(video_path, dlc)
+        anchor = np.array(mloc['tail_start'])
+        w, h = int(anchor[0] * 3 / 5), 210
+        x, y = int(anchor[0] - anchor[0] * 3 / 5), int(anchor[1] - 120)
     else:
-        file_out, whxy = cut_whisker(video_path, dlc)
+        anchor = np.mean([mloc['nose_tip'], mloc['pupil_top_r']], axis=0)
+        dist = np.sqrt(np.sum((np.array(mloc['nose_tip']) - np.array(mloc['pupil_top_r']))**2,
+                       axis=0))
+        w, h = int(dist / 2), int(dist / 3)
+        x, y = int(anchor[0] - dist / 4), int(anchor[1])
+
+    # Note that x and y are flipped when loading with cv2, therefore:
+    mask = np.s_[y:y + h, x:x + w]
+
+    # Crop and grayscale frames.
+    cropped_frames = get_video_frames_preload(video_path, frame_numbers=frame_numbers, mask=mask,
+                                              func=cv2.cvtColor, code=cv2.COLOR_BGR2GRAY)
 
     # save ROI
-    roi_file = f'{side}ROIMotionEnergy.position.npy'
-    np.save(Path(video_path).parent.joinpath(roi_file), whxy)
+    alf_path = one.path_from_eid(eid).joinpath('alf')
+    np.save(alf_path.joinpath(f'{side}ROIMotionEnergy.position.npy'), np.asarray([w, h, x, y]))
 
-    # TODO: Check if
+    # Compute and save motion energy
     _logger.info(f'{side}Camera computing motion energy')
-    me = motion_energy(file_out)
+    # Cast to float
+    cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
+    me = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
+    # copy last value to make motion energy fit frame length
+    me = np.append(me, me[-1])
 
     # save ME
-    me_file = f'{side}.ROIMotionEnergy.npy'
-    np.save(Path(video_path).parent.joinpath(me_file), me)
+    np.save(alf_path.joinpath(f'{side}.ROIMotionEnergy.npy'), me)
 
-    # remove cropped video
-    os.remove(file_out)
     _logger.info(f'Motion energy and ROI for {side}Camera computed and saved')
-
     end_T = time.time()
-    print(f'{side}Camera computed in', np.round((end_T - start_T),2))
+    print(f'{side}Camera computed in', np.round((end_T - start_T), 2))
