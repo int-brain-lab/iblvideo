@@ -7,11 +7,9 @@ import numpy as np
 from oneibl.one import ONE
 from oneibl.patcher import FTPPatcher
 from iblvideo.choiceworld import dlc
-from iblvideo.motion_energy import compute_ROI_ME
 from iblvideo.weights import download_weights
 from iblvideo import __version__
 from ibllib.pipes import tasks
-from ibllib.qc.dlc import run_all_qc
 
 _logger = logging.getLogger('ibllib')
 
