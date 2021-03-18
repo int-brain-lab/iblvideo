@@ -11,24 +11,16 @@ left(right)Camera: cut whisker pad region
 import os
 import time
 import numpy as np
+import pandas as pd
 import cv2
 
 from oneibl.one import ONE
-import alf.io
-from ibllib.io.video import get_video_frames_preload, url_from_eid
+from ibllib.io.video import get_video_frames_preload, url_from_eid, label_from_path
 
 
-def get_dlc_midpoints(eid, label, one=None):
-
-    if one is None:
-        one = ONE()
-
-    # Download dlc data if not available locally
-    _ = one.load(eid, dataset_types='camera.dlc', download_only=True)
-    alf_path = one.path_from_eid(eid).joinpath('alf')
-
-    dlc_df = alf.io.load_object(alf_path, f'{label}Camera', namespace='ibl')['dlc']
-
+def get_dlc_midpoints(dlc_pqt):
+    # Load dataframe
+    dlc_df = pd.read_parquet(dlc_pqt)
     # Set values to nan if likelihood is too low and calcualte midpoints
     targets = np.unique(['_'.join(col.split('_')[:-1]) for col in dlc_df.columns])
     mloc = {}
@@ -36,11 +28,10 @@ def get_dlc_midpoints(eid, label, one=None):
         idx = dlc_df.loc[dlc_df[f'{t}_likelihood'] < 0.9].index
         dlc_df.loc[idx, [f'{t}_x', f'{t}_y']] = np.nan
         mloc[t] = [int(np.nanmean(dlc_df[f'{t}_x'])), int(np.nanmean(dlc_df[f'{t}_y']))]
-
     return mloc
 
 
-def motion_energy(eid, label, frame_numbers=None, one=None):
+def motion_energy(eid, dlc_pqt, frame_numbers=None, one=None):
     '''
     Compute motion energy on cropped frames of a single video
 
@@ -48,10 +39,11 @@ def motion_energy(eid, label, frame_numbers=None, one=None):
     :param label: 'body', 'left' or 'right'
     '''
 
-    if one is None:
-        one = ONE()
-
+    one = one or ONE()
     start_T = time.time()
+
+    # Get label from dlc_df
+    label = label_from_path(dlc_pqt)
     video_path = one.path_from_eid(eid).joinpath('raw_video_data',
                                                  f'_iblrig_{label}Camera.raw.mp4')
     # Check if video available locally, else create url
@@ -59,7 +51,7 @@ def motion_energy(eid, label, frame_numbers=None, one=None):
         video_path = url_from_eid(eid, label=label, one=one)
 
     # Crop ROI
-    mloc = get_dlc_midpoints(eid, label, one=one)
+    mloc = get_dlc_midpoints(dlc_pqt, one=one)
     if label == 'body':
         anchor = np.array(mloc['tail_start'])
         w, h = int(anchor[0] * 3 / 5), 210
@@ -77,13 +69,12 @@ def motion_energy(eid, label, frame_numbers=None, one=None):
     # Crop and grayscale frames.
     cropped_frames = get_video_frames_preload(video_path, frame_numbers=frame_numbers, mask=mask,
                                               func=cv2.cvtColor, code=cv2.COLOR_BGR2GRAY)
-
-    # save ROI
+    # save ROI coordinates
+    roi = np.asarray([w, h, x, y])
     alf_path = one.path_from_eid(eid).joinpath('alf')
-    np.save(alf_path.joinpath(f'{label}ROIMotionEnergy.position.npy'), np.asarray([w, h, x, y]))
+    np.save(alf_path.joinpath(f'{label}ROIMotionEnergy.position.npy'), roi)
 
     # Compute and save motion energy
-    # Cast to float
     cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
     me = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
     # copy last value to make motion energy fit frame length
@@ -91,6 +82,7 @@ def motion_energy(eid, label, frame_numbers=None, one=None):
 
     # save ME
     np.save(alf_path.joinpath(f'{label}.ROIMotionEnergy.npy'), me)
-
     end_T = time.time()
     print(f'{label}Camera computed in', np.round((end_T - start_T), 2))
+
+    return me, roi
