@@ -31,7 +31,7 @@ def get_dlc_midpoints(dlc_pqt):
     return mloc
 
 
-def motion_energy(eid, dlc_pqt, frame_numbers=None, one=None):
+def motion_energy(eid, dlc_pqt, frames=None, one=None):
     '''
     Compute motion energy on cropped frames of a single video
 
@@ -51,7 +51,7 @@ def motion_energy(eid, dlc_pqt, frame_numbers=None, one=None):
         video_path = url_from_eid(eid, label=label, one=one)
 
     # Crop ROI
-    mloc = get_dlc_midpoints(dlc_pqt, one=one)
+    mloc = get_dlc_midpoints(dlc_pqt)
     if label == 'body':
         anchor = np.array(mloc['tail_start'])
         w, h = int(anchor[0] * 3 / 5), 210
@@ -65,24 +65,40 @@ def motion_energy(eid, dlc_pqt, frame_numbers=None, one=None):
 
     # Note that x and y are flipped when loading with cv2, therefore:
     mask = np.s_[y:y + h, x:x + w]
-
-    # Crop and grayscale frames.
-    cropped_frames = get_video_frames_preload(video_path, frame_numbers=frame_numbers, mask=mask,
-                                              func=cv2.cvtColor, code=cv2.COLOR_BGR2GRAY)
     # save ROI coordinates
     roi = np.asarray([w, h, x, y])
     alf_path = one.path_from_eid(eid).joinpath('alf')
-    np.save(alf_path.joinpath(f'{label}ROIMotionEnergy.position.npy'), roi)
+    roi_file = alf_path.joinpath(f'{label}.ROIMotionEnergy.position.npy')
+    np.save(roi_file, roi)
 
-    # Compute and save motion energy
-    cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
-    me = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
+    if frames:
+        n, me, keep_reading = 0, np.empty(0), True
+        while keep_reading:
+            frame_numbers = range(n * (frames - 1), n * (frames - 1) + frames)  # 1 frame overlap
+            # Crop and grayscale frames.
+            cropped_frames = get_video_frames_preload(video_path, frame_numbers=frame_numbers,
+                                                      mask=mask, func=cv2.cvtColor,
+                                                      code=cv2.COLOR_BGR2GRAY)
+            cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
+            me = np.append(me,
+                           np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2)))
+            # check if last round encountered empty frames
+            keep_reading = (cropped_frames.shape[0] == frames)
+            n += 1
+    else:
+        # Compute on entire video at once
+        cropped_frames = get_video_frames_preload(video_path, frame_numbers=frames, mask=mask,
+                                                  func=cv2.cvtColor, code=cv2.COLOR_BGR2GRAY)
+        cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
+        me = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
+
     # copy last value to make motion energy fit frame length
     me = np.append(me, me[-1])
 
     # save ME
-    np.save(alf_path.joinpath(f'{label}.ROIMotionEnergy.npy'), me)
+    me_file = alf_path.joinpath(f'{label}.ROIMotionEnergy.npy')
+    np.save(me_file, me)
     end_T = time.time()
     print(f'{label}Camera computed in', np.round((end_T - start_T), 2))
 
-    return me, roi
+    return me_file, roi_file
