@@ -25,13 +25,16 @@ class TaskDLC(tasks.Task):
     io_charge = 90
     level = 0
 
-    def _run(self, n_cams=3, version=__version__):
+    def _run(self, n_cams=3, version=__version__, **kwargs):
 
         session_id = self.one.eid_from_path(self.session_path)
         # Check for existing dlc data
         dlc_data = self.one.alyx.rest('datasets', 'list', django=(f'session__id,{session_id},'
                                                                   'name__icontains,dlc'))
-        if len(dlc_data) != n_cams or self.overwrite is True:
+        # TODO: rerun only for the cams that don't yet exist
+        run_dlc = None
+        if len(dlc_data) < n_cams:
+            run_dlc = True
             # Download the camera data
             self.one.load(session_id, dataset_types=['_iblrig_Camera.raw'], download_only=True)
             # Download weights into ONE Cache directory under 'resources/DLC' if not exist
@@ -50,21 +53,26 @@ class TaskDLC(tasks.Task):
         dlc_results = list(self.session_path.joinpath('alf').glob('*dlc.pqt'))
         for dlc_pqt in dlc_results:
             label = label_from_path(dlc_pqt)
-            qc = DlcQC(session_id, label, one=self.one, update=True, log=_logger)
-            if all(x == 'PASS' for x in qc.metrics.values()):
+            qc = DlcQC(session_id, label, one=self.one, log=_logger)
+            outcome, metrics = qc.run(update=True)
+            if all(x == 'PASS' for x in metrics.values()):
                 _logger.info(f'Computing motion energy for {label}Camera')
-                me_result, _ = motion_energy(session_id, dlc_pqt, one=self.one)
+                frames = kwargs.pop('frames', None)
+                me_result, _ = motion_energy(session_id, dlc_pqt, frames=frames, one=self.one)
                 _logger.info(me_result)
             else:
                 _logger.info(f'{label}Camera did not pass DLC QC, skipping motion energy')
 
         me_results = list(self.session_path.joinpath('alf').glob('*ROIMotionEnergy*.npy'))
 
-        return dlc_results, me_results
+        if run_dlc:
+            return dlc_results, me_results
+        else:
+            return [], me_results
 
 
 def run_session(session_id, machine=None, n_cams=3, one=None, version=__version__,
-                remove_videos=True):
+                remove_videos=True, frames=10000):
     """
     Run DLC on a single session in the database.
 
@@ -96,8 +104,8 @@ def run_session(session_id, machine=None, n_cams=3, one=None, version=__version_
             status = -1
         else:
             # create the task instance and run it, update task
-            task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine, )
-            status = task.run(n_cams=n_cams, version=version)
+            task = TaskDLC(session_path, one=one, taskid=tdict['id'])  #, machine=machine)
+            status = task.run(n_cams=n_cams, version=version, frames=frames)
             patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
                           'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
             one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
@@ -105,7 +113,7 @@ def run_session(session_id, machine=None, n_cams=3, one=None, version=__version_
             if task.outputs:
                 # it is safer to instantiate the FTP right before transfer to prevent time-out
                 ftp_patcher = FTPPatcher(one=one)
-                ftp_patcher.create_dataset(path=task.outputs)
+                ftp_patcher.create_dataset(path=task.outputs[0] + task.outputs[1])
 
             if remove_videos is True:
                 shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
