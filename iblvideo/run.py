@@ -58,7 +58,8 @@ class TaskDLC(tasks.Task):
             if all(x == 'PASS' for x in metrics.values()):
                 _logger.info(f'Computing motion energy for {label}Camera')
                 frames = kwargs.pop('frames', None)
-                me_result, _ = motion_energy(session_id, dlc_pqt, frames=frames, one=self.one)
+                me_result, _ = motion_energy(self.session_path, dlc_pqt,
+                                             frames=frames, one=self.one)
                 _logger.info(me_result)
             else:
                 _logger.info(f'{label}Camera did not pass DLC QC, skipping motion energy')

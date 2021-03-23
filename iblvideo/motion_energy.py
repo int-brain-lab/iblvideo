@@ -31,11 +31,11 @@ def get_dlc_midpoints(dlc_pqt):
     return mloc
 
 
-def motion_energy(eid, dlc_pqt, frames=None, one=None):
+def motion_energy(session_path, dlc_pqt, frames=None, one=None):
     '''
     Compute motion energy on cropped frames of a single video
 
-    :param eid: Session ID
+    :param session_path: Path to session
     :param label: 'body', 'left' or 'right'
     '''
 
@@ -44,10 +44,10 @@ def motion_energy(eid, dlc_pqt, frames=None, one=None):
 
     # Get label from dlc_df
     label = label_from_path(dlc_pqt)
-    video_path = one.path_from_eid(eid).joinpath('raw_video_data',
-                                                 f'_iblrig_{label}Camera.raw.mp4')
+    video_path = session_path.joinpath('raw_video_data', f'_iblrig_{label}Camera.raw.mp4')
     # Check if video available locally, else create url
     if not os.path.isfile(video_path):
+        eid = one.eid_from_path(session_path)
         video_path = url_from_eid(eid, label=label, one=one)
 
     # Crop ROI
@@ -67,8 +67,8 @@ def motion_energy(eid, dlc_pqt, frames=None, one=None):
     mask = np.s_[y:y + h, x:x + w]
     # save ROI coordinates
     roi = np.asarray([w, h, x, y])
-    alf_path = one.path_from_eid(eid).joinpath('alf')
-    roi_file = alf_path.joinpath(f'{label}.ROIMotionEnergy.position.npy')
+    alf_path = session_path.joinpath('alf')
+    roi_file = alf_path.joinpath(f'_ibl_{label}.ROIMotionEnergy.position.npy')
     np.save(roi_file, roi)
 
     if frames:
@@ -83,8 +83,8 @@ def motion_energy(eid, dlc_pqt, frames=None, one=None):
             me = np.append(me,
                            np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2)))
             # check if last round encountered empty frames
-            keep_reading = (cropped_frames.shape[0] == frames)
             n += 1
+            keep_reading = (cropped_frames.shape[0] == frames)
     else:
         # Compute on entire video at once
         cropped_frames = get_video_frames_preload(video_path, frame_numbers=frames, mask=mask,
@@ -96,7 +96,7 @@ def motion_energy(eid, dlc_pqt, frames=None, one=None):
     me = np.append(me, me[-1])
 
     # save ME
-    me_file = alf_path.joinpath(f'{label}.ROIMotionEnergy.npy')
+    me_file = alf_path.joinpath(f'_ibl_{label}.ROIMotionEnergy.npy')
     np.save(me_file, me)
     end_T = time.time()
     print(f'{label}Camera computed in', np.round((end_T - start_T), 2))
