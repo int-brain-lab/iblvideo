@@ -52,6 +52,18 @@ sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64
 sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*  
 ```
 
+(optional): check CUDNN installation or for troubleshooting only)
+Download and unzip https://ibl.flatironinstitute.org/resources/cudnn_samples_v7.zip
+If necessary, setup your CUDA environment variables with the version you want to test
+
+```
+cd cudnn_samples_v7/mnistCUDNN/
+make clean && make
+./mnistCUDNN
+```
+
+Should print a message that finishes with Test passed !
+
 ### Create a Python environment with TensorFlow and DLC
 
 Install a few things system wide and then python3.7
