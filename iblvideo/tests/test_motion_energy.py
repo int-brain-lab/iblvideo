@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from iblvideo.motion_energy import motion_energy
 from iblvideo.tests import _download_me_test_data
@@ -7,9 +8,9 @@ def test_motion_energy():
 
     test_data = _download_me_test_data()
     for cam in ['body', 'left', 'right']:
-
-        ctrl_me = np.load(test_data.joinpath(f'/_ibl_{cam}.ROIMotionEnergy.npy'))
-        ctrl_roi = np.load(test_data.joinpath(f'/_ibl_{cam}.ROIMotionEnergy.position.npy'))
+        print(f"Running test for {cam}")
+        ctrl_me = np.load(test_data.joinpath(f'output/_ibl_{cam}.ROIMotionEnergy.npy'))
+        ctrl_roi = np.load(test_data.joinpath(f'output/_ibl_{cam}.ROIMotionEnergy.position.npy'))
         dlc_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
 
         # Test with all frames
@@ -25,3 +26,6 @@ def test_motion_energy():
         test_roi = np.load(roi_file)
         assert all(test_me == ctrl_me)
         assert all(test_roi == ctrl_roi)
+
+        os.remove(me_file)
+        os.remove(roi_file)
