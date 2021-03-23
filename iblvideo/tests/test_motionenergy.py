@@ -1,22 +1,27 @@
-from oneibl.one import ONE
 import numpy as np
 from iblvideo.motion_energy import motion_energy
+from iblvideo.tests import _download_me_test_data
 
-one = ONE()
-eid = 'cde63527-7f5a-4cc3-8ac2-215d82e7da26'
-session_path = one.path_from_eid(eid)
 
-for label in ['body', 'left', 'right']:
-    dlc_pqt = session_path.joinpath(f'alf/_ibl_{label}Camera.dlc.pqt')
+def test_motion_energy():
 
-    me_file, roi_file = motion_energy(eid, dlc_pqt, frames=None)
-    all_frames_me = np.load(me_file)
-    all_frames_roi = np.load(roi_file)
+    test_data = _download_me_test_data()
+    for cam in ['body', 'left', 'right']:
 
-    me_file, roi_file = motion_energy(eid, dlc_pqt, frames=100)
-    some_frames_me = np.load(me_file)
-    some_frames_roi = np.load(roi_file)
+        ctrl_me = np.load(test_data.joinpath(f'/_ibl_{cam}.ROIMotionEnergy.npy'))
+        ctrl_roi = np.load(test_data.joinpath(f'/_ibl_{cam}.ROIMotionEnergy.position.npy'))
+        dlc_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
 
-    assert all(all_frames_me == some_frames_me)
-    assert all(all_frames_roi == some_frames_roi)
-# check with and without streaming
+        # Test with all frames
+        me_file, roi_file = motion_energy(test_data, dlc_pqt, frames=None)
+        test_me = np.load(me_file)
+        test_roi = np.load(roi_file)
+        assert all(test_me == ctrl_me)
+        assert all(test_roi == ctrl_roi)
+
+        # Test with frame chunking
+        me_file, roi_file = motion_energy(test_data, dlc_pqt, frames=70)
+        test_me = np.load(me_file)
+        test_roi = np.load(roi_file)
+        assert all(test_me == ctrl_me)
+        assert all(test_roi == ctrl_roi)
