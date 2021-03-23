@@ -3,13 +3,13 @@ import numpy as np
 import pandas as pd
 from iblvideo.choiceworld import dlc
 from iblvideo.weights import download_weights
-from iblvideo.tests.download_test_data import _download_test_data
+from iblvideo.tests.download_test_data import _download_dlc_test_data
 from iblvideo import __version__
 
 
 def test_dlc(version=__version__):
 
-    test_data = _download_test_data()
+    test_data = _download_dlc_test_data()
     path_dlc = download_weights(version=version)
 
     for cam in ['body', 'left', 'right']:
