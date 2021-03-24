@@ -105,7 +105,7 @@ def run_session(session_id, machine=None, n_cams=3, one=None, version=__version_
             status = -1
         else:
             # create the task instance and run it, update task
-            task = TaskDLC(session_path, one=one, taskid=tdict['id'])  #, machine=machine)
+            task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine)
             status = task.run(n_cams=n_cams, version=version, frames=frames)
             patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
                           'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
