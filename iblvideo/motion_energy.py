@@ -15,7 +15,8 @@ import pandas as pd
 import cv2
 
 from oneibl.one import ONE
-from ibllib.io.video import get_video_frames_preload, url_from_eid, label_from_path
+from ibllib.io.video import get_video_frames_preload, url_from_eid, label_from_path, \
+                            get_video_meta
 
 
 def grayscale(x):
@@ -76,21 +77,30 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
     np.save(roi_file, roi)
 
     if frames:
+        # Find how many frames in the video
+        frame_count = get_video_meta(video_path)['length']
+        # Initiate some variables
         n, me, keep_reading = 0, np.empty(0), True
         while keep_reading:
-            frame_numbers = range(n * (frames - 1), n * (frames - 1) + frames)  # 1 frame overlap
-            # Crop and grayscale frames.
-            cropped_frames = get_video_frames_preload(video_path, frame_numbers=frame_numbers,
-                                                      mask=mask, func=grayscale)
-            cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
-            me = np.append(me,
-                           np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2)))
-            # check if last round encountered empty frames
+            # Set the frame numbers to the next #frames, with 1 frame overlap
+            frame_numbers = range(n * (frames - 1), n * (frames - 1) + frames)
+            # Make sure not to load empty frames
+            if max(frame_numbers) >= frame_count:
+                frame_numbers = range(frame_numbers.start, frame_count)
+                keep_reading = False
+
+            # Load, crop and grayscale frames.
+            cropped_frames = np.asarray(get_video_frames_preload(video_path,
+                                        frame_numbers=frame_numbers, mask=mask, func=grayscale),
+                                        dtype=np.float32)
+            # Calculate motion energy for those frames and append to big array
+            me = np.append(me, np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]),
+                                       axis=(1, 2)))
+            # Next set of frames
             n += 1
-            keep_reading = (cropped_frames.shape[0] == frames)
     else:
         # Compute on entire video at once
-        cropped_frames = get_video_frames_preload(video_path, frame_numbers=frames, mask=mask,
+        cropped_frames = get_video_frames_preload(video_path, frame_numbers=None, mask=mask,
                                                   func=grayscale)
         cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
         me = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
