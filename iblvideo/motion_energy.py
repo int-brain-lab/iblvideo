@@ -18,6 +18,10 @@ from oneibl.one import ONE
 from ibllib.io.video import get_video_frames_preload, url_from_eid, label_from_path
 
 
+def grayscale(x):
+    return cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+
+
 def get_dlc_midpoints(dlc_pqt):
     # Load dataframe
     dlc_df = pd.read_parquet(dlc_pqt)
@@ -77,8 +81,7 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
             frame_numbers = range(n * (frames - 1), n * (frames - 1) + frames)  # 1 frame overlap
             # Crop and grayscale frames.
             cropped_frames = get_video_frames_preload(video_path, frame_numbers=frame_numbers,
-                                                      mask=mask, func=cv2.cvtColor,
-                                                      code=cv2.COLOR_BGR2GRAY)
+                                                      mask=mask, func=grayscale)
             cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
             me = np.append(me,
                            np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2)))
@@ -88,7 +91,7 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
     else:
         # Compute on entire video at once
         cropped_frames = get_video_frames_preload(video_path, frame_numbers=frames, mask=mask,
-                                                  func=cv2.cvtColor, code=cv2.COLOR_BGR2GRAY)
+                                                  func=grayscale)
         cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
         me = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
 
