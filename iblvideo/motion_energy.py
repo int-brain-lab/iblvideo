@@ -15,8 +15,8 @@ import pandas as pd
 import cv2
 
 from oneibl.one import ONE
-from ibllib.io.video import get_video_frames_preload, url_from_eid, label_from_path, \
-                            get_video_meta
+from ibllib.io.video import get_video_frames_preload, url_from_eid, label_from_path
+from ibllib.io.extractors.camera import get_video_length
 
 
 def grayscale(x):
@@ -73,12 +73,12 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
     # save ROI coordinates
     roi = np.asarray([w, h, x, y])
     alf_path = session_path.joinpath('alf')
-    roi_file = alf_path.joinpath(f'_ibl_{label}.ROIMotionEnergy.position.npy')
+    roi_file = alf_path.joinpath(f'{label}ROIMotionEnergy.position.npy')
     np.save(roi_file, roi)
 
     if frames:
         # Find how many frames in the video
-        frame_count = get_video_meta(video_path)['length']
+        frame_count = get_video_length(video_path)
         # Initiate some variables
         n, me, keep_reading = 0, np.empty(0), True
         while keep_reading:
@@ -109,7 +109,7 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
     me = np.append(me, me[-1])
 
     # save ME
-    me_file = alf_path.joinpath(f'_ibl_{label}.ROIMotionEnergy.npy')
+    me_file = alf_path.joinpath(f'{label}Camera.ROIMotionEnergy.npy')
     np.save(me_file, me)
     end_T = time.time()
     print(f'{label}Camera computed in', np.round((end_T - start_T), 2))
