@@ -50,8 +50,11 @@ class TaskDLC(tasks.Task):
             self.one.load(session_id, dataset_types='camera.dlc')
 
         # Run DLC QC, if it passes run motion energy
-        dlc_results = list(self.session_path.joinpath('alf').glob('*dlc.pqt'))
-        for dlc_pqt in dlc_results:
+        # sort results so that left is first in case one only wants to run left
+        dlc_results = sorted(self.session_path.joinpath('alf').glob('*dlc.pqt'),
+                             key=lambda f: 'left' in str(f), reverse=True)
+        for i in range(n_cams):
+            dlc_pqt = dlc_results[i]
             label = label_from_path(dlc_pqt)
             qc = DlcQC(session_id, label, one=self.one, log=_logger)
             outcome, metrics = qc.run(update=True)
@@ -92,7 +95,10 @@ def run_session(session_id, machine=None, n_cams=3, one=None, version=__version_
         session_path = one.path_from_eid(session_id)
         tdict = one.alyx.rest('tasks', 'list',
                               django=f"name__icontains,DLC,session__id,{session_id}")[0]
+    except IndexError:
+        print(f"No DLC task found for session {session_id}")
 
+    try:
         # Check if required number of cameras is available
         dsets = one.alyx.rest('datasets', 'list', django=(f'session__id,{session_id},'
                                                           'data_format__name,mp4,'
