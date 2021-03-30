@@ -9,8 +9,8 @@ def test_motion_energy():
     test_data = _download_me_test_data()
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
-        ctrl_me = np.load(test_data.joinpath(f'output/_ibl_{cam}.ROIMotionEnergy.npy'))
-        ctrl_roi = np.load(test_data.joinpath(f'output/_ibl_{cam}.ROIMotionEnergy.position.npy'))
+        ctrl_me = np.load(test_data.joinpath(f'output/{cam}Camera.ROIMotionEnergy.npy'))
+        ctrl_roi = np.load(test_data.joinpath(f'output/{cam}ROIMotionEnergy.position.npy'))
         dlc_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
 
         # Test with all frames
