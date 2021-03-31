@@ -57,17 +57,17 @@ class TaskDLC(tasks.Task):
             dlc_pqt = dlc_results[i]
             label = label_from_path(dlc_pqt)
             qc = DlcQC(session_id, label, one=self.one, log=_logger)
-            outcome, metrics = qc.run(update=True)
-            if all(x == 'PASS' for x in metrics.values()):
-                _logger.info(f'Computing motion energy for {label}Camera')
-                frames = kwargs.pop('frames', None)
+            qc.run(update=True)
+            _logger.info(f'Computing motion energy for {label}Camera')
+            frames = kwargs.pop('frames', None)
+            try:
                 me_result, _ = motion_energy(self.session_path, dlc_pqt,
                                              frames=frames, one=self.one)
                 _logger.info(me_result)
-            else:
-                _logger.info(f'{label}Camera did not pass DLC QC, skipping motion energy')
-
-        me_results = list(self.session_path.joinpath('alf').glob('*ROIMotionEnergy*.npy'))
+                me_results = list(self.session_path.joinpath('alf').glob('*ROIMotionEnergy*.npy'))
+            except BaseException:
+                _logger.error(f'Motion energy {label}Camera failed.\n' + traceback.format_exc())
+                me_results = []
 
         if run_dlc:
             return dlc_results, me_results
