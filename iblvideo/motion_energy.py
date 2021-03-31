@@ -76,11 +76,10 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
     roi_file = alf_path.joinpath(f'{label}ROIMotionEnergy.position.npy')
     np.save(roi_file, roi)
 
+    frame_count = get_video_length(video_path)
+    me = np.zeros(frame_count,)
     if frames:
-        # Find how many frames in the video
-        frame_count = get_video_length(video_path)
-        # Initiate some variables
-        n, me, keep_reading = 0, np.empty(0), True
+        n, keep_reading = 0, True
         while keep_reading:
             # Set the frame numbers to the next #frames, with 1 frame overlap
             frame_numbers = range(n * (frames - 1), n * (frames - 1) + frames)
@@ -94,8 +93,8 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
                                         frame_numbers=frame_numbers, mask=mask, func=grayscale),
                                         dtype=np.float32)
             # Calculate motion energy for those frames and append to big array
-            me = np.append(me, np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]),
-                                       axis=(1, 2)))
+            me[frame_numbers[:-1]] = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]),
+                                             axis=(1, 2))
             # Next set of frames
             n += 1
     else:
@@ -103,10 +102,10 @@ def motion_energy(session_path, dlc_pqt, frames=None, one=None):
         cropped_frames = get_video_frames_preload(video_path, frame_numbers=None, mask=mask,
                                                   func=grayscale)
         cropped_frames = np.asarray(cropped_frames, dtype=np.float32)
-        me = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
+        me[:-1] = np.mean(np.abs(cropped_frames[1:] - cropped_frames[:-1]), axis=(1, 2))
 
     # copy last value to make motion energy fit frame length
-    me = np.append(me, me[-1])
+    me[-1] = me[-2]
 
     # save ME
     me_file = alf_path.joinpath(f'{label}Camera.ROIMotionEnergy.npy')
