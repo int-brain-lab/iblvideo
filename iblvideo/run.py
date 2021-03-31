@@ -126,14 +126,15 @@ def run_session(session_id, machine=None, n_cams=3, one=None, version=__version_
                 shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
     except BaseException:
-        patch_data = {'log': traceback.format_exc(), 'version': version, 'status': 'Errored'}
+        patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(),
+                      'version': version, 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
         status = -1
 
     return status
 
 
-def run_queue(machine=None, n_sessions=np.inf, version=__version__, delta_query=600):
+def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
     """
     Run the entire queue, or n_sessions, of DLC tasks on Alyx.
 
@@ -161,7 +162,7 @@ def run_queue(machine=None, n_sessions=np.inf, version=__version__, delta_query=
             return
         # Run next session in the list, capture status in dict and move on to next session
         eid = sessions[0]
-        status_dict[eid] = run_session(sessions.pop(0), machine=machine, one=one, version=version)
+        status_dict[eid] = run_session(sessions.pop(0), machine=machine, one=one, **kwargs)
         count += 1
 
     return status_dict
