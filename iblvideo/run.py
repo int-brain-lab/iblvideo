@@ -25,7 +25,7 @@ class TaskDLC(tasks.Task):
     io_charge = 90
     level = 0
 
-    def _run(self, n_cams=3, version=__version__, **kwargs):
+    def _run(self, n_cams=3, version=__version__, frames=None):
 
         session_id = self.one.eid_from_path(self.session_path)
         # Check for existing dlc data
@@ -59,7 +59,6 @@ class TaskDLC(tasks.Task):
             qc = DlcQC(session_id, label, one=self.one, log=_logger)
             qc.run(update=True)
             _logger.info(f'Computing motion energy for {label}Camera')
-            frames = kwargs.pop('frames', None)
             try:
                 me_result, _ = motion_energy(self.session_path, dlc_pqt,
                                              frames=frames, one=self.one)
@@ -76,7 +75,7 @@ class TaskDLC(tasks.Task):
 
 
 def run_session(session_id, machine=None, n_cams=3, one=None, version=__version__,
-                remove_videos=True, frames=10000):
+                remove_videos=True, frames=50000, **kwargs):
     """
     Run DLC on a single session in the database.
 
@@ -85,8 +84,18 @@ def run_session(session_id, machine=None, n_cams=3, one=None, version=__version_
     :param n_cams: Minimum number of camera datasets required
     :param one: ONE instance to use for query (optional)
     :param version: Version of iblvideo / DLC weights to use (default is current version)
-    :param remove_data: Whether to remove the local raw_video_data after DLC (default is True)
+    :param remove_videos: Whether to remove the local raw_video_data after DLC (default is True)
+    :param frames: Number of video frames loaded into memory at once while computing ME. If None,
+                   all frames of a video are loaded at once. (default is 50000, see below)
+    :param kwargs: Additional keyword arguments to be passed to TaskDLC
     :return status: final status of the task
+
+    The frames parameter determines how many cropped frames per camera are loaded into memory at
+    once and should be set depending on availble RAM. Some approximate numbers for orientation,
+    assuming 90 min video and frames set to:
+    1       : 152 KB (body),   54 KB (left),   15 KB (right)
+    50000   : 7.6 GB (body),  2.7 GB (left), 0.75 GB (right)
+    None    :  25 GB (body), 17.5 GB (left), 12.5 GB (right)
     """
     # Catch all errors that are not caught inside run function and put them in the log
     try:
@@ -111,7 +120,7 @@ def run_session(session_id, machine=None, n_cams=3, one=None, version=__version_
             status = -1
         else:
             # create the task instance and run it, update task
-            task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine)
+            task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine, **kwargs)
             status = task.run(n_cams=n_cams, version=version, frames=frames)
             patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
                           'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
@@ -142,6 +151,7 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
     :param n_sessions: Number of sessions to run from queue (default is run whole queue)
     :param version: Version of iblvideo / DLC weights to use (default is current version)
     :param delta_query: Time between querying the database for Empty tasks, in sec
+    :param kwargs: Keyword arguments to be passed to run_session.
     """
 
     one = ONE()
