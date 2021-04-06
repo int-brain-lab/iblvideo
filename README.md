@@ -121,17 +121,21 @@ python -c 'import iblvideo'
 ```
 ## Releasing a new version (for devs)
 
-We use semantic versioning MAJOR.MINOR.PATCH. If you update the version, see below for what to adapt. Afterwards, tag the new version on Github.
+We use semantic versioning MAJOR.MINOR.PATCH. If you update the version, see below for what to adapt.
 
 ### Any version update
 Update the version in
 ```
 iblvideo/iblvideo/__init__.py
 ```
+Afterwards, tag the new version on Github.
+
 
 ### Update MINOR or MAJOR
-The version of weights and test data are synchronized with the MAJOR.MINOR version of this code. In addition to updating the version you have to upload two new zip files to FlatIron (note that the patch version is not included in the name):
+The version of DLC weights and DLC test data are synchronized with the MAJOR.MINOR version of this code.
+
+If you update any of the DLC weights, you also need to update the MINOR version of the code and the DLC test data, and vice versa. To update the test data, run dlc with new weights on the test inputs. Then upload the weights and the DLC test data folder (inputs and outputs) to FlatIron as zip files (note that the patch version is not included in the name):
 ```
 /resources/dlc/weights_v{MAJOR}.{MINOR}.zip
-/integration/dlc/test_data/test_data_v{MAJOR}.{MINOR}.zip
+/integration/dlc/test_data/dlc_test_data_v{MAJOR}.{MINOR}.zip
 ```
