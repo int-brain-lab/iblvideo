@@ -16,8 +16,8 @@ def _download_test_data(version=__version__):
     local_path.mkdir(exist_ok=True, parents=True)
 
     # Construct URL and call download
-    url = '{}/{}/test_data_v{}.zip'.format(par.HTTP_DATA_SERVER, str(data_dir),
-                                           '.'.join(version.split('.')[:-1]))
+    url = '{}/{}/dlc_test_data_v{}.zip'.format(par.HTTP_DATA_SERVER, str(data_dir),
+                                               '.'.join(version.split('.')[:-1]))
     file_name = http_download_file(url,
                                    cache_dir=local_path,
                                    username=par.HTTP_DATA_SERVER_LOGIN,
