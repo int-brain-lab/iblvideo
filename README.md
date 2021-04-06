@@ -132,10 +132,16 @@ Afterwards, tag the new version on Github.
 
 
 ### Update MINOR or MAJOR
-The version of DLC weights and DLC test data are synchronized with the MAJOR.MINOR version of this code.
+The version of DLC weights and DLC test data are synchronized with the MAJOR.MINOR version of this code. (Note that the patch version is not included in the directory names)
 
-If you update any of the DLC weights, you also need to update the MINOR version of the code and the DLC test data, and vice versa. To update the test data, run dlc with new weights on the test inputs. Then upload the weights and the DLC test data folder (inputs and outputs) to FlatIron as zip files (note that the patch version is not included in the name):
+If you update any of the DLC weights, you also need to update the MINOR version of the code and the DLC test data, and vice versa.
+1. For the weights, create a new directory called `weights_v{MAJOR}.{MINOR}` and copy the new weights, plus any unchanged weights into it.
+2. Make a new `dlc_test_data_v{MAJOR}.{MINOR}` directory, with subdirectories `input` and `output`.
+3. Copy the three videos from the `input` folder of the previous version dlc_test_data to the new one.
+4. Create the three parquet files to go in `output` by running iblvideo.dlc() with the new weights folder as `path_dlc`, and each of the videos in the new `input` folder as `file_mp4`.
+5. Zip and upload the new weights and test data folders to FlatIron :
 ```
 /resources/dlc/weights_v{MAJOR}.{MINOR}.zip
 /integration/dlc/test_data/dlc_test_data_v{MAJOR}.{MINOR}.zip
 ```
+6. Delete your local weights and test data and run tests/test_choiceworld.py to make sure everything worked.
