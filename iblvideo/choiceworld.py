@@ -95,7 +95,7 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
     """
     # If flipped right cam does not exist, compute
     file_out1 = str(Path(tdir).joinpath(str(file_mp4).replace('.raw.', '.flipped.')))
-    if os.path.exists(file_out1) and not force:
+    if os.path.exists(file_out1) and force is not True:
         _logger.info('STEP 00A Flipped rightCamera video exists, not computing.')
     else:
         _logger.info('STEP 00A Flipping and turning rightCamera video')
@@ -107,7 +107,7 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
 
     # If oversampled cam does not exist, compute
     file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
-    if os.path.exists(file_out2) and not force:
+    if os.path.exists(file_out2) and force is not True:
         _logger.info('STEP 00B Oversampled rightCamera video exists, not computing.')
     else:
         _logger.info('STEP 00B Oversampling rightCamera video')
@@ -131,7 +131,6 @@ def _s01_subsample(file_in, file_out, force=False):
 
     if file_out.exists() and force is not True:
         _logger.info(f"STEP 01 Sparse frame video {file_out} exists, not computing")
-        _logger.info(f"STEP 01 Sparse frame video {file_out} exists, not computing")
     else:
         _logger.info(f"STEP 01 START Generating sparse video {file_out} for posture detection")
         cap = cv2.VideoCapture(str(file_in))
@@ -153,18 +152,18 @@ def _s01_subsample(file_in, file_out, force=False):
     return file_out
 
 
-def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False, force=False):
+def _s02_detect_rois(tdir, sparse_video, dlc_params, create_labels=False, force=False):
     """
     Step 2 run DLC to detect ROIS.
     returns: Path to dataframe used to crop video
     """
-    file_out = next(tpath.glob('*.subsampled.*.h5'), None)
+    file_out = next(tdir.glob('*subsampled*.h5'), None)
     if file_out is None or force is True:
         _logger.info(f"STEP 02 START Posture detection for {sparse_video}")
         out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
         if create_labels:
             deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
-        file_out = next(tpath.glob(f'*{out}*.h5'), None)
+        file_out = next(tdir.glob(f'*{out}*.h5'), None)
         _logger.info(f"STEP 02 END Posture detection for {sparse_video}")
     else:
         _logger.info(f"STEP 02 Posture detection for {sparse_video} exists, not computing.")
@@ -224,7 +223,7 @@ def _s04_resample_paws(file_in, tdir, force=False):
     file_in = Path(file_in)
     file_out = Path(tdir) / file_in.name.replace('raw', 'paws_downsampled')
 
-    if file_out.exists() and not force:
+    if file_out.exists() and force is not True:
         _logger.info('STEP 04 resampled paws exists, not computing')
     else:
         _logger.info('STEP 04 START resample paws')
@@ -240,9 +239,9 @@ def _s04_resample_paws(file_in, tdir, force=False):
 def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False,
                                       force=False):
 
-    # Check if final result exists 
+    # Check if final result exists
     result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
-    if result and not force:
+    if result and force is not True:
         _logger.info(f'STEP 05 dlc feature {tfile} already extracted, not computing.')
     else:
         _logger.info(f'STEP 05 START extract dlc feature {tfile}')
@@ -338,7 +337,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
     file2segment = file_mp4 if 'rightCamera' not in file_mp4.name \
         else _s00_transform_rightCam(file_mp4, tdir, force=force)  # CPU pure Python
     file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'], force=force)  # CPU ffmpeg
-    file_df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)   # GPU dlc
+    file_df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)  # GPU dlc
 
     networks_run = {}
     for k in networks:
