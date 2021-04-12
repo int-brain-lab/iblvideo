@@ -129,26 +129,26 @@ def _s01_subsample(file_in, file_out, force=False):
     file_in = Path(file_in)
     file_out = Path(file_out)
 
-    if file_out.exists() and not force:
+    if file_out.exists() and force is not True:
         _logger.info(f"STEP 01 Sparse frame video {file_out} exists, not computing")
         return file_out
+    else:
+        _logger.info(f"STEP 01 START Generating sparse video {file_out} for posture detection")
+        cap = cv2.VideoCapture(str(file_in))
+        frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    _logger.info(f"STEP 01 Generating sparse frame video {file_out} for posture detection")
-    cap = cv2.VideoCapture(str(file_in))
-    frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        # get from 20 to 500 samples linearly spaced throughout the session
+        nsamples = min(max(20, frameCount / cap.get(cv2.CAP_PROP_FPS)), 500)
+        samples = np.int32(np.round(np.linspace(0, frameCount - 1, nsamples)))
 
-    # get from 20 to 500 samples linearly spaced throughout the session
-    nsamples = min(max(20, frameCount / cap.get(cv2.CAP_PROP_FPS)), 500)
-    samples = np.int32(np.round(np.linspace(0, frameCount - 1, nsamples)))
-
-    size = (int(cap.get(3)), int(cap.get(4)))
-    out = cv2.VideoWriter(str(file_out), cv2.VideoWriter_fourcc(*'mp4v'), 5, size)
-    for i in samples:
-        cap.set(1, i)
-        _, frame = cap.read()
-        out.write(frame)
-    out.release()
-    _logger.info(f"STEP 01 STOP Generating sparse frame video {file_out} for posture detection")
+        size = (int(cap.get(3)), int(cap.get(4)))
+        out = cv2.VideoWriter(str(file_out), cv2.VideoWriter_fourcc(*'mp4v'), 5, size)
+        for i in samples:
+            cap.set(1, i)
+            _, frame = cap.read()
+            out.write(frame)
+        out.release()
+        _logger.info(f"STEP 01 STOP Generating sparse video {file_out} for posture detection")
 
     return file_out
 
@@ -159,7 +159,6 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False, force
     returns: Path to dataframe used to crop video
     """
     file_out = next(tpath.glob('*.h5'), None) # TODO: Not sure if this works without the {out}
-    _logger.info(f"STEP 02 Posture detection for {sparse_video} exists, not computing.")
     if file_out is None or force is True:
         _logger.info(f"STEP 02 START Posture detection for {sparse_video}")
         out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
@@ -167,6 +166,8 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False, force
             deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
         file_out = next(tpath.glob(f'*{out}*.h5'), None)
         _logger.info(f"STEP 02 END Posture detection for {sparse_video}")
+    else:
+        _logger.info(f"STEP 02 Posture detection for {sparse_video} exists, not computing.")
     return file_out
 
 
@@ -178,21 +179,19 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
     # Don't run if outputs exist and force is False
     file_out = Path(file_out)
     whxy_file = file_out.parent.joinpath(file_out.stem + '.whxy.npy')
-    if file_out.exists() and whxy_file.exists() and not force:
+    if file_out.exists() and whxy_file.exists() and force is not True:
         _logger.info(f'STEP 03 Cropped {network["label"]} video exists, not computing.')
-        return file_out
-
-    # Else run
-    _logger.info(f'STEP 03 START cropping {network["label"]}  video')
-    crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
-                    '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
-    whxy = _get_crop_window(file_df_crop, network)
-    pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
-    if pop['process'].returncode != 0:
-        _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI \
-                      {network["label"]}, file: {file_in}')
-    np.save(str(whxy_file), whxy)
-    _logger.info(f'STEP 03 STOP cropping {network["label"]}  video')
+    else:
+        _logger.info(f'STEP 03 START cropping {network["label"]}  video')
+        crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
+                        '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
+        whxy = _get_crop_window(file_df_crop, network)
+        pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
+        if pop['process'].returncode != 0:
+            _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI \
+                          {network["label"]}, file: {file_in}')
+        np.save(str(whxy_file), whxy)
+        _logger.info(f'STEP 03 STOP cropping {network["label"]}  video')
     return file_out
 
 
@@ -206,18 +205,17 @@ def _s04_brightness_eye(file_in, force=False):
     file_in = Path(file_in)
     file_out = file_in.parent.joinpath(file_in.name.replace('eye', 'eye_adjusted'))
 
-    if file_out.exists() and not force:
+    if file_out.exists() and force is not True:
         _logger.info('STEP 04 Adjusting eye brightness has already been run, not computing')
-        return file_out
-
-    # Else run command
-    _logger.info('STEP 04 START Adjusting eye brightness')
-    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
-           f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
-    pop = _run_command(cmd)
-    if pop['process'].returncode != 0:
-        _logger.error(f"DLC 4/6: Adjust eye brightness failed: {file_in}")
-    _logger.info('STEP 04 STOP Adjusting eye brightness')
+    else:
+        # Else run command
+        _logger.info('STEP 04 START Adjusting eye brightness')
+        cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
+               f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
+        pop = _run_command(cmd)
+        if pop['process'].returncode != 0:
+            _logger.error(f"DLC 4/6: Adjust eye brightness failed: {file_in}")
+        _logger.info('STEP 04 STOP Adjusting eye brightness')
     return file_out
 
 
@@ -228,15 +226,14 @@ def _s04_resample_paws(file_in, tdir, force=False):
 
     if file_out.exists() and not force:
         _logger.info('STEP 04 resampled paws exists, not computing')
-        return file_out
-
-    _logger.info('STEP 04 START resample paws')
-    cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
-           f' -c:a copy {file_out}')  # was 112:100
-    pop = _run_command(cmd)
-    if pop['process'].returncode != 0:
-        _logger.error(f"DLC 4/6: Subsampling paws failed: {file_in}")
-    _logger.info('STEP 04 STOP resample paws')
+    else:
+        _logger.info('STEP 04 START resample paws')
+        cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
+               f' -c:a copy {file_out}')  # was 112:100
+        pop = _run_command(cmd)
+        if pop['process'].returncode != 0:
+            _logger.error(f"DLC 4/6: Subsampling paws failed: {file_in}")
+        _logger.info('STEP 04 STOP resample paws')
     return file_out
 
 
@@ -247,14 +244,13 @@ def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=
     result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
     if result and not force:
         _logger.info(f'STEP 05 dlc feature {tfile} already extracted, not computing.')
-        return network
-
-    _logger.info(f'STEP 05 START extract dlc feature {tfile}')
-    deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
-    if create_labels:
-        deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
-    deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
-    _logger.info(f'STEP 05 STOP extract dlc feature {tfile}')
+    else:
+        _logger.info(f'STEP 05 START extract dlc feature {tfile}')
+        deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
+        if create_labels:
+            deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
+        deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
+        _logger.info(f'STEP 05 STOP extract dlc feature {tfile}')
     # returning the network to enable task dependencies to be captured correctly
     return network
 
