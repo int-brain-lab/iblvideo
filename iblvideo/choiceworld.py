@@ -61,16 +61,16 @@ def _dlc_init(file_mp4, path_dlc):
     return file_mp4, dlc_params, networks, tdir, tfile, file_label
 
 
-def _get_crop_window(df_crop, network):
+def _get_crop_window(file_df_crop, network):
     """
     Get average position of a pivot point for autocropping.
-
-    :param df_crop: data frame from hdf5 file from video data
+    :param file_df_crop: Path to data frame from hdf5 file from video data
     :param network: dictionary describing the networks.
                     See constants SIDE and BODY
     :return: list of floats [width, height, x, y] defining window used for
              ffmpeg crop command
     """
+    df_crop = pd.read_hdf(file_df_crop)
     XYs = []
     for part in network['features']:
         x_values = df_crop[(df_crop.keys()[0][0], part, 'x')].values
@@ -85,56 +85,55 @@ def _get_crop_window(df_crop, network):
         XYs.append([int(np.nanmean(x)), int(np.nanmean(y))])
 
     xy = np.mean(XYs, axis=0)
-
     return network['crop'](*xy)
 
 
-def _s00_transform_rightCam(file_mp4, tdir):
+def _s00_transform_rightCam(file_mp4, tdir, force=False):
     """
     Flip and rotate the right cam and increase spatial resolution.
-
     Such that the rightCamera video looks like the leftCamera video.
     """
-    # TODO use the video parameters above not to have this hard-coded
-    # (sampling + original size)
-    if 'rightCamera' not in file_mp4.name:
-        return file_mp4
-
+    # If flipped right cam does not exist, compute
+    file_out1 = str(Path(tdir).joinpath(str(file_mp4).replace('.raw.', '.flipped.')))
+    if os.path.exists(file_out1) and not force:
+        _logger.info('STEP 00A Flipped rightCamera video exists, not computing.')
     else:
-        _logger.info('STEP 00 Flipping and turning rightCamera video')
-        file_out1 = str(Path(tdir).joinpath(str(file_mp4).replace('.raw.', '.flipped.')))
+        _logger.info('STEP 00A Flipping and turning rightCamera video')
         command_flip = (f'ffmpeg -nostats -y -loglevel 0 -i {file_mp4} -vf '
                         f'"transpose=1,transpose=1" -vf hflip {file_out1}')
         pop = _run_command(command_flip)
         if pop['process'].returncode != 0:
             _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4} ' + pop['stderr'])
-        _logger.info('Oversampling rightCamera video')
-        file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
 
+    # If oversampled cam does not exist, compute
+    file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
+    if os.path.exists(file_out2) and not force:
+        _logger.info('STEP 00B Oversampled rightCamera video exists, not computing.')
+    else:
+        _logger.info('STEP 00B Oversampling rightCamera video')
         command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} '
                             f'-vf scale=1280:1024 {file_out2}')
         pop = _run_command(command_upsample)
         if pop['process'].returncode != 0:
             _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}' + pop['stderr'])
-        Path(file_out1).unlink()
         _logger.info('STEP 00 STOP Flipping and turning rightCamera video')
 
-        return file_out2
+    return file_out2
 
 
 def _s01_subsample(file_in, file_out, force=False):
     """
     Step 1 subsample video for detection.
-
     Put 500 uniformly sampled frames into new video.
     """
-    _logger.info(f"STEP 01 Generating sparse frame video {file_out} for posture detection")
     file_in = Path(file_in)
     file_out = Path(file_out)
 
     if file_out.exists() and not force:
+        _logger.info(f"STEP 01 Sparse frame video {file_out} exists, not computing")
         return file_out
 
+    _logger.info(f"STEP 01 Generating sparse frame video {file_out} for posture detection")
     cap = cv2.VideoCapture(str(file_in))
     frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -148,74 +147,90 @@ def _s01_subsample(file_in, file_out, force=False):
         cap.set(1, i)
         _, frame = cap.read()
         out.write(frame)
-
     out.release()
     _logger.info(f"STEP 01 STOP Generating sparse frame video {file_out} for posture detection")
+
     return file_out
 
 
-def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False):
+def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False, force=False):
     """
     Step 2 run DLC to detect ROIS.
-
-    returns: df_crop, dataframe used to crop video
+    returns: Path to dataframe used to crop video
     """
-    _logger.info(f"STEP 02 START Posture detection {sparse_video}")
-    out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
-    if create_labels:
-        deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
-    h5_sub = next(tpath.glob(f'*{out}*.h5'), None)
-    _logger.info(f"STEP 02 END Posture detection {sparse_video}")
-    file_out = pd.read_hdf(h5_sub)
+    file_out = next(tpath.glob('*.h5'), None) # TODO: Not sure if this works without the {out}
+    _logger.info(f"STEP 02 Posture detection for {sparse_video} exists, not computing.")
+    if file_out is None or force is True:
+        _logger.info(f"STEP 02 START Posture detection for {sparse_video}")
+        out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
+        if create_labels:
+            deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
+        file_out = next(tpath.glob(f'*{out}*.h5'), None)
+        _logger.info(f"STEP 02 END Posture detection for {sparse_video}")
     return file_out
 
 
-def _s03_crop_videos(df_crop, file_in, file_out, network):
+def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
     """
     Step 3 crop videos using ffmpeg.
-
     returns: dictionary of cropping coordinates relative to upper left corner
     """
+    # Don't run if outputs exist and force is False
+    file_out = Path(file_out)
+    whxy_file = file_out.parent.joinpath(file_out.stem + '.whxy.npy')
+    if file_out.exists() and whxy_file.exists() and not force:
+        _logger.info(f'STEP 03 Cropped {network["label"]} video exists, not computing.')
+        return file_out
+
+    # Else run
     _logger.info(f'STEP 03 START cropping {network["label"]}  video')
     crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
                     '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
-    whxy = _get_crop_window(df_crop, network)
+    whxy = _get_crop_window(file_df_crop, network)
     pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
     if pop['process'].returncode != 0:
         _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI \
                       {network["label"]}, file: {file_in}')
-    np.save(file_out.parent.joinpath(file_out.stem + '.whxy.npy'), whxy)
+    np.save(str(whxy_file), whxy)
     _logger.info(f'STEP 03 STOP cropping {network["label"]}  video')
     return file_out
 
 
-def _s04_brightness_eye(file_mp4, force=False):
+def _s04_brightness_eye(file_in, force=False):
     """
     Adjust brightness for eye for better network performance.
-
     wget -O- http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 | tar xj
     """
-    file_out = file_mp4
-    file_in = file_mp4.parent.joinpath(file_mp4.name.replace('eye', 'eye.nobright'))
-    if file_in.exists() and not force:
+    # This function renames the input to 'eye.nobright' and then saves the adjusted
+    # output under the same name as the original input. Therefore:
+    file_in = Path(file_in)
+    file_out = file_in.parent.joinpath(file_in.name.replace('eye', 'eye_adjusted'))
+
+    if file_out.exists() and not force:
+        _logger.info('STEP 04 Adjusting eye brightness has already been run, not computing')
         return file_out
+
+    # Else run command
     _logger.info('STEP 04 START Adjusting eye brightness')
-    file_out.rename(file_in)
     cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
            f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
     pop = _run_command(cmd)
     if pop['process'].returncode != 0:
-        _logger.error(f"DLC 4/6: (str(dlc_params), [str(tfile)]) failed: {file_in}")
+        _logger.error(f"DLC 4/6: Adjust eye brightness failed: {file_in}")
     _logger.info('STEP 04 STOP Adjusting eye brightness')
     return file_out
 
 
-def _s04_resample_paws(file_mp4, tdir, force=False):
+def _s04_resample_paws(file_in, tdir, force=False):
     """For paws, spatially downsample to speed up processing x100."""
-    file_mp4 = Path(file_mp4)
-    file_in = file_mp4
-    file_out = Path(tdir) / file_mp4.name.replace('raw', 'paws_downsampled')
+    file_in = Path(file_in)
+    file_out = Path(tdir) / file_in.name.replace('raw', 'paws_downsampled')
 
+    if file_out.exists() and not force:
+        _logger.info('STEP 04 resampled paws exists, not computing')
+        return file_out
+
+    _logger.info('STEP 04 START resample paws')
     cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
            f' -c:a copy {file_out}')  # was 112:100
     pop = _run_command(cmd)
@@ -225,20 +240,28 @@ def _s04_resample_paws(file_mp4, tdir, force=False):
     return file_out
 
 
-def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False):
+def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False,
+                                      force=False):
+
+    # Check if final result exists TODO: Make sure this is correct
+    result = next(tfile.parent.glob(f'*{network}*filtered.h5', None))
+    if result and not force:
+        _logger.info(f'STEP 05 dlc feature {tfile} already extracted, not computing.')
+        return network
+
     _logger.info(f'STEP 05 START extract dlc feature {tfile}')
     deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
     if create_labels:
         deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
     deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
     _logger.info(f'STEP 05 STOP extract dlc feature {tfile}')
+    # returning the network to enable task dependencies to be captured correctly
     return network
 
 
 def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     """
     Output an ALF matrix.
-
     Column names contain the full DLC results [nframes, nfeatures]
     """
     _logger.info('STEP 06 START wrap-up and extract ALF files')
@@ -308,6 +331,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
 
     :param file_mp4: Video file to run
     :param path_dlc: Path to folder with DLC weights
+    :param force: bool, whether to overwrite existing intermediate files
     :return out_file: Path to DLC table in parquet file format
     """
     start_T = time.time()
@@ -315,30 +339,35 @@ def dlc(file_mp4, path_dlc=None, force=False):
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
-    file2segment = _s00_transform_rightCam(file_mp4, tdir)  # CPU pure Python
-    file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'])  # CPU ffmpeg
-    df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params)   # GPU dlc
+    file2segment = file_mp4.name if 'rightCamera' not in file_mp4 \
+        else _s00_transform_rightCam(file_mp4, tdir, force=force)  # CPU pure Python
+    file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'], force=force)  # CPU ffmpeg
+    file_df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)   # GPU dlc
 
     networks_run = {}
     for k in networks:
         if networks[k]['features'] is None:
             continue
+        # Run preprocessing depdening on the feature
         if k == 'paws':
-            cropped_vid = _s04_resample_paws(file2segment, tdir)
+            preproc_vid = _s04_resample_paws(file2segment, tdir, force=force)
         elif k == 'eye':
-            cropped_vid_a = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])
-            cropped_vid = _s04_brightness_eye(cropped_vid_a)
+            cropped_vid = _s03_crop_videos(file_df_crop, file2segment, tfile[k],
+                                           networks[k], force=force)
+            preproc_vid = _s04_brightness_eye(cropped_vid, force=force)
         else:
-            cropped_vid = _s03_crop_videos(df_crop, file2segment, tfile[k], networks[k])
-        network_run = _s05_run_dlc_specialized_networks(dlc_params[k], cropped_vid, networks[k])
+            preproc_vid = _s03_crop_videos(file_df_crop, file2segment, tfile[k], networks[k],
+                                           force=force)
+
+        network_run = _s05_run_dlc_specialized_networks(dlc_params[k], preproc_vid,
+                                                        networks[k], force=force)
         networks_run[k] = network_run
 
     out_file = _s06_extract_dlc_alf(tdir, file_label, networks_run, file_mp4)
 
-    file2segment = Path(file2segment)
     # at the end mop up the mess
     shutil.rmtree(tdir)
-
+    file2segment = Path(file2segment)
     if '.raw.transformed' in file2segment.name:
         file2segment.unlink()
 

@@ -1,5 +1,6 @@
 import logging
 import shutil
+import os
 import traceback
 from datetime import datetime
 import numpy as np
@@ -12,7 +13,8 @@ from iblvideo.weights import download_weights
 from iblvideo import __version__
 from ibllib.pipes import tasks
 from ibllib.qc.dlc import DlcQC
-from ibllib.io.video import label_from_path, assert_valid_label
+from ibllib.io.video import assert_valid_label
+from ibllib.exceptions import ALFObjectNotFound
 
 _logger = logging.getLogger('ibllib')
 
@@ -25,46 +27,69 @@ class TaskDLC(tasks.Task):
     io_charge = 90
     level = 0
 
+    def result_exists(self, session_id, fname):
+        """ Checks if dlc result is available locally or in database. """
+        result = None
+        if os.path.exists(self.session_path.joinpath('alf', fname)):
+            result = self.session_path.joinpath('alf', fname)
+        else:
+            try:
+                result = self.one.load_dataset(session_id, dataset=fname, download_only=True)
+            except ALFObjectNotFound:
+                pass
+        return result
+
+    # TODO: Make a rerun function to overwrite exisitng data
     def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None):
 
         session_id = self.one.eid_from_path(self.session_path)
-        # Loop through cams on this level
-        dlc_results, me_results = [], []
+        overwrite = kwargs.pop('overwrite', None)
+        # Loop through cams
+        dlc_results, me_results, me_rois = [], [], []
         for cam in cams:
-            # Check for existing dlc data
-            dlc_data = self.one.alyx.rest('datasets', 'list', session=session_id,
-                                          django=f'name__icontains,{cam}Camera.dlc')
-            if len(dlc_data) == 0:
+            # Check if dlc and me results are available locally or in database, if latter download
+            if overwrite:
+                # If it's a rerun, pretend the data doesn't exist yet
+                dlc_result, me_result, me_roi = None, None, None
+            else:
+                dlc_result = self.result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
+                me_result = self.result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.np')
+                me_roi = self.result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
+
+            # If dlc_result doesn't exist or should be overwritten, run DLC
+            if dlc_result is None:
                 # Download the camera data if not available locally
-                file_mp4 = self.one.load(session_id, dataset_types=['_iblrig_Camera.raw'],
-                                         download_only=True)
-                # Download weights into ONE Cache directory under 'resources/DLC' if not exist
+                file_mp4 = self.one.load_dataset(session_id, dataset=f'_iblrig_{cam}Camera.raw',
+                                                 download_only=True)
+                # Download weights if not exist locally
                 path_dlc = download_weights(version=version)
-                # Run DLC and log
                 _logger.info(f'Running DLC on {cam}Camera.')
                 try:
                     dlc_result = dlc(file_mp4, path_dlc)  # TODO: Possibly pass logger?
                     _logger.info(dlc_result)
-                    dlc_results.append(dlc_result)
                 except BaseException:
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
-            else:
-                # Download dlc data if not locally available
-                dlc_result = self.one.load(session_id, dataset_types='camera.dlc',
-                                           download_only=True)
-            # Run DLC QC
+                    continue
+            dlc_results.append(dlc_result)
+
+            # Run DLC QC TODO: On the long run only run this if DLC is recomputed ?
             qc = DlcQC(session_id, cam, one=self.one, log=_logger)
             qc.run(update=True)
             _logger.info(f'Computing motion energy for {cam}Camera')
-            try:
-                me_result, _ = motion_energy(self.session_path, dlc_result, frames=frames,
-                                             one=self.one)
-                _logger.info(me_result)
-                me_results.append(me_result)
-            except BaseException:
-                _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
 
-        return dlc_results, me_results
+            # If me_results don't exist or should be overwritten, run me
+            if me_result is None or me_roi is None:
+                try:
+                    me_result, me_roi = motion_energy(self.session_path, dlc_result, frames=frames,
+                                                      one=self.one)
+                    _logger.info(me_result, me_roi)
+                except BaseException:
+                    _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
+                    continue
+            me_results.append(me_result)
+            me_rois.append(me_roi)
+
+        return dlc_results, me_results, me_rois
 
 
 def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=None,
@@ -93,13 +118,14 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     """
     # Catch all errors that are not caught inside run function and put them in the log
     try:
-        # Create ONE instance if none are given
+        # Create ONE instance if none is given
         one = one or ONE()
         session_path = one.path_from_eid(session_id)
         tdict = one.alyx.rest('tasks', 'list',
                               django=f"name__icontains,DLC,session__id,{session_id}")[0]
     except IndexError:
         print(f"No DLC task found for session {session_id}")
+        return -1
 
     try:
         # Check if labels are valid
@@ -117,7 +143,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                                  no_cam in no_vid])
             patch_data = {'log': log_str, 'version': version, 'status': 'Errored'}
             one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
-            status = -1
+            return -1
         else:
             # create the task instance and run it, update task
             task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine, **kwargs)
@@ -129,15 +155,17 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             if task.outputs:
                 # it is safer to instantiate the FTP right before transfer to prevent time-out
                 ftp_patcher = FTPPatcher(one=one)
-                ftp_patcher.create_dataset(path=task.outputs[0] + task.outputs[1])
-            if remove_videos is True:
+                ftp_patcher.create_dataset(path=task.outputs[0])
+                ftp_patcher.create_dataset(path=task.outputs[1])
+                ftp_patcher.create_dataset(path=task.outputs[2])
+            if status == 0 and remove_videos is True:
                 shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
     except BaseException:
         patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(),
                       'version': version, 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
-        status = -1
+        return -1
 
     return status
 
@@ -148,7 +176,6 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
 
     :param machine: Tag for the machine this job ran on (string)
     :param n_sessions: Number of sessions to run from queue (default is run whole queue)
-    :param version: Version of iblvideo / DLC weights to use (default is current version)
     :param delta_query: Time between querying the database for Empty tasks, in sec
     :param kwargs: Keyword arguments to be passed to run_session.
     """
