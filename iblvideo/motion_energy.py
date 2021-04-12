@@ -1,4 +1,4 @@
-'''
+"""
 For a session where there is DLC already computed,
 load DLC traces to cut video ROIs and then
 compute motion energy for these ROIS.
@@ -6,7 +6,7 @@ compute motion energy for these ROIS.
 bodyCamera: cut ROI such that mouse body but not wheel motion is in ROI
 
 left(right)Camera: cut whisker pad region
-'''
+"""
 
 import os
 import time
@@ -38,12 +38,23 @@ def get_dlc_midpoints(dlc_pqt):
 
 
 def motion_energy(session_path, dlc_pqt, frames=None, one=None):
-    '''
+    """
     Compute motion energy on cropped frames of a single video
 
-    :param session_path: Path to session
-    :param label: 'body', 'left' or 'right'
-    '''
+    :param session_path: Path to session.
+    :param dlc_pqt: Path to dlc result in pqt file format. If None all frames are loaded at once.
+    :param frames: Number of frames to load into memory at once.
+    :param one: ONE instance
+    :return me_file: Path to numpy file contaiing motion energy.
+    :return me_roi: Path to numpy file containing ROI coordinates.
+
+    The frames parameter determines how many cropped frames per camera are loaded into memory at
+    once and should be set depending on availble RAM. Some approximate numbers for orientation,
+    assuming 90 min video and frames set to:
+    1       : 152 KB (body),   54 KB (left),   15 KB (right)
+    50000   : 7.6 GB (body),  2.7 GB (left), 0.75 GB (right)
+    None    :  25 GB (body), 17.5 GB (left), 12.5 GB (right)
+    """
 
     one = one or ONE()
     start_T = time.time()
