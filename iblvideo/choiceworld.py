@@ -131,7 +131,7 @@ def _s01_subsample(file_in, file_out, force=False):
 
     if file_out.exists() and force is not True:
         _logger.info(f"STEP 01 Sparse frame video {file_out} exists, not computing")
-        return file_out
+        _logger.info(f"STEP 01 Sparse frame video {file_out} exists, not computing")
     else:
         _logger.info(f"STEP 01 START Generating sparse video {file_out} for posture detection")
         cap = cv2.VideoCapture(str(file_in))
@@ -158,7 +158,7 @@ def _s02_detect_rois(tpath, sparse_video, dlc_params, create_labels=False, force
     Step 2 run DLC to detect ROIS.
     returns: Path to dataframe used to crop video
     """
-    file_out = next(tpath.glob('*.h5'), None) # TODO: Not sure if this works without the {out}
+    file_out = next(tpath.glob('*.subsampled.*.h5'), None)
     if file_out is None or force is True:
         _logger.info(f"STEP 02 START Posture detection for {sparse_video}")
         out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
@@ -240,7 +240,7 @@ def _s04_resample_paws(file_in, tdir, force=False):
 def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False,
                                       force=False):
 
-    # Check if final result exists TODO: Make sure this is correct
+    # Check if final result exists 
     result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
     if result and not force:
         _logger.info(f'STEP 05 dlc feature {tfile} already extracted, not computing.')
