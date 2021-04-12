@@ -339,7 +339,6 @@ def dlc(file_mp4, path_dlc=None, force=False):
     file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'], force=force)  # CPU ffmpeg
     file_df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)  # GPU dlc
 
-    networks_run = {}
     for k in networks:
         if networks[k]['features'] is None:
             continue
@@ -354,11 +353,9 @@ def dlc(file_mp4, path_dlc=None, force=False):
             preproc_vid = _s03_crop_videos(file_df_crop, file2segment, tfile[k], networks[k],
                                            force=force)
 
-        network_run = _s05_run_dlc_specialized_networks(dlc_params[k], preproc_vid,
-                                                        networks[k], force=force)
-        networks_run[k] = network_run
+        _s05_run_dlc_specialized_networks(dlc_params[k], preproc_vid, k, force=force)
 
-    out_file = _s06_extract_dlc_alf(tdir, file_label, networks_run, file_mp4)
+    out_file = _s06_extract_dlc_alf(tdir, file_label, networks,  file_mp4)
 
     # at the end mop up the mess
     # For right camera video only
