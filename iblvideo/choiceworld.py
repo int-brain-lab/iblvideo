@@ -362,11 +362,14 @@ def dlc(file_mp4, path_dlc=None, force=False):
     out_file = _s06_extract_dlc_alf(tdir, file_label, networks_run, file_mp4)
 
     # at the end mop up the mess
-    shutil.rmtree(tdir)
+    # For right camera video only
     file2segment = Path(file2segment)
     if '.raw.transformed' in file2segment.name:
         file2segment.unlink()
+        flipped = Path(str(file2segment).replace('raw.transformed', 'flipped'))
+        flipped.unlink()
 
+    shutil.rmtree(tdir)
     # Back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())
     end_T = time.time()
