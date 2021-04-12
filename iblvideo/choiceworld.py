@@ -244,7 +244,7 @@ def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=
                                       force=False):
 
     # Check if final result exists TODO: Make sure this is correct
-    result = next(tfile.parent.glob(f'*{network}*filtered.h5', None))
+    result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
     if result and not force:
         _logger.info(f'STEP 05 dlc feature {tfile} already extracted, not computing.')
         return network
@@ -339,7 +339,7 @@ def dlc(file_mp4, path_dlc=None, force=False):
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
-    file2segment = file_mp4.name if 'rightCamera' not in file_mp4 \
+    file2segment = file_mp4 if 'rightCamera' not in file_mp4.name \
         else _s00_transform_rightCam(file_mp4, tdir, force=force)  # CPU pure Python
     file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'], force=force)  # CPU ffmpeg
     file_df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)   # GPU dlc
