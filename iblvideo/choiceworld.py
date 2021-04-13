@@ -93,8 +93,8 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
     Flip and rotate the right cam and increase spatial resolution.
     Such that the rightCamera video looks like the leftCamera video.
     """
-    # If flipped right cam does not exist, compute
     file_out1 = str(Path(tdir).joinpath(str(file_mp4).replace('.raw.', '.flipped.')))
+    # If flipped right cam does not exist, compute
     if os.path.exists(file_out1) and force is not True:
         _logger.info('STEP 00A Flipped rightCamera video exists, not computing.')
     else:
@@ -104,6 +104,8 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
         pop = _run_command(command_flip)
         if pop['process'].returncode != 0:
             _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4} ' + pop['stderr'])
+        # Set force to true to recompute all subsequent steps
+        force = True
 
     # If oversampled cam does not exist, compute
     file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
@@ -117,8 +119,10 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
         if pop['process'].returncode != 0:
             _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}' + pop['stderr'])
         _logger.info('STEP 00 STOP Flipping and turning rightCamera video')
+        # Set force to true to recompute all subsequent steps
+        force = True
 
-    return file_out2
+    return file_out2, force
 
 
 def _s01_subsample(file_in, file_out, force=False):
@@ -148,8 +152,10 @@ def _s01_subsample(file_in, file_out, force=False):
             out.write(frame)
         out.release()
         _logger.info(f"STEP 01 STOP Generating sparse video {file_out} for posture detection")
+        # Set force to true to recompute all subsequent steps
+        force = True
 
-    return file_out
+    return file_out, force
 
 
 def _s02_detect_rois(tdir, sparse_video, dlc_params, create_labels=False, force=False):
@@ -165,9 +171,11 @@ def _s02_detect_rois(tdir, sparse_video, dlc_params, create_labels=False, force=
             deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
         file_out = next(tdir.glob(f'*{out}*.h5'), None)
         _logger.info(f"STEP 02 END Posture detection for {sparse_video}")
+        # Set force to true to recompute all subsequent steps
+        force = True
     else:
         _logger.info(f"STEP 02 Posture detection for {sparse_video} exists, not computing.")
-    return file_out
+    return file_out, force
 
 
 def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
@@ -191,7 +199,9 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
                           {network["label"]}, file: {file_in}')
         np.save(str(whxy_file), whxy)
         _logger.info(f'STEP 03 STOP cropping {network["label"]}  video')
-    return file_out
+        # Set force to true to recompute all subsequent steps
+        force = True
+    return file_out, force
 
 
 def _s04_brightness_eye(file_in, force=False):
@@ -215,7 +225,9 @@ def _s04_brightness_eye(file_in, force=False):
         if pop['process'].returncode != 0:
             _logger.error(f"DLC 4/6: Adjust eye brightness failed: {file_in}")
         _logger.info('STEP 04 STOP Adjusting eye brightness')
-    return file_out
+        # Set force to true to recompute all subsequent steps
+        force = True
+    return file_out, force
 
 
 def _s04_resample_paws(file_in, tdir, force=False):
@@ -233,7 +245,9 @@ def _s04_resample_paws(file_in, tdir, force=False):
         if pop['process'].returncode != 0:
             _logger.error(f"DLC 4/6: Subsampling paws failed: {file_in}")
         _logger.info('STEP 04 STOP resample paws')
-    return file_out
+        # Set force to true to recompute all subsequent steps
+        force = True
+    return file_out, force
 
 
 def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False,
@@ -250,9 +264,9 @@ def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=
             deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
         deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
         _logger.info(f'STEP 05 STOP extract dlc feature {tfile}')
-    # returning the network to enable task dependencies to be captured correctly
-    return network
-
+        # Set force to true to recompute all subsequent steps
+        force = True
+    return
 
 def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     """
@@ -334,26 +348,29 @@ def dlc(file_mp4, path_dlc=None, force=False):
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
-    file2segment = file_mp4 if 'rightCamera' not in file_mp4.name \
+    file2segment, force = file_mp4 if 'rightCamera' not in file_mp4.name \
         else _s00_transform_rightCam(file_mp4, tdir, force=force)  # CPU pure Python
-    file_sparse = _s01_subsample(file2segment, tfile['mp4_sub'], force=force)  # CPU ffmpeg
-    file_df_crop = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)  # GPU dlc
+    file_sparse, force = _s01_subsample(file2segment, tfile['mp4_sub'], force=force)  # CPU ffmpeg
+    file_df_crop, force = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)  # GPU dlc
 
+    input_force = force
     for k in networks:
         if networks[k]['features'] is None:
             continue
         # Run preprocessing depdening on the feature
         if k == 'paws':
-            preproc_vid = _s04_resample_paws(file2segment, tdir, force=force)
+            preproc_vid, force = _s04_resample_paws(file2segment, tdir, force=force)
         elif k == 'eye':
-            cropped_vid = _s03_crop_videos(file_df_crop, file2segment, tfile[k],
-                                           networks[k], force=force)
-            preproc_vid = _s04_brightness_eye(cropped_vid, force=force)
+            cropped_vid, force = _s03_crop_videos(file_df_crop, file2segment, tfile[k],
+                                                  networks[k], force=force)
+            preproc_vid, force = _s04_brightness_eye(cropped_vid, force=force)
         else:
-            preproc_vid = _s03_crop_videos(file_df_crop, file2segment, tfile[k], networks[k],
-                                           force=force)
+            preproc_vid, force = _s03_crop_videos(file_df_crop, file2segment, tfile[k],
+                                                  networks[k], force=force)
 
         _s05_run_dlc_specialized_networks(dlc_params[k], preproc_vid, k, force=force)
+        # Reset force to the original input value as the reset is network-specific
+        force = input_force
 
     out_file = _s06_extract_dlc_alf(tdir, file_label, networks,  file_mp4)
 
@@ -375,67 +392,70 @@ def dlc(file_mp4, path_dlc=None, force=False):
     return out_file
 
 
-def dlc_parallel(file_mp4, path_dlc=None, force=False):
-    """
-    Run dlc in parallel.
-
-    :param file_mp4: Video file to run
-    :param path_dlc: Path to folder with DLC weights
-    :return out_file: Path to DLC table in parquet file format
-    """
-
-    import dask
-    cluster, client = create_cpu_gpu_cluster()
-
-    start_T = time.time()
-    file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
-
-    # Run the processing steps in order
-    future_s00 = client.submit(_s00_transform_rightCam, file_mp4, tdir, workers='CPU')
-    file2segment = future_s00.result()
-
-    future_s01 = client.submit(_s01_subsample, file2segment, tfile['mp4_sub'], workers='CPU')
-    file_sparse = future_s01.result()
-
-    future_s02 = client.submit(_s02_detect_rois, tdir, file_sparse, dlc_params, workers='GPU')
-    df_crop = future_s02.result()
-
-    networks_run = {}
-    for k in networks:
-        if networks[k]['features'] is None:
-            continue
-        if k == 'paws':
-            future_s04 = client.submit(_s04_resample_paws, file2segment, tdir, workers='CPU')
-            cropped_vid = future_s04.result()
-        elif k == 'eye':
-            future_s03 = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k],
-                                       networks[k], workers='CPU')
-            cropped_vid_a = future_s03.result()
-            future_s04 = client.submit(_s04_brightness_eye, cropped_vid_a, workers='CPU')
-            cropped_vid = future_s04.result()
-        else:
-            future_s03 = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k],
-                                       networks[k], workers='CPU')
-            cropped_vid = future_s03.result()
-
-        future_s05 = client.submit(_s05_run_dlc_specialized_networks, dlc_params[k], cropped_vid,
-                                   networks[k], workers='GPU')
-        network_run = future_s05.result()
-        networks_run[k] = network_run
-
-    pipeline = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, networks_run, file_mp4)
-    future = client.compute(pipeline)
-    out_file = future.result()
-
-    cluster.close()
-    client.close()
-
-    shutil.rmtree(tdir)
-
-    # Back to home folder else there  are conflicts in a loop
-    os.chdir(Path.home())
-    end_T = time.time()
-    print(file_label)
-    print('In total this took: ', end_T - start_T)
-
-    return out_file
+# def dlc_parallel(file_mp4, path_dlc=None, force=False):
+#     """
+#     Run dlc in parallel.
+#
+#     :param file_mp4: Video file to run
+#     :param path_dlc: Path to folder with DLC weights
+#     :param force: Bool, if True overwrite locally exisitng intermediate files, if False, use
+#                   intermediate files, if an intermediate file is missing, compute it and recompute
+#                   all subsequent steps. (default is False)
+#     :return out_file: Path to DLC table in parquet file format
+#     """
+#
+#     import dask
+#     cluster, client = create_cpu_gpu_cluster()
+#
+#     start_T = time.time()
+#     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
+#
+#     # Run the processing steps in order
+#     future_s00 = client.submit(_s00_transform_rightCam, file_mp4, tdir, workers='CPU')
+#     file2segment = future_s00.result()
+#
+#     future_s01 = client.submit(_s01_subsample, file2segment, tfile['mp4_sub'], workers='CPU')
+#     file_sparse = future_s01.result()
+#
+#     future_s02 = client.submit(_s02_detect_rois, tdir, file_sparse, dlc_params, workers='GPU')
+#     df_crop = future_s02.result()
+#
+#     networks_run = {}
+#     for k in networks:
+#         if networks[k]['features'] is None:
+#             continue
+#         if k == 'paws':
+#             future_s04 = client.submit(_s04_resample_paws, file2segment, tdir, workers='CPU')
+#             cropped_vid = future_s04.result()
+#         elif k == 'eye':
+#             future_s03 = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k],
+#                                        networks[k], workers='CPU')
+#             cropped_vid_a = future_s03.result()
+#             future_s04 = client.submit(_s04_brightness_eye, cropped_vid_a, workers='CPU')
+#             cropped_vid = future_s04.result()
+#         else:
+#             future_s03 = client.submit(_s03_crop_videos, df_crop, file2segment, tfile[k],
+#                                        networks[k], workers='CPU')
+#             cropped_vid = future_s03.result()
+#
+#         future_s05 = client.submit(_s05_run_dlc_specialized_networks, dlc_params[k], cropped_vid,
+#                                    networks[k], workers='GPU')
+#         network_run = future_s05.result()
+#         networks_run[k] = network_run
+#
+#     pipeline = dask.delayed(_s06_extract_dlc_alf)(tdir, file_label, networks_run, file_mp4)
+#     future = client.compute(pipeline)
+#     out_file = future.result()
+#
+#     cluster.close()
+#     client.close()
+#
+#     shutil.rmtree(tdir)
+#
+#     # Back to home folder else there  are conflicts in a loop
+#     os.chdir(Path.home())
+#     end_T = time.time()
+#     print(file_label)
+#     print('In total this took: ', end_T - start_T)
+#
+#     return out_file
