@@ -89,6 +89,7 @@ Install packages (please observe order of those commands!)
 
 ```bash
 # pip install "dask[complete]"
+pip install -U setuptools
 pip install git+https://github.com/int-brain-lab/ibllib.git@preload_frames
 pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl  
 pip install tensorflow-gpu==1.13.1  
