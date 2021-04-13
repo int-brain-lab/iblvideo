@@ -96,9 +96,9 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
     file_out1 = str(Path(tdir).joinpath(str(file_mp4).replace('.raw.', '.flipped.')))
     # If flipped right cam does not exist, compute
     if os.path.exists(file_out1) and force is not True:
-        _logger.info('STEP 00A Flipped rightCamera video exists, not computing.')
+        _logger.info('STEP 00a Flipped rightCamera video exists, not computing.')
     else:
-        _logger.info('STEP 00A Flipping and turning rightCamera video')
+        _logger.info('STEP 00a Flipping and turning rightCamera video')
         command_flip = (f'ffmpeg -nostats -y -loglevel 0 -i {file_mp4} -vf '
                         f'"transpose=1,transpose=1" -vf hflip {file_out1}')
         pop = _run_command(command_flip)
@@ -110,15 +110,15 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
     # If oversampled cam does not exist, compute
     file_out2 = file_out1.replace('.flipped.', '.raw.transformed.')
     if os.path.exists(file_out2) and force is not True:
-        _logger.info('STEP 00B Oversampled rightCamera video exists, not computing.')
+        _logger.info('STEP 00b Oversampled rightCamera video exists, not computing.')
     else:
-        _logger.info('STEP 00B Oversampling rightCamera video')
+        _logger.info('STEP 00b Oversampling rightCamera video')
         command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} '
                             f'-vf scale=1280:1024 {file_out2}')
         pop = _run_command(command_upsample)
         if pop['process'].returncode != 0:
             _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}' + pop['stderr'])
-        _logger.info('STEP 00 STOP Flipping and turning rightCamera video')
+        _logger.info('STEP 00 END Flipping and turning rightCamera video')
         # Set force to true to recompute all subsequent steps
         force = True
 
@@ -134,9 +134,10 @@ def _s01_subsample(file_in, file_out, force=False):
     file_out = Path(file_out)
 
     if file_out.exists() and force is not True:
-        _logger.info(f"STEP 01 Sparse frame video {file_out} exists, not computing")
+        _logger.info(f"STEP 01 Sparse frame video {file_out.name} exists, not computing")
     else:
-        _logger.info(f"STEP 01 START Generating sparse video {file_out} for posture detection")
+        _logger.info(f"STEP 01 START Generating sparse video {file_out.name} for posture"
+                     f"detection")
         cap = cv2.VideoCapture(str(file_in))
         frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -151,7 +152,7 @@ def _s01_subsample(file_in, file_out, force=False):
             _, frame = cap.read()
             out.write(frame)
         out.release()
-        _logger.info(f"STEP 01 STOP Generating sparse video {file_out} for posture detection")
+        _logger.info(f"STEP 01 END Generating sparse video {file_out.name} for posture detection")
         # Set force to true to recompute all subsequent steps
         force = True
 
@@ -165,16 +166,16 @@ def _s02_detect_rois(tdir, sparse_video, dlc_params, create_labels=False, force=
     """
     file_out = next(tdir.glob('*subsampled*.h5'), None)
     if file_out is None or force is True:
-        _logger.info(f"STEP 02 START Posture detection for {sparse_video}")
+        _logger.info(f"STEP 02 START Posture detection for {sparse_video.name}")
         out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
         if create_labels:
             deeplabcut.create_labeled_video(dlc_params['roi_detect'], [str(sparse_video)])
         file_out = next(tdir.glob(f'*{out}*.h5'), None)
-        _logger.info(f"STEP 02 END Posture detection for {sparse_video}")
+        _logger.info(f"STEP 02 END Posture detection for {sparse_video.name}")
         # Set force to true to recompute all subsequent steps
         force = True
     else:
-        _logger.info(f"STEP 02 Posture detection for {sparse_video} exists, not computing.")
+        _logger.info(f"STEP 02 Posture detection for {sparse_video.name} exists, not computing.")
     return file_out, force
 
 
@@ -187,9 +188,9 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
     file_out = Path(file_out)
     whxy_file = file_out.parent.joinpath(file_out.stem + '.whxy.npy')
     if file_out.exists() and whxy_file.exists() and force is not True:
-        _logger.info(f'STEP 03 Cropped {network["label"]} video exists, not computing.')
+        _logger.info(f'STEP 03 Cropped video {file_out.name} exists, not computing.')
     else:
-        _logger.info(f'STEP 03 START cropping {network["label"]}  video')
+        _logger.info(f'STEP 03 START generating cropped video {file_out.name}')
         crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
                         '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
         whxy = _get_crop_window(file_df_crop, network)
@@ -198,7 +199,7 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
             _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI \
                           {network["label"]}, file: {file_in}')
         np.save(str(whxy_file), whxy)
-        _logger.info(f'STEP 03 STOP cropping {network["label"]}  video')
+        _logger.info(f'STEP 03 END generating cropped video {file_out.name}')
         # Set force to true to recompute all subsequent steps
         force = True
     return file_out, force
@@ -215,16 +216,16 @@ def _s04_brightness_eye(file_in, force=False):
     file_out = file_in.parent.joinpath(file_in.name.replace('eye', 'eye_adjusted'))
 
     if file_out.exists() and force is not True:
-        _logger.info('STEP 04 Adjusting eye brightness has already been run, not computing')
+        _logger.info(f'STEP 04 Adjusted eye brightness {file_out.name} exists, not computing')
     else:
         # Else run command
-        _logger.info('STEP 04 START Adjusting eye brightness')
+        _logger.info(f'STEP 04 START Generating adjusting eye brightness video {file_out.name}')
         cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
                f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
         pop = _run_command(cmd)
         if pop['process'].returncode != 0:
             _logger.error(f"DLC 4/6: Adjust eye brightness failed: {file_in}")
-        _logger.info('STEP 04 STOP Adjusting eye brightness')
+        _logger.info(f'STEP 04 END Generating adjusting eye brightness video {file_out.name}')
         # Set force to true to recompute all subsequent steps
         force = True
     return file_out, force
@@ -236,15 +237,15 @@ def _s04_resample_paws(file_in, tdir, force=False):
     file_out = Path(tdir) / file_in.name.replace('raw', 'paws_downsampled')
 
     if file_out.exists() and force is not True:
-        _logger.info('STEP 04 resampled paws exists, not computing')
+        _logger.info(f'STEP 04 resampled paws {file_out.name} exists, not computing')
     else:
-        _logger.info('STEP 04 START resample paws')
+        _logger.info(f'STEP 04 START generating resampled paws video {file_out.name}')
         cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
                f' -c:a copy {file_out}')  # was 112:100
         pop = _run_command(cmd)
         if pop['process'].returncode != 0:
             _logger.error(f"DLC 4/6: Subsampling paws failed: {file_in}")
-        _logger.info('STEP 04 STOP resample paws')
+        _logger.info(f'STEP 04 END generating resampled paws video {file_out.name}')
         # Set force to true to recompute all subsequent steps
         force = True
     return file_out, force
@@ -256,14 +257,14 @@ def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=
     # Check if final result exists
     result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
     if result and force is not True:
-        _logger.info(f'STEP 05 dlc feature {tfile} already extracted, not computing.')
+        _logger.info(f'STEP 05 dlc feature for {tfile.name} already extracted, not computing.')
     else:
-        _logger.info(f'STEP 05 START extract dlc feature {tfile}')
+        _logger.info(f'STEP 05 START extract dlc feature for {tfile.name}')
         deeplabcut.analyze_videos(str(dlc_params), [str(tfile)])
         if create_labels:
             deeplabcut.create_labeled_video(str(dlc_params), [str(tfile)])
         deeplabcut.filterpredictions(str(dlc_params), [str(tfile)])
-        _logger.info(f'STEP 05 STOP extract dlc feature {tfile}')
+        _logger.info(f'STEP 05 END extract dlc feature for {tfile.name}')
         # Set force to true to recompute all subsequent steps
         force = True
     return
@@ -273,7 +274,7 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     Output an ALF matrix.
     Column names contain the full DLC results [nframes, nfeatures]
     """
-    _logger.info('STEP 06 START wrap-up and extract ALF files')
+    _logger.info(f'STEP 06 START wrap-up and extract ALF files {file_label}')
     if 'bodyCamera' in file_label:
         video_params = BODY_VIDEO
     elif 'leftCamera' in file_label:
@@ -321,7 +322,7 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     file_alf = alf_path.joinpath(f'_ibl_{file_label}.dlc.pqt')
     df_full.to_parquet(file_alf)
 
-    _logger.info('STEP 06 STOP wrap-up and extract ALF files')
+    _logger.info(f'STEP 06 END wrap-up and extract ALF files {file_label}')
     return file_alf
 
 
@@ -398,9 +399,6 @@ def dlc(file_mp4, path_dlc=None, force=False):
 #
 #     :param file_mp4: Video file to run
 #     :param path_dlc: Path to folder with DLC weights
-#     :param force: Bool, if True overwrite locally exisitng intermediate files, if False, use
-#                   intermediate files, if an intermediate file is missing, compute it and recompute
-#                   all subsequent steps. (default is False)
 #     :return out_file: Path to DLC table in parquet file format
 #     """
 #
