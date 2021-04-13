@@ -98,12 +98,13 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
     if os.path.exists(file_out1) and force is not True:
         _logger.info('STEP 00a Flipped rightCamera video exists, not computing.')
     else:
-        _logger.info('STEP 00a Flipping and turning rightCamera video')
+        _logger.info('STEP 00a START Flipping and turning rightCamera video')
         command_flip = (f'ffmpeg -nostats -y -loglevel 0 -i {file_mp4} -vf '
                         f'"transpose=1,transpose=1" -vf hflip {file_out1}')
         pop = _run_command(command_flip)
         if pop['process'].returncode != 0:
             _logger.error(f' DLC 0a/5: Flipping ffmpeg failed: {file_mp4} ' + pop['stderr'])
+        _logger.info('STEP 00a END Flipping and turning rightCamera video')
         # Set force to true to recompute all subsequent steps
         force = True
 
@@ -112,13 +113,13 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
     if os.path.exists(file_out2) and force is not True:
         _logger.info('STEP 00b Oversampled rightCamera video exists, not computing.')
     else:
-        _logger.info('STEP 00b Oversampling rightCamera video')
+        _logger.info('STEP 00b START Oversampling rightCamera video')
         command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} '
                             f'-vf scale=1280:1024 {file_out2}')
         pop = _run_command(command_upsample)
         if pop['process'].returncode != 0:
             _logger.error(f' DLC 0b/5: Increase reso ffmpeg failed: {file_mp4}' + pop['stderr'])
-        _logger.info('STEP 00 END Flipping and turning rightCamera video')
+        _logger.info('STEP 00b END Oversampling rightCamera video')
         # Set force to true to recompute all subsequent steps
         force = True
 
@@ -137,7 +138,7 @@ def _s01_subsample(file_in, file_out, force=False):
         _logger.info(f"STEP 01 Sparse frame video {file_out.name} exists, not computing")
     else:
         _logger.info(f"STEP 01 START Generating sparse video {file_out.name} for posture"
-                     f"detection")
+                     f" detection")
         cap = cv2.VideoCapture(str(file_in))
         frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -268,6 +269,7 @@ def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=
         # Set force to true to recompute all subsequent steps
         force = True
     return
+
 
 def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     """
