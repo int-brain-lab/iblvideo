@@ -1,15 +1,18 @@
 """Functions to run DLC on IBL data with existing networks."""
-import deeplabcut
+import deeplabcut  # needs to be imported first
 import os
-from glob import glob
 import shutil
 import logging
 import yaml
+import time
+from glob import glob
 from pathlib import Path
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
 import cv2
-import time
+
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 from iblvideo.cluster import create_cpu_gpu_cluster
 from iblvideo.utils import _run_command
@@ -328,7 +331,7 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     return file_alf
 
 
-def dlc(file_mp4, path_dlc=None, force=False):
+def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
     """
     Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut.
 
@@ -346,18 +349,33 @@ def dlc(file_mp4, path_dlc=None, force=False):
     :param force: bool, whether to overwrite existing intermediate files
     :return out_file: Path to DLC table in parquet file format
     """
-    start_T = time.time()
+    dlc_timer = dlc_timer or OrderedDict()
+    time_total_on = time.time()
     # Initiate
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
 
     # Run the processing steps in order
-    file2segment, force = (file_mp4, force) if 'rightCamera' not in file_mp4.name \
-        else _s00_transform_rightCam(file_mp4, tdir, force=force)  # CPU pure Python
+    if 'rightCamera' not in file_mp4.name:
+        file2segment = file_mp4
+    else:
+        time_on = time.time()
+        file2segment, force = _s00_transform_rightCam(file_mp4, tdir, force=force)  # CPU Python
+        time_off = time.time()
+        dlc_timer['Transform right camera'] = time_off - time_on
+
+    time_on = time.time()
     file_sparse, force = _s01_subsample(file2segment, tfile['mp4_sub'], force=force)  # CPU ffmpeg
+    time_off = time.time()
+    dlc_timer['Subsample video'] = time_off - time_on
+
+    time_on = time.time()
     file_df_crop, force = _s02_detect_rois(tdir, file_sparse, dlc_params, force=force)  # GPU dlc
+    time_off = time.time()
+    dlc_timer['Detect ROIs'] = time_off - time_on
 
     input_force = force
     for k in networks:
+        time_on = time.time()
         if networks[k]['features'] is None:
             continue
         # Run preprocessing depdening on the feature
@@ -370,12 +388,20 @@ def dlc(file_mp4, path_dlc=None, force=False):
         else:
             preproc_vid, force = _s03_crop_videos(file_df_crop, file2segment, tfile[k],
                                                   networks[k], force=force)
+        time_off = time.time()
+        dlc_timer[f'Prepare video for {k} network'] = time_off - time_on
 
+        time_on = time.time()
         _s05_run_dlc_specialized_networks(dlc_params[k], preproc_vid, k, force=force)
+        time_off = time.time()
+        dlc_timer[f'Run {k} network'] = time_off - time_on
         # Reset force to the original input value as the reset is network-specific
         force = input_force
 
+    time_on = time.time()
     out_file = _s06_extract_dlc_alf(tdir, file_label, networks,  file_mp4)
+    time_off = time.time()
+    dlc_timer[f'Extract alf files'] = time_off - time_on
 
     # at the end mop up the mess
     # For right camera video only
@@ -390,9 +416,10 @@ def dlc(file_mp4, path_dlc=None, force=False):
     os.chdir(Path.home())
     end_T = time.time()
     print(file_label)
-    print('In total this took: ', end_T - start_T)
+    time_total_off = time.time()
+    dlc_timer['DLC total'] = time_total_off - time_total_on
 
-    return out_file
+    return out_file, dlc_timer
 
 
 # def dlc_parallel(file_mp4, path_dlc=None, force=False):

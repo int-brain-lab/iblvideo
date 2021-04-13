@@ -2,7 +2,10 @@ import logging
 import shutil
 import os
 import traceback
+import time
 from datetime import datetime
+from collections import OrderedDict
+
 import numpy as np
 
 from oneibl.one import ONE
@@ -39,14 +42,15 @@ class TaskDLC(tasks.Task):
                 pass
         return result
 
-    # TODO: Make a rerun function to overwrite exisitng data
-    def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None):
-
+    def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None, **kwargs):
         session_id = self.one.eid_from_path(self.session_path)
         overwrite = kwargs.pop('overwrite', None)
+        # Create dictionary for logging time spent on each task
+        timer = OrderedDict()
         # Loop through cams
         dlc_results, me_results, me_rois = [], [], []
         for cam in cams:
+            timer[f'{cam}'] = OrderedDict()
             # Check if dlc and me results are available locally or in database, if latter download
             if overwrite:
                 # If it's a rerun, pretend the data doesn't exist yet
@@ -59,13 +63,19 @@ class TaskDLC(tasks.Task):
             # If dlc_result doesn't exist or should be overwritten, run DLC
             if dlc_result is None:
                 # Download the camera data if not available locally
+                time_on = time.time()
                 file_mp4 = self.one.load_dataset(session_id, dataset=f'_iblrig_{cam}Camera.raw',
                                                  download_only=True)
+                time_off = time.time()
+                timer[f'{cam}'][f'Download video'] = time_off - time_on
                 # Download weights if not exist locally
+                time_on = time.time()
                 path_dlc = download_weights(version=version)
+                time_off = time.time()
+                timer[f'{cam}']['Download DLC weights'] = time_off - time_on
                 _logger.info(f'Running DLC on {cam}Camera.')
                 try:
-                    dlc_result = dlc(file_mp4, path_dlc)  # TODO: Possibly pass logger?
+                    dlc_result, timer[f'{cam}'] = dlc(file_mp4, path_dlc, timer[f'{cam}'])
                     _logger.info(dlc_result)
                 except BaseException:
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
@@ -73,22 +83,28 @@ class TaskDLC(tasks.Task):
             dlc_results.append(dlc_result)
 
             # Run DLC QC TODO: On the long run only run this if DLC is recomputed ?
+            time_on = time.time()
             qc = DlcQC(session_id, cam, one=self.one, log=_logger)
             qc.run(update=True)
-            _logger.info(f'Computing motion energy for {cam}Camera')
+            time_off = time.time()
+            timer[f'{cam}']['Run DLC QC'] = time_off - time_on
 
             # If me_results don't exist or should be overwritten, run me
             if me_result is None or me_roi is None:
+                _logger.info(f'Computing motion energy for {cam}Camera')
                 try:
+                    time_on = time.time()
                     me_result, me_roi = motion_energy(self.session_path, dlc_result, frames=frames,
                                                       one=self.one)
+                    time_off = time.time()
+                    timer[f'{cam}']['Compute motion energy'] = time_off - time_on
                     _logger.info(me_result, me_roi)
                 except BaseException:
                     _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
                     continue
             me_results.append(me_result)
             me_rois.append(me_roi)
-
+        _logger.info(timer)
         return dlc_results, me_results, me_rois
 
 
