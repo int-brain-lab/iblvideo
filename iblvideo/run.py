@@ -93,12 +93,16 @@ class TaskDLC(tasks.Task):
                     continue
             dlc_results.append(dlc_result)
 
-            # Run DLC QC TODO: On the long run only run this if DLC is recomputed ?
-            time_on = time.time()
-            qc = DlcQC(session_id, cam, one=self.one, log=_logger)
-            qc.run(update=True)
-            time_off = time.time()
-            timer[f'{cam}']['Run DLC QC'] = time_off - time_on
+            # Run DLC QC
+            try:
+                time_on = time.time()
+                qc = DlcQC(session_id, cam, one=self.one, log=_logger)
+                qc.run(update=True)
+                time_off = time.time()
+                timer[f'{cam}']['Run DLC QC'] = time_off - time_on
+            except BaseException:
+                _logger.error(f'DLC QC {cam}Camera failed.\n' + traceback.format_exc())
+                continue
 
             # If me_results don't exist or should be overwritten, run me
             if me_result is None or me_roi is None:
