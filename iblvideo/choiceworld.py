@@ -398,10 +398,7 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
         # Reset force to the original input value as the reset is network-specific
         force = input_force
 
-    time_on = time.time()
     out_file = _s06_extract_dlc_alf(tdir, file_label, networks,  file_mp4)
-    time_off = time.time()
-    dlc_timer[f'Extract alf files'] = time_off - time_on
 
     # at the end mop up the mess
     # For right camera video only

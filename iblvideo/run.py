@@ -27,9 +27,9 @@ _logger = logging.getLogger('ibllib')
 def _format_timer(timer):
     logstr = ''
     for item in timer.items():
-        logstr += f'Timing {item[0]}Camera\n'
+        logstr += f'\nTiming {item[0]}Camera [sec]\n'
         for subitem in item[1].items():
-            logstr += f'    {subitem[0]}: {np.round(subitem[1])} sec\n'
+            logstr += f'{subitem[0]}: {int(np.round(subitem[1]))}\n'
     return logstr
 
 
@@ -75,6 +75,7 @@ class TaskDLC(tasks.Task):
             if dlc_result is None:
                 # Download the camera data if not available locally
                 time_on = time.time()
+                _logger.info(f'Downloading {cam}Camera.')
                 file_mp4 = self.one.load_dataset(session_id, dataset=f'_iblrig_{cam}Camera.raw',
                                                  download_only=True)
                 time_off = time.time()
@@ -86,7 +87,8 @@ class TaskDLC(tasks.Task):
                 timer[f'{cam}']['Download DLC weights'] = time_off - time_on
                 _logger.info(f'Running DLC on {cam}Camera.')
                 try:
-                    dlc_result, timer[f'{cam}'] = dlc(file_mp4, path_dlc, timer[f'{cam}'])
+                    dlc_result, timer[f'{cam}'] = dlc(file_mp4, path_dlc=path_dlc, force=overwrite,
+                                                      dlc_timer=timer[f'{cam}'])
                     _logger.info(dlc_result)
                 except BaseException:
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
@@ -94,15 +96,15 @@ class TaskDLC(tasks.Task):
             dlc_results.append(dlc_result)
 
             # Run DLC QC
-            try:
-                time_on = time.time()
-                qc = DlcQC(session_id, cam, one=self.one, log=_logger)
-                qc.run(update=True)
-                time_off = time.time()
-                timer[f'{cam}']['Run DLC QC'] = time_off - time_on
-            except BaseException:
-                _logger.error(f'DLC QC {cam}Camera failed.\n' + traceback.format_exc())
-                continue
+            # try:
+            #     time_on = time.time()
+            #     qc = DlcQC(session_id, cam, one=self.one, log=_logger)
+            #     qc.run(update=True)
+            #     time_off = time.time()
+            #     timer[f'{cam}']['Run DLC QC'] = time_off - time_on
+            # except BaseException:
+            #     _logger.error(f'DLC QC {cam}Camera failed.\n' + traceback.format_exc())
+            #     continue
 
             # If me_results don't exist or should be overwritten, run me
             if me_result is None or me_roi is None:
