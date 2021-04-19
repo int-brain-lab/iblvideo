@@ -68,7 +68,7 @@ class TaskDLC(tasks.Task):
                 dlc_result, me_result, me_roi = None, None, None
             else:
                 dlc_result = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
-                me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.np')
+                me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
                 me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
 
             # If dlc_result doesn't exist or should be overwritten, run DLC
@@ -94,17 +94,6 @@ class TaskDLC(tasks.Task):
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
                     continue
             dlc_results.append(dlc_result)
-
-            # Run DLC QC
-            # try:
-            #     time_on = time.time()
-            #     qc = DlcQC(session_id, cam, one=self.one, log=_logger)
-            #     qc.run(update=True)
-            #     time_off = time.time()
-            #     timer[f'{cam}']['Run DLC QC'] = time_off - time_on
-            # except BaseException:
-            #     _logger.error(f'DLC QC {cam}Camera failed.\n' + traceback.format_exc())
-            #     continue
 
             # If me_results don't exist or should be overwritten, run me
             if me_result is None or me_roi is None:
@@ -175,7 +164,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             # If less datasets, update task and raise error
             log_str = '\n'.join([f"No raw video file found for {no_cam}Camera." for
                                  no_cam in no_vid])
-            patch_data = {'log': log_str, 'version': version, 'status': 'Errored'}
+            patch_data = {'log': log_str, 'status': 'Errored'}
             one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
             return -1
         else:
@@ -195,11 +184,18 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             if status == 0 and remove_videos is True:
                 shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
+            # Run DLC QC
+            # Download camera times and then force qc to use local data as dlc might not have
+            # been updated on FlatIron at this stage
+            one.load(session_id, dataset_types=['camera.times'], download_only=True)
+            for cam in cams:
+                qc = DlcQC(session_id, cam, one=one, download_data=False)
+                qc.run(update=True)
+
     except BaseException:
-        patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(),
-                      'version': version, 'status': 'Errored'}
+        patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(), 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
-        return -1
+        status = -1
 
     return status
 
