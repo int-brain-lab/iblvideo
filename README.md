@@ -52,6 +52,18 @@ sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64
 sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*  
 ```
 
+(optional): check CUDNN installation or for troubleshooting only)
+Download and unzip https://ibl.flatironinstitute.org/resources/cudnn_samples_v7.zip
+If necessary, setup your CUDA environment variables with the version you want to test
+
+```
+cd cudnn_samples_v7/mnistCUDNN/
+make clean && make
+./mnistCUDNN
+```
+
+Should print a message that finishes with Test passed !
+
 ### Create a Python environment with TensorFlow and DLC
 
 Install a few things system wide and then python3.7
@@ -76,8 +88,10 @@ source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 Install packages (please observe order of those commands!)
 
 ```bash
-pip install "dask[complete]"
-pip install ibllib  
+# pip install "dask[complete]"
+pip install -U setuptools
+# pip install git+https://github.com/int-brain-lab/ibllib.git@develop
+pip install git+https://github.com/int-brain-lab/ibllib.git
 pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl  
 pip install tensorflow-gpu==1.13.1  
 pip install deeplabcut  
@@ -109,17 +123,27 @@ python -c 'import iblvideo'
 ```
 ## Releasing a new version (for devs)
 
-We use semantic versioning MAJOR.MINOR.PATCH. If you update the version, see below for what to adapt. Afterwards, tag the new version on Github.
+We use semantic versioning MAJOR.MINOR.PATCH. If you update the version, see below for what to adapt.
 
 ### Any version update
 Update the version in
 ```
 iblvideo/iblvideo/__init__.py
 ```
+Afterwards, tag the new version on Github.
+
 
 ### Update MINOR or MAJOR
-The version of weights and test data are synchronized with the MAJOR.MINOR version of this code. In addition to updating the version you have to upload two new zip files to FlatIron (note that the patch version is not included in the name):
+The version of DLC weights and DLC test data are synchronized with the MAJOR.MINOR version of this code. (Note that the patch version is not included in the directory names)
+
+If you update any of the DLC weights, you also need to update the MINOR version of the code and the DLC test data, and vice versa.
+1. For the weights, create a new directory called `weights_v{MAJOR}.{MINOR}` and copy the new weights, plus any unchanged weights into it.
+2. Make a new `dlc_test_data_v{MAJOR}.{MINOR}` directory, with subdirectories `input` and `output`.
+3. Copy the three videos from the `input` folder of the previous version dlc_test_data to the new one.
+4. Create the three parquet files to go in `output` by running iblvideo.dlc() with the new weights folder as `path_dlc`, and each of the videos in the new `input` folder as `file_mp4`.
+5. Zip and upload the new weights and test data folders to FlatIron :
 ```
 /resources/dlc/weights_v{MAJOR}.{MINOR}.zip
-/integration/dlc/test_data/test_data_v{MAJOR}.{MINOR}.zip
+/integration/dlc/test_data/dlc_test_data_v{MAJOR}.{MINOR}.zip
 ```
+6. Delete your local weights and test data and run tests/test_choiceworld.py to make sure everything worked.

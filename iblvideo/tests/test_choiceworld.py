@@ -3,20 +3,20 @@ import numpy as np
 import pandas as pd
 from iblvideo.choiceworld import dlc
 from iblvideo.weights import download_weights
-from iblvideo.tests.download_test_data import _download_test_data
+from iblvideo.tests import _download_dlc_test_data
 from iblvideo import __version__
 
 
 def test_dlc(version=__version__):
 
-    test_data = _download_test_data()
+    test_data = _download_dlc_test_data()
     path_dlc = download_weights(version=version)
 
     for cam in ['body', 'left', 'right']:
         file_mp4 = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
         tmp_dir = test_data.joinpath('input', f'dlc_tmp_iblrig_{cam}Camera.raw')
 
-        out_file = dlc(file_mp4, path_dlc)
+        out_file, _ = dlc(file_mp4, path_dlc)
         assert out_file
         assert (tmp_dir.is_dir() is False)
 
