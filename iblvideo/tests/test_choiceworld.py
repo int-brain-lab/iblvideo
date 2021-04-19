@@ -16,7 +16,7 @@ def test_dlc(version=__version__):
         file_mp4 = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
         tmp_dir = test_data.joinpath('input', f'dlc_tmp_iblrig_{cam}Camera.raw')
 
-        out_file = dlc(file_mp4, path_dlc)
+        out_file, _ = dlc(file_mp4, path_dlc)
         assert out_file
         assert (tmp_dir.is_dir() is False)
 
