@@ -95,20 +95,21 @@ class TaskDLC(tasks.Task):
                     continue
             dlc_results.append(dlc_result)
 
-            # If me_results don't exist or should be overwritten, run me
-            if me_result is None or me_roi is None:
-                _logger.info(f'Computing motion energy for {cam}Camera')
-                try:
-                    time_on = time.time()
-                    me_result, me_roi = motion_energy(self.session_path, dlc_result, frames=frames,
-                                                      one=self.one)
-                    time_off = time.time()
-                    timer[f'{cam}']['Compute motion energy'] = time_off - time_on
-                    _logger.info(me_result)
-                    _logger.info(me_roi)
-                except BaseException:
-                    _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
-                    continue
+            # Currently defaulting to recalculating ME even if exists locally, as last DLC step
+            # also defaults to rerun
+            # if me_result is None or me_roi is None:
+            _logger.info(f'Computing motion energy for {cam}Camera')
+            try:
+                time_on = time.time()
+                me_result, me_roi = motion_energy(self.session_path, dlc_result, frames=frames,
+                                                  one=self.one)
+                time_off = time.time()
+                timer[f'{cam}']['Compute motion energy'] = time_off - time_on
+                _logger.info(me_result)
+                _logger.info(me_roi)
+            except BaseException:
+                _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
+                continue
             me_results.append(me_result)
             me_rois.append(me_roi)
         _logger.info(_format_timer(timer))

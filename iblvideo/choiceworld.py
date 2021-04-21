@@ -256,7 +256,7 @@ def _s04_resample_paws(file_in, tdir, force=False):
 
 
 def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False,
-                                      force=False):
+                                      force=True):
 
     # Check if final result exists
     result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
@@ -392,7 +392,8 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
         dlc_timer[f'Prepare video for {k} network'] = time_off - time_on
 
         time_on = time.time()
-        _s05_run_dlc_specialized_networks(dlc_params[k], preproc_vid, k, force=force)
+        # Allows manually setting force to true but default to rerunning this for safety
+        _s05_run_dlc_specialized_networks(dlc_params[k], preproc_vid, k)
         time_off = time.time()
         dlc_timer[f'Run {k} network'] = time_off - time_on
         # Reset force to the original input value as the reset is network-specific
