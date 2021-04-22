@@ -92,6 +92,7 @@ class TaskDLC(tasks.Task):
                     _logger.info(dlc_result)
                 except BaseException:
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
+                    self.status = -1
                     continue
             dlc_results.append(dlc_result)
 
@@ -109,6 +110,7 @@ class TaskDLC(tasks.Task):
                 _logger.info(me_roi)
             except BaseException:
                 _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
+                self.status = -1
                 continue
             me_results.append(me_result)
             me_rois.append(me_roi)
