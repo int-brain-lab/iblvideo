@@ -221,6 +221,7 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
 
     one = ONE()
     # Loop until n_sessions is reached or something breaks
+    machine = machine or one._par.ALYX_LOGIN
     status_dict = {}
     count = 0
     last_query = datetime.now()

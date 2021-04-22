@@ -2,17 +2,15 @@ version: "2.3"
 services:
   queue:
     image: ibl/dlc:base
-    command: python3 -c "import sys; sys.path.append('/root'); print(sys.path); from iblvideo import dlc"
+    command: python3 -c "from iblvideo import run_queue; run_queue()"
     runtime: nvidia
     volumes:
-      - /mnt/s0:/mnt/s0
+      - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
       - ~/Documents/PYTHON/00_IBL/iblvideo:/root
-      - /datadisk/FlatIron:/datadisk/FlatIron
   test:
     image: ibl/dlc:base
     command: pytest /root/iblvideo/tests
     runtime: nvidia
     volumes:
-      - /mnt/s0:/mnt/s0
       - ~/Documents/PYTHON/00_IBL/iblvideo:/root
-      - /datadisk/FlatIron:/datadisk/FlatIron
+      - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron

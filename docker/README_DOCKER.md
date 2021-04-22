@@ -5,15 +5,17 @@ This is an advanced operation, the intended audience here are system admins or c
 ## Run Instructions
 Copy (or create if not available) the one parameters from home to the repository folder
 
-	`cp ~/.one_params ./.one_params`
-
 Run the test container
-
-	`docker-compose run test`
+``` shell
+cp ~/.one_params ./.one_params
+docker-compose run test
+```
 
 Run the queue using container
-
-	`docker-compose run queue`
+``` shell
+cp ~/.one_params ./.one_params
+docker-compose run queue
+```
 
 
 ## Installation Instructions
@@ -27,19 +29,21 @@ Run the queue using container
 **TODO check and detail** (at next server install) 😬 Feel free to refer to online documentation
 -	Step 1: make sure Nvidia driver is installed by typing `nvidia-smi`
 -	Step 2: install docker if not already installed
--	Step 3: install nvidia support for Docker
--	Step 4: build or download the docker image
+-	Step 3: install nvidia support for Docker: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker
 
 ## Update the Docker image
 ### Build image instructions
-From the repository directory cd to the docker dir
 
-	`cd docker`
+```shell
+cd ~/Documents/PYTHON
+git clone https://github.com/int-brain-lab/iblvideo
+cd iblvideo/docker
+docker build -t ibl/dlc:base  # this one will take a long time
+```
 
-Build the image (this will download large files and take a while)
-
-	`docker build . -t ibl/dlc:base`
-
-To access the image for development
-
-	`docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /datadisk:/datadisk -v ~/Documents/PYTHON/00_IBL/iblvideo:/root ibl/dlc:base`
+Test the image by accessing a shell inside of the container:
+``` shell
+docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo:/root ibl/dlc:base
+python3
+import deeplabcut
+```
