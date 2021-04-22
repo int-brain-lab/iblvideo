@@ -6,4 +6,3 @@ import deeplabcut
 from iblvideo.run import run_session, run_queue
 from iblvideo.choiceworld import dlc
 from iblvideo.weights import download_weights
-from iblvideo.cluster import create_cpu_gpu_cluster

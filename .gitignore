@@ -32,3 +32,15 @@ MANIFEST
 
 # Dask
 */dask-worker-space/*.lock
+
+ # temp md files from nano
+.swp
+
+# even some matplotlib stuff
+.cache/matplotlib
+
+# keras
+.keras/
+
+# Params files
+.one_params
