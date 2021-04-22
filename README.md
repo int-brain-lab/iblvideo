@@ -45,7 +45,7 @@ Install CUDA 10.0 libraries as documented [here](https://docs.google.com/documen
 Install cuDNN, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
 
 ```bash
-wget --user iblmember -- password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz  
+wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz  
 tar -xvf cudnn-10.0-linux-x64-v7.6.5.32.tgz  
 sudo cp cuda/include/cudnn.h /usr/local/cuda-10.0/include  
 sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64  
