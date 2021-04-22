@@ -6,11 +6,11 @@ services:
     runtime: nvidia
     volumes:
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
-      - ~/Documents/PYTHON/00_IBL/iblvideo:/root
+      - ~/Documents/PYTHON/iblvideo:/root
   test:
     image: ibl/dlc:base
     command: pytest /root/iblvideo/tests
     runtime: nvidia
     volumes:
-      - ~/Documents/PYTHON/00_IBL/iblvideo:/root
+      - ~/Documents/PYTHON/iblvideo:/root
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron

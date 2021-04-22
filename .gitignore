@@ -41,6 +41,7 @@ MANIFEST
 
 # keras
 .keras/
+.nv/
 
 # Params files
 .one_params

@@ -35,7 +35,12 @@ def test_dlc(version=__version__):
                 ctrl_pqt.loc[idx, [f'{t}_x', f'{t}_y', f'{t}_likelihood']] = np.nan
                 out_pqt.loc[idx, [f'{t}_x', f'{t}_y', f'{t}_likelihood']] = np.nan
 
-        assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2, equal_nan=True)
+        try:
+            assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2, equal_nan=True)
+        except AssertionError:
+            diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))
+            print(np.nanmax(diff, axis=0), np.nanmean(diff, axis=0))
+            assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2, equal_nan=True)
 
     alf_path = test_data.joinpath('alf')
     shutil.rmtree(alf_path)

@@ -7,16 +7,15 @@ Copy (or create if not available) the one parameters from home to the repository
 
 Run the test container
 ``` shell
-cp ~/.one_params ./.one_params
+cp ~/.one_params ~/Documents/PYTHON/iblvideo/.one_params
 docker-compose run test
 ```
 
 Run the queue using container
 ``` shell
-cp ~/.one_params ./.one_params
+cp ~/.one_params ~/Documents/PYTHON/iblvideo/.one_params
 docker-compose run queue
 ```
-
 
 ## Installation Instructions
 ### Requirements
