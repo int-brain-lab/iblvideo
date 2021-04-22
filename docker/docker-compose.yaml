@@ -1,0 +1,18 @@
+version: "2.3"
+services:
+  queue:
+    image: ibl/dlc:base
+    command: python3 -c "import sys; sys.path.append('/root'); print(sys.path); from iblvideo import dlc"
+    runtime: nvidia
+    volumes:
+      - /mnt/s0:/mnt/s0
+      - ~/Documents/PYTHON/00_IBL/iblvideo:/root
+      - /datadisk/FlatIron:/datadisk/FlatIron
+  test:
+    image: ibl/dlc:base
+    command: pytest /root/iblvideo/tests
+    runtime: nvidia
+    volumes:
+      - /mnt/s0:/mnt/s0
+      - ~/Documents/PYTHON/00_IBL/iblvideo:/root
+      - /datadisk/FlatIron:/datadisk/FlatIron
