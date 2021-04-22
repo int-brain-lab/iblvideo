@@ -14,7 +14,6 @@ import pandas as pd
 import cv2
 
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
-from iblvideo.cluster import create_cpu_gpu_cluster
 from iblvideo.utils import _run_command
 
 _logger = logging.getLogger('ibllib')
