@@ -97,6 +97,11 @@ pip install deeplabcut
 
 ### Test if tensorflow and deeplabcut installation was successful
 
+Export environment variable to avoid tensorflow issue
+```bash
+export TF_FORCE_GPU_ALLOW_GROWTH='true'
+```
+ 
 Point to CUDA libraries and source the virtual environment
 ```bash
 export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
