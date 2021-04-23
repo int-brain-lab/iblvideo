@@ -47,3 +47,4 @@ MANIFEST
 # docker build files
 docker/.one_params
 docker/weight*
+docker/*test*

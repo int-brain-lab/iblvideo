@@ -7,13 +7,11 @@ Copy (or create if not available) the one parameters from home to the repository
 
 Run the test container
 ``` shell
-cp ~/.one_params ~/Documents/PYTHON/iblvideo/.one_params
 docker-compose run test
 ```
 
 Run the queue using container
 ``` shell
-cp ~/.one_params ~/Documents/PYTHON/iblvideo/.one_params
 docker-compose run queue
 ```
 
@@ -36,10 +34,15 @@ From the iblvideo repository
 ```shell
 cd ./docker
 VERSION=v1.0
-WEIGHTS_DIR=/datadisk/FlatIron/resources/dlc/weights_$VERSION 
+WEIGHTS_DIR=/datadisk/FlatIron/resources/dlc/weights_$VERSION
+TEST_DIR=/datadisk/FlatIron/integration/dlc/test_data 
+
 cp ~/.one_params .one_params
 cp -r $WEIGHTS_DIR ./
+cp -r $TEST_DIR/dlc_test_data_$VERSION ./
+cp -r $TEST_DIR/me_test_data ./
 docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION
+docker push internationalbrainlab/dlc:base
 ```
 
 ### Build base image instructions
@@ -53,7 +56,7 @@ docker build -t internationalbrainlab/dlc:base -f Dockerfile.base  # this one wi
 
 Test the image by accessing a shell inside of the container:
 ```shell
-docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo:/root ibl/dlc:base
+docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/00_IBL/iblvideo:/root ibl/dlc:base
 python3
 import deeplabcut
 ```

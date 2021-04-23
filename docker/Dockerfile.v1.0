@@ -1,11 +1,14 @@
-#docker build -t internationalbrainlab/dlc:v1.0 -f Dockerfile.v1.0
-FROM ibl/dlc:base
+#docker build -t internationalbrainlab/dlc:v1.0 -f Dockerfile.v1.0 .
+FROM internationalbrainlab/dlc:base
 
-# copy the weights
+# copy the weights and test data
 COPY weights_v1.0 weights_v1.0
+COPY me_test_data me_test_data
+COPY dlc_test_data_v1.0 dlc_test_data_v1.0
 
 # copy the ONE parameter file
-COPY .one_params .one_params
+COPY .one_params /root/.one_params
 
 # clone the code
 # RUN git clone --depth 1 --branch v1.1.0 https://github.com/int-brain-lab/iblvideo.git
+RUN git clone --depth 1 --branch docker https://github.com/int-brain-lab/iblvideo.git

@@ -8,6 +8,13 @@ from iblvideo import __version__
 def _download_dlc_test_data(version=__version__,):
     """Download test data from FlatIron."""
     # Read one_params file
+
+    # if there is a test dir in the current path, use this one. Useful for Docker deployment
+    local_test_dir = Path(f"dlc_test_data_v{'.'.join(version.split('.')[:-1])}").absolute()
+    if local_test_dir.exists():
+        return local_test_dir
+
+    # otherwise get it from the SDSC server
     par = params.read('one_params')
     data_dir = Path('integration', 'dlc', 'test_data')
 
@@ -34,6 +41,11 @@ def _download_dlc_test_data(version=__version__,):
 def _download_me_test_data():
     """Download test data from FlatIron."""
     # eid: cde63527-7f5a-4cc3-8ac2-215d82e7da26
+    # if there is a test dir in the current path, use this one. Useful for Docker deployment
+    local_test_dir = Path("me_test_data").absolute()
+    if local_test_dir.exists():
+        return local_test_dir
+
     # Read one_params file
     par = params.read('one_params')
     data_dir = Path('integration', 'dlc', 'test_data')
