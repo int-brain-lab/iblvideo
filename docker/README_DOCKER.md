@@ -31,18 +31,35 @@ docker-compose run queue
 -	Step 3: install nvidia support for Docker: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker
 
 ## Update the Docker image
-### Build image instructions
+### Build release image instructions
+From the iblvideo repository
+```shell
+cd ./docker
+VERSION=v1.0
+WEIGHTS_DIR=/datadisk/FlatIron/resources/dlc/weights_$VERSION 
+cp ~/.one_params .one_params
+cp -r $WEIGHTS_DIR ./
+docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION
+```
+
+### Build base image instructions
 
 ```shell
 cd ~/Documents/PYTHON
 git clone https://github.com/int-brain-lab/iblvideo
 cd iblvideo/docker
-docker build -t ibl/dlc:base  # this one will take a long time
+docker build -t internationalbrainlab/dlc:base -f Dockerfile.base  # this one will take a long time
 ```
 
 Test the image by accessing a shell inside of the container:
-``` shell
+```shell
 docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo:/root ibl/dlc:base
 python3
 import deeplabcut
+```
+
+Eventually send the image to dockerhub
+```shell
+docker login
+docker push internationalbrainlab/dlc:base
 ```

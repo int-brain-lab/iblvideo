@@ -1,4 +1,4 @@
-#docker build -t ibl/dlc:base .
+#docker build -t internationalbrainlab/dlc:base -f Dockerfile.base
 FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 
 # link the cuda libraries
