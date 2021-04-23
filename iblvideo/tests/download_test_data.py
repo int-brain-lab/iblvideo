@@ -1,8 +1,11 @@
+import logging
 import shutil
 from pathlib import Path
 from ibllib.io import params
 from oneibl.webclient import http_download_file
 from iblvideo import __version__
+
+_logger = logging.getLogger('ibllib')
 
 
 def _download_dlc_test_data(version=__version__,):
@@ -25,11 +28,11 @@ def _download_dlc_test_data(version=__version__,):
     # Construct URL and call download
     url = '{}/{}/dlc_test_data_v{}.zip'.format(par.HTTP_DATA_SERVER, str(data_dir),
                                                '.'.join(version.split('.')[:-1]))
-    file_name = Path(http_download_file(url,
-                                        cache_dir=local_path,
-                                        username=par.HTTP_DATA_SERVER_LOGIN,
-                                        password=par.HTTP_DATA_SERVER_PWD))
-
+    file_name, hash = Path(http_download_file(url,
+                                              cache_dir=local_path,
+                                              username=par.HTTP_DATA_SERVER_LOGIN,
+                                              password=par.HTTP_DATA_SERVER_PWD))
+    _logger.info(f"Downloaded test data hash: {hash}, {file_name}")
     # unzip file
     test_dir = file_name.parent.joinpath(Path(file_name).stem)
     if not test_dir.exists():
@@ -56,13 +59,14 @@ def _download_me_test_data():
 
     # Construct URL and call download
     url = '{}/{}/me_test_data.zip'.format(par.HTTP_DATA_SERVER, str(data_dir))
-    file_name = Path(http_download_file(url,
-                                        cache_dir=local_path,
-                                        username=par.HTTP_DATA_SERVER_LOGIN,
-                                        password=par.HTTP_DATA_SERVER_PWD))
-
+    file_name, hash = http_download_file(url,
+                                         cache_dir=local_path,
+                                         username=par.HTTP_DATA_SERVER_LOGIN,
+                                         password=par.HTTP_DATA_SERVER_PWD,
+                                         return_md5=True)
+    file_name = Path(file_name)
     # unzip file
-    test_dir = file_name.parent.joinpath(Path(file_name).stem)
+    test_dir = file_name.parent.joinpath(file_name.stem)
     if not test_dir.exists():
         shutil.unpack_archive(file_name, local_path)
 

@@ -39,6 +39,8 @@ def test_dlc(version=__version__):
             assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2, equal_nan=True)
         except AssertionError:
             diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))
+            out_pqt.to_parquet(test_data.joinpath(f'_ibl_{cam}Camera.dlc.failed.pqt'))
+
             print(np.nanmax(diff, axis=0), np.nanmean(diff, axis=0))
             assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2, equal_nan=True)
 
