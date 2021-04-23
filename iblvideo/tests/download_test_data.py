@@ -28,13 +28,15 @@ def _download_dlc_test_data(version=__version__,):
     # Construct URL and call download
     url = '{}/{}/dlc_test_data_v{}.zip'.format(par.HTTP_DATA_SERVER, str(data_dir),
                                                '.'.join(version.split('.')[:-1]))
-    file_name, hash = Path(http_download_file(url,
-                                              cache_dir=local_path,
-                                              username=par.HTTP_DATA_SERVER_LOGIN,
-                                              password=par.HTTP_DATA_SERVER_PWD))
+    file_name, hash = http_download_file(url,
+                                         cache_dir=local_path,
+                                         username=par.HTTP_DATA_SERVER_LOGIN,
+                                         password=par.HTTP_DATA_SERVER_PWD,
+                                         return_md5=True)
+    file_name = Path(file_name)
     _logger.info(f"Downloaded test data hash: {hash}, {file_name}")
     # unzip file
-    test_dir = file_name.parent.joinpath(Path(file_name).stem)
+    test_dir = file_name.parent.joinpath(file_name.stem)
     if not test_dir.exists():
         shutil.unpack_archive(file_name, local_path)
 
