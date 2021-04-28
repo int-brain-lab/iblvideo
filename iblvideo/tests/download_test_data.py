@@ -15,6 +15,7 @@ def _download_dlc_test_data(version=__version__,):
     # if there is a test dir in the current path, use this one. Useful for Docker deployment
     local_test_dir = Path(f"dlc_test_data_v{'.'.join(version.split('.')[:-1])}").absolute()
     if local_test_dir.exists():
+        _logger.warning(f'Using cached directory at {local_test_dir}')
         return local_test_dir
 
     # otherwise get it from the SDSC server
@@ -49,6 +50,7 @@ def _download_me_test_data():
     # if there is a test dir in the current path, use this one. Useful for Docker deployment
     local_test_dir = Path("me_test_data").absolute()
     if local_test_dir.exists():
+        _logger.warning(f'Using cached directory at {local_test_dir}')
         return local_test_dir
 
     # Read one_params file

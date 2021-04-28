@@ -37,6 +37,7 @@ docker-compose run queue
     ```
     And then log out and log back in again
 -   Step 5: setup the IBL DLC docker by cloning the repository and running the tests:
+
 ```shell
 # clone the iblvideo repository
 cd ~/Documents/PYTHON
@@ -48,33 +49,41 @@ cp ~/.one_params .one_params
 cd docker
 docker-compose run tests
 ```
+
 And then make sure that the `CACHE_DIR` parameter is set to `"/mnt/s0/Data/FlatIron"`
 
 You're all setup, you can go to the run section of this document.
 
 ## Contributer info: update the Docker image
 ### Build release image instructions
-From the iblvideo repository
+This pre-supposes that you have already
+-	a working dev environment
+-	tagged and commit the version in the master branch
+-	run the tests in local, with the weights and test data still present in the `$SDSC_PATH` below.
+
 ```shell
 cd ./docker
 VERSION=v1.0
-WEIGHTS_DIR=/datadisk/FlatIron/resources/dlc/weights_$VERSION
-TEST_DIR=/datadisk/FlatIron/integration/dlc/test_data 
+SDSC_PATH=/mnt/s0/FlatIron
+WEIGHTS_DIR=$SDSC_PATH/resources/dlc/weights_$VERSION
+TEST_DIR=$SDSC_PATH/FlatIron/integration/dlc/test_data 
 
 cp -r $WEIGHTS_DIR ./
 cp -r $TEST_DIR/dlc_test_data_$VERSION ./
 cp -r $TEST_DIR/me_test_data ./
-docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION .
+docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION --no-cache.
 ```
 
 Eventually push the image in dockerhub
+
 ```shell
+VERSION=v1.0
 docker login
 docker push internationalbrainlab/dlc:$VERSION
 ```
 
 ```shell
-docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo/docker:/root internationalbrainlab/dlc:base
+docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo/docker:/root internationalbrainlab/dlc:v1.0
 python3
 from iblvideo import run_queue
 ```
@@ -89,6 +98,7 @@ docker build -t internationalbrainlab/dlc:base -f Dockerfile.base  # this one wi
 ```
 
 Test the image by accessing a shell inside of the container:
+
 ```shell
 docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo:/root internationalbrainlab/dlc:base
 python3
@@ -96,6 +106,7 @@ from import deeplabcut
 ```
 
 Eventually send the image to dockerhub
+
 ```shell
 docker login
 docker push internationalbrainlab/dlc:base
