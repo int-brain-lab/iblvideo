@@ -6,14 +6,16 @@ services:
     runtime: nvidia
     volumes:
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
-      - ~/Documents/PYTHON/iblvideo:/root
+      - ~/Documents/PYTHON/iblvideo:/iblvideo
+      - ~:/root
   dev-test:
     image: internationalbrainlab/dlc:base
-    command: bash -c "ls -l /root; nvcc --version; pytest /root/iblvideo/tests"
+    command: bash -c "ls -l /root; nvcc --version; pytest -s /iblvideo/iblvideo/tests"
     runtime: nvidia
     volumes:
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
-      - ~/Documents/PYTHON/iblvideo:/root
+      - ~/Documents/PYTHON/iblvideo:/iblvideo
+      - ~:/root
   queue:
     image: internationalbrainlab/dlc:v1.0
     command: python3 -c "from iblvideo import run_queue; run_queue()"
@@ -23,7 +25,8 @@ services:
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
   test:
     image: internationalbrainlab/dlc:v1.0
-    command: bash -c "nvcc --version; pytest -s /iblvideo/iblvideo/tests"
+    command: bash -c "nvcc --version; pytest -s /iblvideo/iblvideo/tests/test_motion_energy.py"
     runtime: nvidia
     volumes:
       - ~:/root
+#      - ~/Documents/PYTHON/iblvideo:/iblvideo
