@@ -4,29 +4,47 @@ This is an advanced operation, the intended audience here are system admins or c
 
 ## Run Instructions
 Copy (or create if not available) the one parameters from home to the repository folder
+```shell
+
+```
 
 Run the test container
 ``` shell
-docker-compose run test
+sudo docker-compose run test
 ```
 
 Run the queue using container
 ``` shell
-docker-compose run queue
+sudo docker-compose run queue
 ```
 
-## Installation Instructions
+## IBL DLC Docker Installation Instructions
 ### Requirements
 - Ubuntu 20.04 but any unix system with support for Docker will do
 - nvidia driver installed
-- a docker installation
+- a docker installation 
 - support for nvidia runtime in docker
+- ONE parameters setup to connect to the database [here](https://int-brain-lab.github.io/iblenv/one_docs/one_credentials.html)
 
 ### Docker Installation instructions on Ubuntu 20.04, as of April 2021
-**TODO check and detail** (at next server install) 😬 Feel free to refer to online documentation
 -	Step 1: make sure Nvidia driver is installed by typing `nvidia-smi`
--	Step 2: install docker if not already installed
--	Step 3: install nvidia support for Docker: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker
+-	Step 2: install docker if not already installed, [instructions here](https://docs.docker.com/engine/install/ubuntu/)
+-	Step 3: install nvidia support for Docker, [instructions here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker)
+-   Step 4: install docker compose: `sudo apt-get install docker-compose`
+-   Step 5: setup the IBL DLC docker by cloning the repository and running the tests:
+```shell
+# clone the iblvideo repository
+cd ~/Documents/PYTHON
+git clone https://github.com/int-brain-lab/iblvideo.git
+# copy one parameters from home to
+cd iblvideo
+cp ~/.one_params .one_params
+# run the tests
+cd docker
+docker-compose run tests
+```
+
+You're all setup, you can go to the run section of this document.
 
 ## Update the Docker image
 ### Build release image instructions
