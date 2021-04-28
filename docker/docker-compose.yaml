@@ -9,7 +9,7 @@ services:
       - ~/Documents/PYTHON/iblvideo:/root
   dev-test:
     image: internationalbrainlab/dlc:base
-    command: bash -c "ls -l /root; nvcc --version; pytest /root/iblvideo/tests -log-cli-level=INFO"
+    command: bash -c "ls -l /root; nvcc --version; pytest /root/iblvideo/tests"
     runtime: nvidia
     volumes:
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron

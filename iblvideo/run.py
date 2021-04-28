@@ -119,7 +119,7 @@ class TaskDLC(tasks.Task):
 
 
 def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=None,
-                version=__version__, remove_videos=True, frames=50000, **kwargs):
+                version=__version__, remove_videos=True, frames=10000, **kwargs):
     """
     Run DLC on a single session in the database.
 

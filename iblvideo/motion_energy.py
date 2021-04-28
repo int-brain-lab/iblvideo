@@ -37,7 +37,7 @@ def get_dlc_midpoints(dlc_pqt):
     return mloc
 
 
-def motion_energy(session_path, dlc_pqt, frames=None, one=None):
+def motion_energy(session_path, dlc_pqt, frames=10000, one=None):
     """
     Compute motion energy on cropped frames of a single video
 

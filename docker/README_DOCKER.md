@@ -52,7 +52,7 @@ And then make sure that the `CACHE_DIR` parameter is set to `"/mnt/s0/Data/FlatI
 
 You're all setup, you can go to the run section of this document.
 
-## Update the Docker image
+## Contributer info: update the Docker image
 ### Build release image instructions
 From the iblvideo repository
 ```shell
@@ -61,12 +61,22 @@ VERSION=v1.0
 WEIGHTS_DIR=/datadisk/FlatIron/resources/dlc/weights_$VERSION
 TEST_DIR=/datadisk/FlatIron/integration/dlc/test_data 
 
-cp ~/.one_params .one_params
 cp -r $WEIGHTS_DIR ./
 cp -r $TEST_DIR/dlc_test_data_$VERSION ./
 cp -r $TEST_DIR/me_test_data ./
-docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION
-docker push internationalbrainlab/dlc:base
+docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION .
+```
+
+Eventually push the image in dockerhub
+```shell
+docker login
+docker push internationalbrainlab/dlc:$VERSION
+```
+
+```shell
+docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo/docker:/root internationalbrainlab/dlc:base
+python3
+from iblvideo import run_queue
 ```
 
 ### Build base image instructions
@@ -80,9 +90,9 @@ docker build -t internationalbrainlab/dlc:base -f Dockerfile.base  # this one wi
 
 Test the image by accessing a shell inside of the container:
 ```shell
-docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/00_IBL/iblvideo:/root ibl/dlc:base
+docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo:/root internationalbrainlab/dlc:base
 python3
-import deeplabcut
+from import deeplabcut
 ```
 
 Eventually send the image to dockerhub
