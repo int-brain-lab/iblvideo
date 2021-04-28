@@ -3,19 +3,18 @@ Here we provide a docker file to build an image and run in develop and productio
 This is an advanced operation, the intended audience here are system admins or cloud computing managers wishing to run large queues on unix systems.
 
 ## Run Instructions
-Copy (or create if not available) the one parameters from home to the repository folder
 ```shell
-
+cd ~/Documents/PYTHON/iblvideo/docker/
 ```
 
 Run the test container
 ``` shell
-sudo docker-compose run test
+docker-compose run test
 ```
 
 Run the queue using container
 ``` shell
-sudo docker-compose run queue
+docker-compose run queue
 ```
 
 ## IBL DLC Docker Installation Instructions
@@ -24,13 +23,19 @@ sudo docker-compose run queue
 - nvidia driver installed
 - a docker installation 
 - support for nvidia runtime in docker
-- ONE parameters setup to connect to the database [here](https://int-brain-lab.github.io/iblenv/one_docs/one_credentials.html)
+- ONE parameters setup to connect to the database [here](https://int-brain-lab.github.io/iblenv/one_docs/one_credentials.html) 
 
 ### Docker Installation instructions on Ubuntu 20.04, as of April 2021
 -	Step 1: make sure Nvidia driver is installed by typing `nvidia-smi`
 -	Step 2: install docker if not already installed, [instructions here](https://docs.docker.com/engine/install/ubuntu/)
 -	Step 3: install nvidia support for Docker, [instructions here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker)
--   Step 4: install docker compose: `sudo apt-get install docker-compose`
+-   Step 4: install docker compose, the version needs to be above 1.21. [instructions here](https://docs.docker.com/compose/install/)
+-   Step 5: handle post installs steps
+    ```shell
+    sudo groupadd docker
+    sudo usermod -aG docker $USER
+    ```
+    And then log out and log back in again
 -   Step 5: setup the IBL DLC docker by cloning the repository and running the tests:
 ```shell
 # clone the iblvideo repository
@@ -43,6 +48,7 @@ cp ~/.one_params .one_params
 cd docker
 docker-compose run tests
 ```
+And then make sure that the `CACHE_DIR` parameter is set to `"/mnt/s0/Data/FlatIron"`
 
 You're all setup, you can go to the run section of this document.
 
