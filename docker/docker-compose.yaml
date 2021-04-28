@@ -23,7 +23,7 @@ services:
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
   test:
     image: internationalbrainlab/dlc:v1.0
-    command: bash -c "nvcc --version; pytest /iblvideo/iblvideo/tests"
+    command: bash -c "nvcc --version; pytest -s /iblvideo/iblvideo/tests"
     runtime: nvidia
     volumes:
       - ~:/root
