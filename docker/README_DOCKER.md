@@ -7,6 +7,8 @@ This assumes that docker is installed, the iblvideo repository is cloned on the 
 
 ```shell
 cd ~/Documents/PYTHON/iblvideo/docker/
+git pull
+docker-compose pull
 ```
 
 Run the test container
