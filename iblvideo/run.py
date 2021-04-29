@@ -119,7 +119,7 @@ class TaskDLC(tasks.Task):
 
 
 def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=None,
-                version=__version__, remove_videos=True, frames=50000, **kwargs):
+                version=__version__, remove_videos=True, frames=10000, **kwargs):
     """
     Run DLC on a single session in the database.
 
@@ -221,6 +221,7 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
 
     one = ONE()
     # Loop until n_sessions is reached or something breaks
+    machine = machine or one._par.ALYX_LOGIN
     status_dict = {}
     count = 0
     last_query = datetime.now()
