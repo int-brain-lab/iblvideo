@@ -3,16 +3,20 @@ Here we provide a docker file to build an image and run in develop and productio
 This is an advanced operation, the intended audience here are system admins or cloud computing managers wishing to run large queues on unix systems.
 
 ## Run Instructions
+This assumes that docker is installed, the iblvideo repository is cloned on the system and that the `.one_params` file is in the home directory of the current user.
+
 ```shell
 cd ~/Documents/PYTHON/iblvideo/docker/
 ```
 
 Run the test container
+
 ``` shell
 docker-compose run test
 ```
 
 Run the queue using container
+
 ``` shell
 docker-compose run queue
 ```
