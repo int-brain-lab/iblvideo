@@ -7,5 +7,6 @@ COPY me_test_data me_test_data
 COPY dlc_test_data_v1.0 dlc_test_data_v1.0
 
 # clone the code
-RUN git clone --depth 1 --branch docker https://github.com/int-brain-lab/iblvideo.git
+RUN git clone --depth 1 --single-branch --branch v1.0.1 https://github.com/int-brain-lab/iblvideo.git
+# RUN git clone --depth 1 --branch docker https://github.com/int-brain-lab/iblvideo.git
 ENV PYTHONPATH=/iblvideo
