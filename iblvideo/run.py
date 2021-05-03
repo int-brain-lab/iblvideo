@@ -243,25 +243,26 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
     # Loop until n_sessions is reached or something breaks
     machine = machine or one._par.ALYX_LOGIN
     status_dict = {}
-    count = 0
 
     # First check if any interrupted local sessions are present
     local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/raw_video_data/dlc_tmp*')
     if len(local_tmp) > 0:
-        local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))
+        local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))[:n_sessions]
         for eid in local_sessions:
             status_dict[eid] = run_session(eid, machine=machine, one=one, **kwargs)
-            count += 1
+        # remove the local sessions from max sessions to run
+        n_sessions -= len(local_sessions)
 
     # Then start querying the database
+    count = 0
     last_query = datetime.now()
     while count < n_sessions:
         # Query EphysDLC tasks that have not been run, redo this only every delta_query seconds
         delta = (datetime.now() - last_query).total_seconds()
         if (delta > delta_query) or (count == 0):
             last_query = datetime.now()
-            tasks = one.alyx.rest('tasks', 'list', status='Empty', name='EphysDLC')
-            sessions = [t['session'] for t in tasks]
+            task_queue = one.alyx.rest('tasks', 'list', status='Empty', name='EphysDLC')
+            sessions = [t['session'] for t in task_queue]
         # Return if no more sessions to run
         if len(sessions) == 0:
             print("No sessions to run")
