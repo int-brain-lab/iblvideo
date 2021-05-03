@@ -84,13 +84,15 @@ class TaskDLC(tasks.Task):
                 # Download the camera data if not available locally
                 time_on = time.time()
                 _logger.info(f'Downloading {cam}Camera.')
-                video_intact, attempt = False, 0
+                video_intact, clobber_vid, attempt = False, False, 0
                 while video_intact is False and attempt < 3:
-                    file_mp4 = self.one.load_dataset(session_id, dataset=f'_iblrig_{cam}Camera.raw',
-                                                     download_only=True)
+                    dset = self.one.alyx.rest('datasets', 'list', session=session_id,
+                                              name=f'_iblrig_{cam}Camera.raw.mp4')
+                    file_mp4 = self.one.download_dataset(dset[0], clobber=clobber_vid)
                     # Check if video is downloaded completely, otherwise retry twice
                     video_intact = self._video_intact(file_mp4)
                     attempt += 1
+                    clobber_vid = True
                 if video_intact is False:
                     self.status = -1
                     _logger.error(f'{cam}Camera video failed to download.')
