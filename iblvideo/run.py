@@ -3,6 +3,7 @@ import shutil
 import os
 import traceback
 import time
+import cv2
 from datetime import datetime
 from collections import OrderedDict
 
@@ -53,6 +54,13 @@ class TaskDLC(tasks.Task):
                 pass
         return result
 
+    def _video_intact(self, file_mp4):
+        cap = cv2.VideoCapture(str(file_mp4))
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        intact = True if frame_count > 0 else False
+        cap.release()
+        return intact
+
     def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None, **kwargs):
         session_id = self.one.eid_from_path(self.session_path)
         overwrite = kwargs.pop('overwrite', None)
@@ -76,8 +84,17 @@ class TaskDLC(tasks.Task):
                 # Download the camera data if not available locally
                 time_on = time.time()
                 _logger.info(f'Downloading {cam}Camera.')
-                file_mp4 = self.one.load_dataset(session_id, dataset=f'_iblrig_{cam}Camera.raw',
-                                                 download_only=True)
+                video_intact, attempt = False, 0
+                while video_intact is False and attempt < 3:
+                    file_mp4 = self.one.load_dataset(session_id, dataset=f'_iblrig_{cam}Camera.raw',
+                                                     download_only=True)
+                    # Check if video is downloaded completely, otherwise retry twice
+                    video_intact = self._video_intact(file_mp4)
+                    attempt += 1
+                if video_intact is False:
+                    self.status = -1
+                    _logger.error(f'{cam}Camera video failed to download.')
+                    continue
                 time_off = time.time()
                 timer[f'{cam}'][f'Download video'] = time_off - time_on
                 # Download weights if not exist locally
