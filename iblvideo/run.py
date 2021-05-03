@@ -4,6 +4,7 @@ import os
 import traceback
 import time
 import cv2
+from glob import glob
 from datetime import datetime
 from collections import OrderedDict
 
@@ -76,8 +77,8 @@ class TaskDLC(tasks.Task):
                 dlc_result, me_result, me_roi = None, None, None
             else:
                 dlc_result = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
-                me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
-                me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
+                # me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
+                # me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
 
             # If dlc_result doesn't exist or should be overwritten, run DLC
             if dlc_result is None:
@@ -243,6 +244,16 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
     machine = machine or one._par.ALYX_LOGIN
     status_dict = {}
     count = 0
+
+    # First check if any interrupted local sessions are present
+    local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/raw_video_data/dlc_tmp*')
+    if len(local_tmp) > 0:
+        local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))
+        for eid in local_sessions:
+            status_dict[eid] = run_session(eid, machine=machine, one=one, **kwargs)
+            count += 1
+
+    # Then start querying the database
     last_query = datetime.now()
     while count < n_sessions:
         # Query EphysDLC tasks that have not been run, redo this only every delta_query seconds
