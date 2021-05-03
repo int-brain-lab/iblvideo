@@ -32,3 +32,19 @@ MANIFEST
 
 # Dask
 */dask-worker-space/*.lock
+
+ # temp md files from nano
+.swp
+
+## Docker related stuff
+# even some matplotlib stuff
+.cache/matplotlib
+# keras
+.keras/
+.nv/
+# Params files
+.one_params
+# docker build files
+docker/.one_params
+docker/weight*
+docker/*test*

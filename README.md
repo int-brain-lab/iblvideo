@@ -45,7 +45,7 @@ Install CUDA 10.0 libraries as documented [here](https://docs.google.com/documen
 Install cuDNN, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
 
 ```bash
-wget --user iblmember -- password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz  
+wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz  
 tar -xvf cudnn-10.0-linux-x64-v7.6.5.32.tgz  
 sudo cp cuda/include/cudnn.h /usr/local/cuda-10.0/include  
 sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64  
@@ -88,9 +88,7 @@ source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 Install packages (please observe order of those commands!)
 
 ```bash
-# pip install "dask[complete]"
 pip install -U setuptools
-# pip install git+https://github.com/int-brain-lab/ibllib.git@develop
 pip install git+https://github.com/int-brain-lab/ibllib.git
 pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl  
 pip install tensorflow-gpu==1.13.1  
@@ -99,6 +97,11 @@ pip install deeplabcut
 
 ### Test if tensorflow and deeplabcut installation was successful
 
+Export environment variable to avoid tensorflow issue
+```bash
+export TF_FORCE_GPU_ALLOW_GROWTH='true'
+```
+ 
 Point to CUDA libraries and source the virtual environment
 ```bash
 export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  

@@ -1,0 +1,31 @@
+version: "2.3"
+services:
+  dev-queue:
+    image: internationalbrainlab/dlc:base
+    command: python3 -c "from iblvideo import run_queue; run_queue()"
+    runtime: nvidia
+    volumes:
+      - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
+      - ~/Documents/PYTHON/iblvideo:/iblvideo
+      - ~:/root
+  dev-test:
+    image: internationalbrainlab/dlc:base
+    command: bash -c "ls -l /root; nvcc --version; pytest -s /iblvideo/iblvideo/tests"
+    runtime: nvidia
+    volumes:
+      - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
+      - ~/Documents/PYTHON/iblvideo:/iblvideo
+      - ~:/root
+  queue:
+    image: internationalbrainlab/dlc:v1.0
+    command: python3 -c "from iblvideo import run_queue; run_queue()"
+    runtime: nvidia
+    volumes:
+      - ~:/root
+      - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
+  test:
+    image: internationalbrainlab/dlc:v1.0
+    command: bash -c "nvcc --version; pytest -s /iblvideo/iblvideo/tests"
+    runtime: nvidia
+    volumes:
+      - ~:/root
