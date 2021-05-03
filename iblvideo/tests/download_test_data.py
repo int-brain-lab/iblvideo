@@ -39,7 +39,7 @@ def _download_dlc_test_data(version=__version__,):
     # unzip file
     test_dir = file_name.parent.joinpath(file_name.stem)
     if not test_dir.exists():
-        shutil.unpack_archive(file_name, local_path)
+        shutil.unpack_archive(str(file_name), local_path)
 
     return Path(test_dir)
 

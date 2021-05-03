@@ -41,5 +41,5 @@ def download_weights(version=__version__):
     weights_dir = file_name.parent.joinpath(file_name.stem)
     # we assume that user side, any change will be labeled by a version bump
     if not weights_dir.exists():
-        shutil.unpack_archive(file_name, weights_path)  # unzip file
+        shutil.unpack_archive(str(file_name), weights_path)  # unzip file
     return weights_dir
