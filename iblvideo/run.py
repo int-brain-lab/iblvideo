@@ -4,6 +4,7 @@ import os
 import traceback
 import time
 import cv2
+from glob import glob
 from datetime import datetime
 from collections import OrderedDict
 
@@ -73,11 +74,12 @@ class TaskDLC(tasks.Task):
             # Check if dlc and me results are available locally or in database, if latter download
             if overwrite:
                 # If it's a rerun, pretend the data doesn't exist yet
-                dlc_result, me_result, me_roi = None, None, None
+                dlc_result = None
+                # me_result, me_roi = None, None
             else:
                 dlc_result = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
-                me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
-                me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
+                # me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
+                # me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
 
             # If dlc_result doesn't exist or should be overwritten, run DLC
             if dlc_result is None:
@@ -228,12 +230,12 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     return status
 
 
-def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
+def run_queue(machine=None, n_sessions=1000, delta_query=600, **kwargs):
     """
     Run the entire queue, or n_sessions, of DLC tasks on Alyx.
 
     :param machine: Tag for the machine this job ran on (string)
-    :param n_sessions: Number of sessions to run from queue (default is run whole queue)
+    :param n_sessions: int, number of sessions to run from queue (default is run whole queue)
     :param delta_query: Time between querying the database for Empty tasks, in sec
     :param kwargs: Keyword arguments to be passed to run_session.
     """
@@ -242,6 +244,18 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
     # Loop until n_sessions is reached or something breaks
     machine = machine or one._par.ALYX_LOGIN
     status_dict = {}
+
+    # First check if any interrupted local sessions are present
+    local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/raw_video_data/')
+    if len(local_tmp) > 0:
+        local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))[:n_sessions]
+        for eid in local_sessions:
+            print(f'Restarting local session {eid}')
+            status_dict[eid] = run_session(eid, machine=machine, one=one, **kwargs)
+        # remove the local sessions from max sessions to run
+        n_sessions -= len(local_sessions)
+
+    # Then start querying the database
     count = 0
     last_query = datetime.now()
     while count < n_sessions:
@@ -249,8 +263,8 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
         delta = (datetime.now() - last_query).total_seconds()
         if (delta > delta_query) or (count == 0):
             last_query = datetime.now()
-            tasks = one.alyx.rest('tasks', 'list', status='Empty', name='EphysDLC')
-            sessions = [t['session'] for t in tasks]
+            task_queue = one.alyx.rest('tasks', 'list', status='Empty', name='EphysDLC')
+            sessions = [t['session'] for t in task_queue]
         # Return if no more sessions to run
         if len(sessions) == 0:
             print("No sessions to run")
