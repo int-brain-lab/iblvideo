@@ -245,10 +245,11 @@ def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
     status_dict = {}
 
     # First check if any interrupted local sessions are present
-    local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/raw_video_data/dlc_tmp*')
+    local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/raw_video_data/')
     if len(local_tmp) > 0:
         local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))[:n_sessions]
         for eid in local_sessions:
+            print(f'Restarting local session {eid}')
             status_dict[eid] = run_session(eid, machine=machine, one=one, **kwargs)
         # remove the local sessions from max sessions to run
         n_sessions -= len(local_sessions)
