@@ -229,12 +229,12 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     return status
 
 
-def run_queue(machine=None, n_sessions=np.inf, delta_query=600, **kwargs):
+def run_queue(machine=None, n_sessions=1000, delta_query=600, **kwargs):
     """
     Run the entire queue, or n_sessions, of DLC tasks on Alyx.
 
     :param machine: Tag for the machine this job ran on (string)
-    :param n_sessions: Number of sessions to run from queue (default is run whole queue)
+    :param n_sessions: int, number of sessions to run from queue (default is run whole queue)
     :param delta_query: Time between querying the database for Empty tasks, in sec
     :param kwargs: Keyword arguments to be passed to run_session.
     """
