@@ -68,16 +68,16 @@ This pre-supposes that you have already
 -	run the tests in local, with the weights and test data still present in the `$SDSC_PATH` below.
 
 ```shell
-cd ./docker
+cd ~/Documents/PYTHON/iblvideo/docker/
 VERSION=v1.0
-SDSC_PATH=/mnt/s0/FlatIron
+SDSC_PATH=/mnt/s0/Data/FlatIron
 WEIGHTS_DIR=$SDSC_PATH/resources/dlc/weights_$VERSION
-TEST_DIR=$SDSC_PATH/FlatIron/integration/dlc/test_data 
+TEST_DIR=$SDSC_PATH/integration/dlc/test_data 
 
-cp -r $WEIGHTS_DIR ./
-cp -r $TEST_DIR/dlc_test_data_$VERSION ./
-cp -r $TEST_DIR/me_test_data ./
-docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION --no-cache.
+cp -r $WEIGHTS_DIR .
+cp -r $TEST_DIR/dlc_test_data_$VERSION .
+cp -r $TEST_DIR/me_test_data .
+docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION --no-cache .
 ```
 
 Eventually push the image in dockerhub
