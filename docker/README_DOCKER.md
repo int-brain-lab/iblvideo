@@ -3,7 +3,7 @@ Here we provide a docker file to build an image and run in develop and productio
 This is an advanced operation, the intended audience here are system admins or cloud computing managers wishing to run large queues on unix systems.
 
 ## Run Instructions
-This assumes that docker is installed, the iblvideo repository is cloned on the system and that the `.one_params` file is in the home directory of the current user.
+This assumes that docker is installed, the iblvideo repository is cloned on the system and that the `.one_params` file is in the home directory of the current user. See installation instructions below.
 
 ```shell
 cd ~/Documents/PYTHON/iblvideo/docker/
@@ -53,7 +53,7 @@ cd iblvideo
 cp ~/.one_params .one_params
 # run the tests
 cd docker
-docker-compose run tests
+docker-compose run test
 ```
 
 And then make sure that the `CACHE_DIR` parameter is set to `"/mnt/s0/Data/FlatIron"`
