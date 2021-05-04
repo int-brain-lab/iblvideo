@@ -74,7 +74,8 @@ class TaskDLC(tasks.Task):
             # Check if dlc and me results are available locally or in database, if latter download
             if overwrite:
                 # If it's a rerun, pretend the data doesn't exist yet
-                dlc_result, me_result, me_roi = None, None, None
+                dlc_result = None
+                # me_result, me_roi = None, None
             else:
                 dlc_result = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
                 # me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
