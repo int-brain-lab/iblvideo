@@ -211,13 +211,21 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             # Run DLC QC
             # Download camera times and then force qc to use local data as dlc might not have
             # been updated on FlatIron at this stage
-            one.load(session_id, dataset_types=['camera.times'], download_only=True)
-            alf_path = one.path_from_eid(session_id).joinpath('alf')
-            for cam in cams:
-                # Only run if dlc actually exists
-                if alf_path.joinpath(f'_ibl_{cam}Camera.dlc.pqt').exists():
-                    qc = DlcQC(session_id, cam, one=one, download_data=False)
-                    qc.run(update=True)
+            try:
+                one.load(session_id, dataset_types=['camera.times'], download_only=True)
+                alf_path = one.path_from_eid(session_id).joinpath('alf')
+                for cam in cams:
+                    # Only run if dlc actually exists
+                    if alf_path.joinpath(f'_ibl_{cam}Camera.dlc.pqt').exists():
+                        qc = DlcQC(session_id, cam, one=one, download_data=False)
+                        qc.run(update=True)
+            except AssertionError:
+                # If the camera.times don't exist we cannot run QC, but the DLC task shouldn't fail
+                # Make sure to not overwrite the task log if that has already been updated
+                tdict = one.alyx.rest('tasks', 'list',
+                                      django=f"name__icontains,DLC,session__id,{session_id}")[0]
+                patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc()}
+                one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
 
     except BaseException:
         # Make sure to not overwrite the task log if that has already been updated
