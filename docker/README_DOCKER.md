@@ -95,12 +95,6 @@ docker login
 docker push internationalbrainlab/dlc:$VERSION
 ```
 
-```shell
-docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo/docker:/root internationalbrainlab/dlc:v1.0
-python3
-from iblvideo import run_queue
-```
-
 ### Build base image instructions
 
 ```shell
