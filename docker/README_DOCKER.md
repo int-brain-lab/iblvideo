@@ -89,12 +89,14 @@ cp -r $TEST_DIR/me_test_data .
 docker build -t internationalbrainlab/dlc:$NEW_VERSION -f Dockerfile.$NEW_VERSION --no-cache .
 ```
 
-Eventually push the image in dockerhub
+Push the image in dockerhub so workers can work with it
 
 ```shell
 docker login
 docker push internationalbrainlab/dlc:$NEW_VERSION
 ```
+
+Update the image version in `docker-compose.yaml` test and queue configurations.
 
 ### Build base image instructions
 
