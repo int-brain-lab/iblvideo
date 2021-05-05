@@ -67,32 +67,33 @@ This pre-supposes that you have already
 -	tagged and commit the version in the master branch
 -	run the tests in local, with the weights and test data still present in the `$SDSC_PATH` below.
 
-First, copy the Dockerfile of the previous version
+First, copy the Dockerfile of the previous version (adjust last and new version accordingly) and replace the hardcoded version numbers in the new Dockerfile
 
 ```shell
+LAST_VERSION=v1.0
+NEW_VERSION=v1.1
 cd ~/Documents/PYTHON/iblvideo/docker/
-cp Dockerfile.v1.0 Dockerfile.v1.1
+cp Dockerfile.$LAST_VERSION Dockerfile.$NEW_VERSION
+sed -i s/$LAST_VERSION/$NEW_VERSION/g Dockerfile.$NEW_VERSION
 ```
-Open the new Dockerfile it in an editor and replace the hardcoded version with the new one everywhere in the Dockerfie (here: replace every `v1.0` with `v1.1`). Push the new Dockerfile to Github. Then build the new image for dockerhub:
+Make sure that the branch of iblvideo indicate to pull from in this Dockerfile is the one you wish to use in the image. Push the new Dockerfile to Github. Then build the new image for dockerhub:
 
 ```shell
-VERSION=v1.1
 SDSC_PATH=/mnt/s0/Data/FlatIron
-WEIGHTS_DIR=$SDSC_PATH/resources/dlc/weights_$VERSION
+WEIGHTS_DIR=$SDSC_PATH/resources/dlc/weights_$NEW_VERSION
 TEST_DIR=$SDSC_PATH/integration/dlc/test_data 
 
 cp -r $WEIGHTS_DIR .
-cp -r $TEST_DIR/dlc_test_data_$VERSION .
+cp -r $TEST_DIR/dlc_test_data_$NEW_VERSION .
 cp -r $TEST_DIR/me_test_data .
-docker build -t internationalbrainlab/dlc:$VERSION -f Dockerfile.$VERSION --no-cache .
+docker build -t internationalbrainlab/dlc:$NEW_VERSION -f Dockerfile.$NEW_VERSION --no-cache .
 ```
 
 Eventually push the image in dockerhub
 
 ```shell
-VERSION=v1.1
 docker login
-docker push internationalbrainlab/dlc:$VERSION
+docker push internationalbrainlab/dlc:$NEW_VERSION
 ```
 
 ### Build base image instructions
