@@ -192,6 +192,9 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
             return -1
         else:
+            # set a flag in local session folder to later resume if interrupted
+            session_path.mkdir(parents=True, exist_ok=True)
+            session_path.joinpath('dlc_started').touch(exist_ok=True)
             # create the task instance and run it, update task
             task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine, **kwargs)
             status = task.run(cams=cams, version=version, frames=frames)
@@ -234,7 +237,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
         patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(), 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
         status = -1
-
+    # Remove in progress flag
+    session_path.joinpath('dlc_started').unlink()
     return status
 
 
@@ -254,7 +258,7 @@ def run_queue(machine=None, n_sessions=1000, delta_query=600, **kwargs):
     status_dict = {}
 
     # First check if any interrupted local sessions are present
-    local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/raw_video_data/')
+    local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/dlc_started')
     if len(local_tmp) > 0:
         local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))[:n_sessions]
         for eid in local_sessions:
