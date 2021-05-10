@@ -65,25 +65,26 @@ class TaskDLC(tasks.Task):
     def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None, **kwargs):
         session_id = self.one.eid_from_path(self.session_path)
         overwrite = kwargs.pop('overwrite', None)
-        # Create dictionary for logging time spent on each task
         timer = OrderedDict()
+        dlc_results = me_results = me_rois = []
+
         # Loop through cams
-        dlc_results, me_results, me_rois = [], [], []
         for cam in cams:
             timer[f'{cam}'] = OrderedDict()
             # Check if dlc and me results are available locally or in database, if latter download
             if overwrite:
-                # If it's a rerun, pretend the data doesn't exist yet
-                dlc_result = None
-                # me_result, me_roi = None, None
+                dlc_result = me_result = me_roi = None
             else:
                 dlc_result = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
-                # me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
-                # me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
+                # If dlc needs to be rerun, me should be rerun as well, regardless if it exists
+                if dlc_result is None:
+                    me_result = me_roi = None
+                else:
+                    me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
+                    me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
 
-            # If dlc_result doesn't exist or should be overwritten, run DLC
-            if dlc_result is None:
-                # Download the camera data if not available locally
+            # If either dlc or me needs to be rerun, check if raw video exists, else download
+            if dlc_result is None or me_result is None or me_roi is None:
                 time_on = time.time()
                 _logger.info(f'Downloading {cam}Camera.')
                 video_intact, clobber_vid, attempt = False, False, 0
@@ -101,11 +102,11 @@ class TaskDLC(tasks.Task):
                     continue
                 time_off = time.time()
                 timer[f'{cam}'][f'Download video'] = time_off - time_on
+
+            # If dlc_result doesn't exist or should be overwritten, run DLC
+            if dlc_result is None:
                 # Download weights if not exist locally
-                time_on = time.time()
                 path_dlc = download_weights(version=version)
-                time_off = time.time()
-                timer[f'{cam}']['Download DLC weights'] = time_off - time_on
                 _logger.info(f'Running DLC on {cam}Camera.')
                 try:
                     dlc_result, timer[f'{cam}'] = dlc(file_mp4, path_dlc=path_dlc, force=overwrite,
@@ -115,24 +116,23 @@ class TaskDLC(tasks.Task):
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
                     self.status = -1
                     continue
-            dlc_results.append(dlc_result)
 
-            # Currently defaulting to recalculating ME even if exists locally, as last DLC step
-            # also defaults to rerun
-            # if me_result is None or me_roi is None:
-            _logger.info(f'Computing motion energy for {cam}Camera')
-            try:
-                time_on = time.time()
-                me_result, me_roi = motion_energy(self.session_path, dlc_result, frames=frames,
-                                                  one=self.one)
-                time_off = time.time()
-                timer[f'{cam}']['Compute motion energy'] = time_off - time_on
-                _logger.info(me_result)
-                _logger.info(me_roi)
-            except BaseException:
-                _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
-                self.status = -1
-                continue
+            # If me outputs don't exist or should be overwritten, run me
+            if me_result is None or me_roi is None:
+                _logger.info(f'Computing motion energy for {cam}Camera')
+                try:
+                    time_on = time.time()
+                    me_result, me_roi = motion_energy(file_mp4, dlc_result, frames=frames)
+                    time_off = time.time()
+                    timer[f'{cam}']['Compute motion energy'] = time_off - time_on
+                    _logger.info(me_result)
+                    _logger.info(me_roi)
+                except BaseException:
+                    _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
+                    self.status = -1
+                    continue
+
+            dlc_results.append(dlc_result)
             me_results.append(me_result)
             me_rois.append(me_roi)
         _logger.info(_format_timer(timer))

@@ -14,14 +14,18 @@ def test_motion_energy():
         dlc_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
 
         # Test with all frames
-        me_file, roi_file = motion_energy(test_data, dlc_pqt, frames=None)
+        me_file, roi_file = motion_energy(test_data.joinpath('raw_video_data',
+                                                             f'_iblrig_{cam}Camera.raw.mp4'),
+                                          dlc_pqt, frames=None)
         test_me = np.load(me_file)
         test_roi = np.load(roi_file)
         assert all(test_me == ctrl_me)
         assert all(test_roi == ctrl_roi)
 
         # Test with frame chunking
-        me_file, roi_file = motion_energy(test_data, dlc_pqt, frames=70)
+        me_file, roi_file = motion_energy(test_data.joinpath('raw_video_data',
+                                                             f'_iblrig_{cam}Camera.raw.mp4'),
+                                          dlc_pqt, frames=70)
         test_me = np.load(me_file)
         test_roi = np.load(roi_file)
         assert all(test_me == ctrl_me)
