@@ -4,6 +4,7 @@ import os
 import traceback
 import time
 import cv2
+import warnings
 from glob import glob
 from datetime import datetime
 from collections import OrderedDict
@@ -221,7 +222,9 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                     # Only run if dlc actually exists
                     if alf_path.joinpath(f'_ibl_{cam}Camera.dlc.pqt').exists():
                         qc = DlcQC(session_id, cam, one=one, download_data=False)
-                        qc.run(update=True)
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", category=RuntimeWarning)
+                            qc.run(update=True)
             except AssertionError:
                 # If the camera.times don't exist we cannot run QC, but the DLC task shouldn't fail
                 # Make sure to not overwrite the task log if that has already been updated
