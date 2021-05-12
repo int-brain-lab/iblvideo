@@ -8,43 +8,46 @@ bodyCamera: cut ROI such that mouse body but not wheel motion is in ROI
 left(right)Camera: cut whisker pad region
 """
 
-import os
 import time
 import numpy as np
 import pandas as pd
 import cv2
+import logging
 
 from oneibl.one import ONE
-from ibllib.io.video import get_video_frames_preload, url_from_eid, label_from_path
+from ibllib.io.video import get_video_frames_preload, label_from_path
 from ibllib.io.extractors.camera import get_video_length
 from oneibl.stream import VideoStreamer
+
+_log = logging.getLogger('ibllib')
 
 
 def grayscale(x):
     return cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
 
 
-def get_dlc_midpoints(dlc_pqt):
+def get_dlc_midpoints(dlc_pqt, targets):
     # Load dataframe
     dlc_df = pd.read_parquet(dlc_pqt)
-    # Set values to nan if likelihood is too low and calcualte midpoints
-    targets = np.unique(['_'.join(col.split('_')[:-1]) for col in dlc_df.columns])
     mloc = {}
     for t in targets:
+        # Set values to nan if likelihood is too low and calcualte midpoints
         idx = dlc_df.loc[dlc_df[f'{t}_likelihood'] < 0.9].index
         dlc_df.loc[idx, [f'{t}_x', f'{t}_y']] = np.nan
-        mloc[t] = [int(np.nanmean(dlc_df[f'{t}_x'])), int(np.nanmean(dlc_df[f'{t}_y']))]
+        if all(np.isnan(dlc_df[f'{t}_x'])) or all(np.isnan(dlc_df[f'{t}_y'])):
+            raise ValueError(f'Failed to calculate midpoint, {t} all NaN in {dlc_pqt}')
+        else:
+            mloc[t] = [int(np.nanmean(dlc_df[f'{t}_x'])), int(np.nanmean(dlc_df[f'{t}_y']))]
     return mloc
 
 
-def motion_energy(session_path, dlc_pqt, frames=10000, one=None):
+def motion_energy(file_mp4, dlc_pqt, frames=10000):
     """
     Compute motion energy on cropped frames of a single video
 
-    :param session_path: Path to session.
-    :param dlc_pqt: Path to dlc result in pqt file format. If None all frames are loaded at once.
-    :param frames: Number of frames to load into memory at once.
-    :param one: ONE instance
+    :param file_mp4: Video file to run motion energy for
+    :param dlc_pqt: Path to dlc result in pqt file format.
+    :param frames: Number of frames to load into memory at once. If None all frames are loaded.
     :return me_file: Path to numpy file contaiing motion energy.
     :return me_roi: Path to numpy file containing ROI coordinates.
 
@@ -56,24 +59,17 @@ def motion_energy(session_path, dlc_pqt, frames=10000, one=None):
     None    :  25 GB (body), 17.5 GB (left), 12.5 GB (right)
     """
 
-    one = one or ONE()
     start_T = time.time()
-
-    # Get label from dlc_df
     label = label_from_path(dlc_pqt)
-    video_path = session_path.joinpath('raw_video_data', f'_iblrig_{label}Camera.raw.mp4')
-    # Check if video available locally, else create url
-    if not os.path.isfile(video_path):
-        eid = one.eid_from_path(session_path)
-        video_path = url_from_eid(eid, label=label, one=one)
 
     # Crop ROI
-    mloc = get_dlc_midpoints(dlc_pqt)
     if label == 'body':
+        mloc = get_dlc_midpoints(dlc_pqt, targets=['tail_start'])
         anchor = np.array(mloc['tail_start'])
         w, h = int(anchor[0] * 3 / 5), 210
         x, y = int(anchor[0] - anchor[0] * 3 / 5), int(anchor[1] - 120)
     else:
+        mloc = get_dlc_midpoints(dlc_pqt, targets=['nose_tip', 'pupil_top_r'])
         anchor = np.mean([mloc['nose_tip'], mloc['pupil_top_r']], axis=0)
         dist = np.sqrt(np.sum((np.array(mloc['nose_tip']) - np.array(mloc['pupil_top_r']))**2,
                        axis=0))
@@ -84,15 +80,15 @@ def motion_energy(session_path, dlc_pqt, frames=10000, one=None):
     mask = np.s_[y:y + h, x:x + w]
     # save ROI coordinates
     roi = np.asarray([w, h, x, y])
-    alf_path = session_path.joinpath('alf')
+    alf_path = file_mp4.parent.parent.joinpath('alf')
+    alf_path.mkdir(exist_ok=True)
     roi_file = alf_path.joinpath(f'{label}ROIMotionEnergy.position.npy')
     np.save(roi_file, roi)
 
-    frame_count = get_video_length(video_path)
+    frame_count = get_video_length(file_mp4)
     me = np.zeros(frame_count,)
 
-    is_url = isinstance(video_path, str) and video_path.startswith('http')
-    cap = VideoStreamer(video_path).cap if is_url else cv2.VideoCapture(str(video_path))
+    cap = cv2.VideoCapture(str(file_mp4))
     if frames:
         n, keep_reading = 0, True
         while keep_reading:
