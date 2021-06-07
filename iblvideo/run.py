@@ -63,9 +63,9 @@ class TaskDLC(tasks.Task):
         cap.release()
         return intact
 
-    def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None, **kwargs):
+    def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None,
+             overwrite=False):
         session_id = self.one.eid_from_path(self.session_path)
-        overwrite = kwargs.pop('overwrite', None)
         timer = OrderedDict()
         dlc_results = me_results = me_rois = []
 
@@ -73,7 +73,7 @@ class TaskDLC(tasks.Task):
         for cam in cams:
             timer[f'{cam}'] = OrderedDict()
             # Check if dlc and me results are available locally or in database, if latter download
-            if overwrite:
+            if overwrite is True:
                 dlc_result = me_result = me_roi = None
             else:
                 dlc_result = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
@@ -141,7 +141,7 @@ class TaskDLC(tasks.Task):
 
 
 def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=None,
-                version=__version__, remove_videos=True, frames=10000, **kwargs):
+                version=__version__, remove_videos=True, frames=10000, overwrite=False, **kwargs):
     """
     Run DLC on a single session in the database.
 
@@ -154,7 +154,9 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     :param remove_videos: Whether to remove the local raw_video_data after DLC (default is True)
     :param frames: Number of video frames loaded into memory at once while computing ME. If None,
                    all frames of a video are loaded at once. (default is 50000, see below)
+    :param overwrite: If True, overwrite existing outputs of previous runs (default is False)
     :param kwargs: Additional keyword arguments to be passed to TaskDLC
+
     :return status: final status of the task
 
     The frames parameter determines how many cropped frames per camera are loaded into memory at
@@ -198,7 +200,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             session_path.joinpath('dlc_started').touch(exist_ok=True)
             # create the task instance and run it, update task
             task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine, **kwargs)
-            status = task.run(cams=cams, version=version, frames=frames)
+            status = task.run(cams=cams, version=version, frames=frames, overwrite=overwrite)
             patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
                           'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
             one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
