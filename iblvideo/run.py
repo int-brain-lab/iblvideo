@@ -105,6 +105,7 @@ class TaskDLC(tasks.Task):
                 timer[f'{cam}'][f'Download video'] = time_off - time_on
 
             # If dlc_result doesn't exist or should be overwritten, run DLC
+            dlc_computed = False
             if dlc_result is None:
                 # Download weights if not exist locally
                 path_dlc = download_weights(version=version)
@@ -113,12 +114,14 @@ class TaskDLC(tasks.Task):
                     dlc_result, timer[f'{cam}'] = dlc(file_mp4, path_dlc=path_dlc, force=overwrite,
                                                       dlc_timer=timer[f'{cam}'])
                     _logger.info(dlc_result)
+                    dlc_computed = True
                 except BaseException:
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
                     self.status = -1
                     continue
 
             # If me outputs don't exist or should be overwritten, run me
+            me_computed = False
             if me_result is None or me_roi is None:
                 _logger.info(f'Computing motion energy for {cam}Camera')
                 try:
@@ -128,14 +131,17 @@ class TaskDLC(tasks.Task):
                     timer[f'{cam}']['Compute motion energy'] = time_off - time_on
                     _logger.info(me_result)
                     _logger.info(me_roi)
+                    me_computed = True
                 except BaseException:
                     _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
                     self.status = -1
                     continue
 
-            dlc_results.append(dlc_result)
-            me_results.append(me_result)
-            me_rois.append(me_roi)
+            if dlc_computed is True:
+                dlc_results.append(dlc_result)
+            if me_computed is True:
+                me_results.append(me_result)
+                me_rois.append(me_roi)
         _logger.info(_format_timer(timer))
         return dlc_results, me_results, me_rois
 
