@@ -76,8 +76,14 @@ def motion_energy(file_mp4, dlc_pqt, frames=10000):
         w, h = int(dist / 2), int(dist / 3)
         x, y = int(anchor[0] - dist / 4), int(anchor[1])
 
+    # Check if the mask has negative values (sign that the midpoint location is off)
+    if any(i < 0 for i in [x, y, w, h]) is True:
+        raise ValueError(f"ROI for motion energy on {label}Camera could not be computed. "
+                         f"Check for issues with the raw video or dlc output.")
+
     # Note that x and y are flipped when loading with cv2, therefore:
     mask = np.s_[y:y + h, x:x + w]
+
     # save ROI coordinates
     roi = np.asarray([w, h, x, y])
     alf_path = file_mp4.parent.parent.joinpath('alf')
