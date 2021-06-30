@@ -3,6 +3,6 @@ __version__ = '1.2.0'  # This is the only place where the version is hard coded,
 
 import deeplabcut
 
-from iblvideo.run import run_session, run_queue
+from iblvideo.run import run_session, run_queue, rerun_queue
 from iblvideo.choiceworld import dlc
 from iblvideo.weights import download_weights
