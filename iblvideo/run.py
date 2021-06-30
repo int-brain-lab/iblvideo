@@ -5,6 +5,7 @@ import traceback
 import time
 import cv2
 import warnings
+from packaging.version import parse
 from glob import glob
 from datetime import datetime
 from collections import OrderedDict
@@ -23,7 +24,6 @@ from ibllib.io.video import assert_valid_label
 from ibllib.exceptions import ALFObjectNotFound
 
 _logger = logging.getLogger('ibllib')
-
 
 # re-using the Task class allows to not re-write all the logging, error management
 # and automatic settings of task statuses in the database
@@ -257,10 +257,10 @@ def run_queue(machine=None, n_sessions=1000, delta_query=600, **kwargs):
     """
     Run the entire queue, or n_sessions, of DLC tasks on Alyx.
 
-    :param machine: Tag for the machine this job ran on (string)
-    :param n_sessions: int, number of sessions to run from queue (default is run whole queue)
-    :param delta_query: Time between querying the database for Empty tasks, in sec
-    :param kwargs: Keyword arguments to be passed to run_session.
+    :param machine: str, tag for the machine this job ran on
+    :param n_sessions: int, number of sessions to run from queue
+    :param delta_query: int, time between querying the database in sec
+    :param kwargs: Keyword arguments to be passed to run_session
     """
 
     one = ONE()
@@ -295,6 +295,49 @@ def run_queue(machine=None, n_sessions=1000, delta_query=600, **kwargs):
         # Run next session in the list, capture status in dict and move on to next session
         eid = sessions[0]
         status_dict[eid] = run_session(sessions.pop(0), machine=machine, one=one, **kwargs)
+        count += 1
+
+    return status_dict
+
+
+def rerun_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
+                machine=None, n_sessions=1000, delta_query=600, **kwargs):
+    """
+    Rerun (overwrite) all tasks that have a version below min_version and a status in statuses
+
+    :param min_version: str, version below which task should be rerun
+    :param statuses: tuple, task statuses which should be rerun
+    :param machine: str, tag for the machine this job ran on
+    :param n_sessions: int, number of sessions to run from queue
+    :param delta_query: int, time between querying the database in sec
+    :param kwargs: Keyword arguments to be passed to run_session
+    """
+
+    one = ONE()
+    # Loop until n_sessions is reached or something breaks
+    machine = machine or one._par.ALYX_LOGIN
+    status_dict = {}
+    count = 0
+    last_query = datetime.now()
+    while count < n_sessions:
+        # Query EphysDLC tasks, find those with version lower than min_version
+        # redo this only every delta_query seconds
+        delta = (datetime.now() - last_query).total_seconds()
+        if (delta > delta_query) or (count == 0):
+            last_query = datetime.now()
+            all_tasks = one.alyx.rest('tasks', 'list', name='EphysDLC')
+            task_queue = [t for t in all_tasks if
+                          (t['version'] is None or parse(t['version']) < parse(min_version))
+                          and t['status'] in statuses]
+            sessions = [t['session'] for t in task_queue]
+        # Return if no more sessions to run
+        if len(sessions) == 0:
+            print("No sessions to run")
+            return
+        # Run next session in the list, capture status in dict and move on to next session
+        eid = sessions[0]
+        status_dict[eid] = run_session(sessions.pop(0), machine=machine, overwrite=True,
+                                       one=one, **kwargs)
         count += 1
 
     return status_dict
