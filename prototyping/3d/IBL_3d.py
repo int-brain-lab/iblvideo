@@ -17,7 +17,7 @@ from anipose_BA import CameraGroup, Camera
 from scipy.spatial.transform import Rotation as R
 
 import alf.io
-from oneibl.one import ONE
+from one.api import ONE
 from pathlib import Path
 
 import mpl_toolkits.mplot3d.axes3d as p3
@@ -81,7 +81,8 @@ def GetXYs(eid, video_type, trial_range):
     assert all([i in a for i in dataset_types]
                ), 'For this eid, not all data available'
 
-    D = one.load(eid, dataset_types=dataset_types, dclass_output=True)
+    datasets = one.datasets_from_type(eid, dataset_types)
+    D = one.load_datasets(eid, datasets=datasets)
     alf_path = Path(D.local_path[0]).parent.parent / 'alf'
 
     video_data = alf_path.parent / 'raw_video_data'     

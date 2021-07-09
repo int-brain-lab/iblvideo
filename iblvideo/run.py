@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from oneibl.one import ONE
+from one.api import ONE
 from oneibl.patcher import FTPPatcher
 from iblvideo.choiceworld import dlc
 from iblvideo.motion_energy import motion_energy
@@ -189,7 +189,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     try:
         # Create ONE instance if none is given
         one = one or ONE()
-        session_path = one.path_from_eid(session_id)
+        session_path = one.eid2path(session_id)
         tdict = one.alyx.rest('tasks', 'list',
                               django=f"name__icontains,DLC,session__id,{session_id}")[0]
     except IndexError:
@@ -245,8 +245,9 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             # Download camera times and then force qc to use local data as dlc might not have
             # been updated on FlatIron at this stage
             try:
-                one.load(session_id, dataset_types=['camera.times'], download_only=True)
-                alf_path = one.path_from_eid(session_id).joinpath('alf')
+                datasets = one.datasets_from_type(session_id, 'camera.times')
+                one.load_datasets(session_id, datasets=datasets, download_only=True)
+                alf_path = one.eid2path(session_id).joinpath('alf')
                 for cam in cams:
                     # Only run if dlc actually exists
                     if alf_path.joinpath(f'_ibl_{cam}Camera.dlc.pqt').exists():
