@@ -37,7 +37,7 @@ def get_dlc_XYs(eid, video_type):
         print('not all data available')    
         return
 
-    datasets = one.datasets_from_type(eid, dataset_types)
+    datasets = one.type2datasets(eid, dataset_types)
     one.load_datasets(eid, datasets=datasets)
     local_path = one.path_from_eid(eid)  
     alf_path = local_path / 'alf'   
@@ -256,7 +256,7 @@ def load_compute_ROI_ME(eid):
         return    
 
     # download all three raw videos
-    datasets = one.datasets_from_type(eid, dataset_types)
+    datasets = one.type2datasets(eid, dataset_types)
     one.load_datasets(eid, datasets=datasets)
     video_data = one.path_from_eid(eid) / 'raw_video_data'
     

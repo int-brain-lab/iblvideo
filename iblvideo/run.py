@@ -245,7 +245,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             # Download camera times and then force qc to use local data as dlc might not have
             # been updated on FlatIron at this stage
             try:
-                datasets = one.datasets_from_type(session_id, 'camera.times')
+                datasets = one.type2datasets(session_id, 'camera.times')
                 one.load_datasets(session_id, datasets=datasets, download_only=True)
                 alf_path = one.eid2path(session_id).joinpath('alf')
                 for cam in cams:

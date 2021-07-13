@@ -81,7 +81,7 @@ def GetXYs(eid, video_type, trial_range):
     assert all([i in a for i in dataset_types]
                ), 'For this eid, not all data available'
 
-    datasets = one.datasets_from_type(eid, dataset_types)
+    datasets = one.type2datasets(eid, dataset_types)
     D = one.load_datasets(eid, datasets=datasets)
     alf_path = Path(D.local_path[0]).parent.parent / 'alf'
 
