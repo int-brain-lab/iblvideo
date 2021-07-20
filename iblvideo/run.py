@@ -13,6 +13,7 @@ from collections import OrderedDict
 import numpy as np
 
 from one.api import ONE
+from one.alf.exceptions import ALFObjectNotFound
 from oneibl.patcher import FTPPatcher
 from iblvideo.choiceworld import dlc
 from iblvideo.motion_energy import motion_energy
@@ -22,9 +23,9 @@ from iblvideo import __version__
 from ibllib.pipes import tasks
 from ibllib.qc.dlc import DlcQC
 from ibllib.io.video import assert_valid_label
-from ibllib.exceptions import ALFObjectNotFound
 
 _logger = logging.getLogger('ibllib')
+
 
 # re-using the Task class allows to not re-write all the logging, error management
 # and automatic settings of task statuses in the database
