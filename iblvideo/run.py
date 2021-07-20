@@ -101,7 +101,7 @@ class TaskDLC(tasks.Task):
                 while video_intact is False and attempt < 3:
                     dset = self.one.alyx.rest('datasets', 'list', session=session_id,
                                               name=f'_iblrig_{cam}Camera.raw.mp4', no_cache=True)
-                    file_mp4 = self.one.download_dataset(dset[0], clobber=clobber_vid)
+                    file_mp4 = self.one._download_dataset(dset[0], clobber=clobber_vid)
                     # Check if video is downloaded completely, otherwise retry twice
                     video_intact = self._video_intact(file_mp4)
                     if video_intact is False:
