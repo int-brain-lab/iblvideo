@@ -100,7 +100,7 @@ class TaskDLC(tasks.Task):
                 video_intact, clobber_vid, attempt = False, False, 0
                 while video_intact is False and attempt < 3:
                     dset = self.one.alyx.rest('datasets', 'list', session=session_id,
-                                              name=f'_iblrig_{cam}Camera.raw.mp4')
+                                              name=f'_iblrig_{cam}Camera.raw.mp4', no_cache=True)
                     file_mp4 = self.one.download_dataset(dset[0], clobber=clobber_vid)
                     # Check if video is downloaded completely, otherwise retry twice
                     video_intact = self._video_intact(file_mp4)
@@ -192,7 +192,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
         one = one or ONE()
         session_path = one.eid2path(session_id)
         tdict = one.alyx.rest('tasks', 'list',
-                              django=f"name__icontains,DLC,session__id,{session_id}")[0]
+                              django=f"name__icontains,DLC,session__id,{session_id}",
+                              no_cache=True)[0]
     except IndexError:
         print(f"No DLC task found for session {session_id}")
         return -1
@@ -204,7 +205,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
         vids = [dset['name'] for dset in one.alyx.rest('datasets', 'list',
                                                        django=(f'session__id,{session_id},'
                                                                'data_format__name,mp4,'
-                                                               f'name__icontains,camera')
+                                                               f'name__icontains,camera'),
+                                                       no_cache=True
                                                        )]
         no_vid = [cam for cam in cams if f'_iblrig_{cam}Camera.raw.mp4' not in vids]
         if len(no_vid) > 0:
@@ -212,7 +214,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             log_str = '\n'.join([f"No raw video file found for {no_cam}Camera." for
                                  no_cam in no_vid])
             patch_data = {'log': log_str, 'status': 'Errored'}
-            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
+            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data,
+                          no_cache=True)
             return -1
         else:
             # set a flag in local session folder to later resume if interrupted
@@ -223,7 +226,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             status = task.run(cams=cams, version=version, frames=frames, overwrite=overwrite)
             patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
                           'status': 'Errored' if status == -1 else 'Complete'}
-            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
+            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data,
+                          no_cache=True)
             # register the data using the FTP patcher
             if task.outputs:
                 # it is safer to instantiate the FTP right before transfer to prevent time-out
@@ -260,16 +264,19 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                 # If the camera.times don't exist we cannot run QC, but the DLC task shouldn't fail
                 # Make sure to not overwrite the task log if that has already been updated
                 tdict = one.alyx.rest('tasks', 'list',
-                                      django=f"name__icontains,DLC,session__id,{session_id}")[0]
+                                      django=f"name__icontains,DLC,session__id,{session_id}",
+                                      no_cache=True)[0]
                 patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc()}
-                one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
+                one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data,
+                              no_cache=True)
 
     except BaseException:
         # Make sure to not overwrite the task log if that has already been updated
         tdict = one.alyx.rest('tasks', 'list',
-                              django=f"name__icontains,DLC,session__id,{session_id}")[0]
+                              django=f"name__icontains,DLC,session__id,{session_id}",
+                              no_cache=True)[0]
         patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(), 'status': 'Errored'}
-        one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
+        one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data, no_cache=True)
         return -1
     # Remove in progress flag
     session_path.joinpath('dlc_started').unlink()
@@ -317,7 +324,7 @@ def run_queue(machine=None, target_versions=(__version__),
         delta = (datetime.now() - last_query).total_seconds()
         if (delta > delta_query) or (count == 0):
             last_query = datetime.now()
-            all_tasks = one.alyx.rest('tasks', 'list', name='EphysDLC')
+            all_tasks = one.alyx.rest('tasks', 'list', name='EphysDLC', no_cache=True)
             task_queue = [t for t in all_tasks if t['status'] in statuses and
                           (t['version'] is None or t['version'] not in target_versions)]
             task_queue = sorted(task_queue, key=lambda k: k['priority'], reverse=True)
