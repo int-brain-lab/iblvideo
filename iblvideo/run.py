@@ -45,16 +45,19 @@ class TaskDLC(tasks.Task):
     def _result_exists(self, session_id, fname):
         """ Checks if dlc result is available locally or in database. """
         result = None
+        mode = None
         if os.path.exists(self.session_path.joinpath('alf', fname)):
             result = self.session_path.joinpath('alf', fname)
             _logger.info(f'Using local version of {fname}')
+            mode = 'local'
         else:
             try:
                 result = self.one.load_dataset(session_id, dataset=fname, download_only=True)
                 _logger.info(f'Downloaded {fname} from database')
+                mode = 'download'
             except ALFObjectNotFound:
                 pass
-        return result
+        return result, mode
 
     @staticmethod
     def _video_intact(file_mp4):
@@ -75,15 +78,17 @@ class TaskDLC(tasks.Task):
             timer[f'{cam}'] = OrderedDict()
             # Check if dlc and me results are available locally or in database, if latter download
             if overwrite is True:
-                dlc_result = me_result = me_roi = None
+                dlc_result = me_result = me_roi = dlc_mode = me_mode = None
             else:
-                dlc_result = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
+                dlc_result, dlc_mode = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
                 # If dlc needs to be rerun, me should be rerun as well, regardless if it exists
                 if dlc_result is None:
-                    me_result = me_roi = None
+                    me_result = me_roi = me_mode = None
                 else:
-                    me_result = self._result_exists(session_id, f'{cam}Camera.ROIMotionEnergy.npy')
-                    me_roi = self._result_exists(session_id, f'{cam}ROIMotionEnergy.position.npy')
+                    me_result, me_mode = self._result_exists(session_id,
+                                                             f'{cam}Camera.ROIMotionEnergy.npy')
+                    me_roi, _ = self._result_exists(session_id,
+                                                    f'{cam}ROIMotionEnergy.position.npy')
 
             # If either dlc or me needs to be rerun, check if raw video exists, else download
             if dlc_result is None or me_result is None or me_roi is None:
@@ -141,9 +146,9 @@ class TaskDLC(tasks.Task):
                     self.status = -1
                     continue
 
-            if dlc_computed is True:
+            if dlc_computed is True or dlc_mode == 'local':
                 dlc_results.append(dlc_result)
-            if me_computed is True:
+            if me_computed is True or me_mode == 'local':
                 me_results.append(me_result)
                 me_rois.append(me_roi)
         _logger.info(_format_timer(timer))
