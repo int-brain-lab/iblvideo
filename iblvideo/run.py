@@ -71,7 +71,7 @@ class TaskDLC(tasks.Task):
 
     def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None,
              overwrite=False):
-        session_id = self.one.eid_from_path(self.session_path)
+        session_id = self.one.path2eid(self.session_path)
         timer = OrderedDict()
         dlc_results, me_results, me_rois = [], [], []
 
@@ -303,7 +303,7 @@ def run_queue(machine=None, target_versions=(__version__),
 
     one = ONE()
     # Loop until n_sessions is reached or something breaks
-    machine = machine or one._par.ALYX_LOGIN
+    machine = machine or one.alyx._par.ALYX_LOGIN
     status_dict = {}
 
     # Check if any interrupted local sessions are present
