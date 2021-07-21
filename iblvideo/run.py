@@ -5,10 +5,14 @@ import traceback
 import time
 import cv2
 import warnings
+import shutil
+import requests
+
 from packaging.version import parse
 from glob import glob
 from datetime import datetime
 from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
 
@@ -303,7 +307,7 @@ def run_queue(machine=None, target_versions=(__version__),
 
     one = ONE()
     # Loop until n_sessions is reached or something breaks
-    machine = machine or one.alyx._par.ALYX_LOGIN
+    machine = machine or one.alyx.user
     status_dict = {}
 
     # Check if any interrupted local sessions are present
