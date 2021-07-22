@@ -214,9 +214,13 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             if task.outputs:
                 # it is safer to instantiate the FTP right before transfer to prevent time-out
                 ftp_patcher = FTPPatcher(one=one)
-                ftp_patcher.create_dataset(path=task.outputs[0])
-                ftp_patcher.create_dataset(path=task.outputs[1])
-                ftp_patcher.create_dataset(path=task.outputs[2])
+                # Make a flat list of outputs
+                outputs = [element for output_list in task.outputs for element in output_list]
+                if len(outputs) > 0:
+                    for output in outputs:
+                        ftp_patcher.create_dataset(path=output)
+                    else:
+                        _logger.warning("No new outputs computed.")
             if status == 0 and remove_videos is True:
                 shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
