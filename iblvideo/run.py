@@ -247,7 +247,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                               django=f"name__icontains,DLC,session__id,{session_id}")[0]
         patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(), 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
-        status = -1
+        return -1
     # Remove in progress flag
     session_path.joinpath('dlc_started').unlink()
     return status
