@@ -18,7 +18,7 @@ import numpy as np
 
 from one.api import ONE
 from one.alf.exceptions import ALFObjectNotFound
-from oneibl.patcher import FTPPatcher
+from ibllib.oneibl.patcher import FTPPatcher
 from iblvideo.choiceworld import dlc
 from iblvideo.motion_energy import motion_energy
 from iblvideo.weights import download_weights
