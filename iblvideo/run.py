@@ -208,7 +208,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
             task = TaskDLC(session_path, one=one, taskid=tdict['id'], machine=machine, **kwargs)
             status = task.run(cams=cams, version=version, frames=frames, overwrite=overwrite)
             patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
-                          'version': version, 'status': 'Errored' if status == -1 else 'Complete'}
+                          'status': 'Errored' if status == -1 else 'Complete'}
             one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data)
             # register the data using the FTP patcher
             if task.outputs:
@@ -221,6 +221,10 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                         ftp_patcher.create_dataset(path=output)
                     else:
                         _logger.warning("No new outputs computed.")
+                # Update the version only now and only if new outputs are uploaded
+                if status == 0 and len(outputs) > 0:
+                    one.alyx.rest('tasks', 'partial_update', id=tdict['id'],
+                                  data={'version': version})
             if status == 0 and remove_videos is True:
                 shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
@@ -257,55 +261,9 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     return status
 
 
-def run_queue(machine=None, n_sessions=1000, delta_query=600, **kwargs):
-    """
-    Run the entire queue, or n_sessions, of DLC tasks on Alyx.
-
-    :param machine: str, tag for the machine this job ran on
-    :param n_sessions: int, number of sessions to run from queue
-    :param delta_query: int, time between querying the database in sec
-    :param kwargs: Keyword arguments to be passed to run_session
-    """
-
-    one = ONE()
-    # Loop until n_sessions is reached or something breaks
-    machine = machine or one._par.ALYX_LOGIN
-    status_dict = {}
-
-    # First check if any interrupted local sessions are present
-    local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/dlc_started')
-    if len(local_tmp) > 0:
-        local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))[:n_sessions]
-        for eid in local_sessions:
-            print(f'Restarting local session {eid}')
-            status_dict[eid] = run_session(eid, machine=machine, one=one, **kwargs)
-        # remove the local sessions from max sessions to run
-        n_sessions -= len(local_sessions)
-
-    # Then start querying the database
-    count = 0
-    last_query = datetime.now()
-    while count < n_sessions:
-        # Query EphysDLC tasks that have not been run, redo this only every delta_query seconds
-        delta = (datetime.now() - last_query).total_seconds()
-        if (delta > delta_query) or (count == 0):
-            last_query = datetime.now()
-            task_queue = one.alyx.rest('tasks', 'list', status='Empty', name='EphysDLC')
-            sessions = [t['session'] for t in task_queue]
-        # Return if no more sessions to run
-        if len(sessions) == 0:
-            print("No sessions to run")
-            return
-        # Run next session in the list, capture status in dict and move on to next session
-        eid = sessions[0]
-        status_dict[eid] = run_session(sessions.pop(0), machine=machine, one=one, **kwargs)
-        count += 1
-
-    return status_dict
-
-
-def rerun_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
-                machine=None, n_sessions=1000, delta_query=600, **kwargs):
+def rerun_queue(min_version=__version__, machine=None, restart_local=True,
+                statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
+                overwrite=True, n_sessions=1000, delta_query=600, **kwargs):
     """
     Rerun (overwrite) all tasks that have a version below min_version and a status in statuses
 
@@ -321,7 +279,18 @@ def rerun_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored
     # Loop until n_sessions is reached or something breaks
     machine = machine or one._par.ALYX_LOGIN
     status_dict = {}
+
+    # Check if any interrupted local sessions are present
     count = 0
+    if restart_local is True:
+        local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/dlc_started')
+        if len(local_tmp) > 0:
+            local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))
+            for eid in local_sessions:
+                print(f'Restarting local session {eid}')
+                status_dict[eid] = run_session(eid, machine=machine, one=one, **kwargs)
+                count += 1
+
     last_query = datetime.now()
     while count < n_sessions:
         # Query EphysDLC tasks, find those with version lower than min_version
@@ -333,14 +302,18 @@ def rerun_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored
             task_queue = [t for t in all_tasks if
                           (t['version'] is None or parse(t['version']) < parse(min_version))
                           and t['status'] in statuses]
-            sessions = [t['session'] for t in task_queue]
+            if len(task_queue) == 0:
+                print("No sessions to run")
+                return
+            else:
+                sessions = [t['session'] for t in task_queue]
         # Return if no more sessions to run
         if len(sessions) == 0:
             print("No sessions to run")
             return
         # Run next session in the list, capture status in dict and move on to next session
         eid = sessions[0]
-        status_dict[eid] = run_session(sessions.pop(0), machine=machine, overwrite=True,
+        status_dict[eid] = run_session(sessions.pop(0), machine=machine, overwrite=overwrite,
                                        one=one, **kwargs)
         count += 1
 
