@@ -23,13 +23,6 @@ services:
     volumes:
       - ~:/root
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
-  rerun-queue:
-    image: internationalbrainlab/dlc:v1.2
-    command: python3 -c "from iblvideo import rerun_queue; rerun_queue()"
-    runtime: nvidia
-    volumes:
-      - ~:/root
-      - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
   test:
     image: internationalbrainlab/dlc:v1.2
     command: bash -c "nvcc --version; pytest -s /iblvideo/iblvideo/tests"

@@ -151,7 +151,7 @@ class TaskDLC(tasks.Task):
 
 
 def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=None,
-                version=__version__, remove_videos=True, frames=10000, overwrite=False, **kwargs):
+                version=__version__, remove_videos=True, frames=10000, overwrite=True, **kwargs):
     """
     Run DLC on a single session in the database.
 
@@ -160,11 +160,11 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     :param cams: Tuple of labels of videos to run dlc and motion energy on.
                  Valid labels are 'left', 'body' and 'right'.
     :param one: ONE instance to use for query (optional)
-    :param version: Version of iblvideo / DLC weights to use (default is current version)
+    :param version: Version of iblvideo and DLC weights to use (default is current version)
     :param remove_videos: Whether to remove the local raw_video_data after DLC (default is True)
     :param frames: Number of video frames loaded into memory at once while computing ME. If None,
                    all frames of a video are loaded at once. (default is 50000, see below)
-    :param overwrite: If True, overwrite existing outputs of previous runs (default is False)
+    :param overwrite: whether to overwrite existing outputs of previous runs (default is True)
     :param kwargs: Additional keyword arguments to be passed to TaskDLC
 
     :return status: final status of the task
@@ -265,15 +265,18 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     return status
 
 
-def rerun_queue(min_version=__version__, machine=None, restart_local=True,
-                statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
-                overwrite=True, n_sessions=1000, delta_query=600, **kwargs):
+def run_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
+              machine=None, restart_local=True, overwrite=True, n_sessions=1000, delta_query=600,
+              **kwargs):
     """
-    Rerun (overwrite) all tasks that have a version below min_version and a status in statuses
+    Run all tasks that have a version below min_version and a status in statuses. By default
+    overwrites pre-exisitng results.
 
-    :param min_version: str, version below which task should be rerun
-    :param statuses: tuple, task statuses which should be rerun
+    :param min_version: str, version below which task should be (re)run
+    :param statuses: tuple, task statuses which should be (re)run
     :param machine: str, tag for the machine this job ran on
+    :param restart_local: bool, whether to restart interrupted local jobs (default is True)
+    :param overwrite: bool, whether overwrite existing outputs of previous runs (default is True)
     :param n_sessions: int, number of sessions to run from queue
     :param delta_query: int, time between querying the database in sec
     :param kwargs: Keyword arguments to be passed to run_session
