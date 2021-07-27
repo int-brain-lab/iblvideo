@@ -14,7 +14,7 @@ import pandas as pd
 import cv2
 
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
-from iblvideo.utils import _run_command
+from iblvideo.utils import _run_command, _check_nvidia_status
 
 _logger = logging.getLogger('ibllib')
 
@@ -348,6 +348,9 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
     :param force: bool, whether to overwrite existing intermediate files
     :return out_file: Path to DLC table in parquet file format
     """
+    # Check if the GPU is addressable
+    _check_nvidia_status()
+    # Set up timing
     dlc_timer = dlc_timer or OrderedDict()
     time_total_on = time.time()
     # Initiate

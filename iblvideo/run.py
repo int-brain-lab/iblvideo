@@ -56,7 +56,8 @@ class TaskDLC(tasks.Task):
                 pass
         return result
 
-    def _video_intact(self, file_mp4):
+    @staticmethod
+    def _video_intact(file_mp4):
         cap = cv2.VideoCapture(str(file_mp4))
         frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         intact = True if frame_count > 0 else False
@@ -95,6 +96,9 @@ class TaskDLC(tasks.Task):
                     file_mp4 = self.one.download_dataset(dset[0], clobber=clobber_vid)
                     # Check if video is downloaded completely, otherwise retry twice
                     video_intact = self._video_intact(file_mp4)
+                    if video_intact is False:
+                        print('Timeout between download trials (2 min).')
+                        time.sleep(120)  # wait two minutes e.g. to allow connection to come back
                     attempt += 1
                     clobber_vid = True
                 if video_intact is False:
