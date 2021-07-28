@@ -71,19 +71,20 @@ class TaskDLC(tasks.Task):
              overwrite=False):
         session_id = self.one.eid_from_path(self.session_path)
         timer = OrderedDict()
-        dlc_results = me_results = me_rois = []
+        dlc_results, me_results, me_rois = [], [], []
 
         # Loop through cams
         for cam in cams:
             timer[f'{cam}'] = OrderedDict()
             # Check if dlc and me results are available locally or in database, if latter download
             if overwrite is True:
-                dlc_result = me_result = me_roi = dlc_mode = me_mode = None
+                dlc_result, me_result, me_roi = None, None, None
+                dlc_mode, me_mode = None, None
             else:
                 dlc_result, dlc_mode = self._result_exists(session_id, f'_ibl_{cam}Camera.dlc.pqt')
                 # If dlc needs to be rerun, me should be rerun as well, regardless if it exists
                 if dlc_result is None:
-                    me_result = me_roi = me_mode = None
+                    me_result, me_roi, me_mode = None, None, None
                 else:
                     me_result, me_mode = self._result_exists(session_id,
                                                              f'{cam}Camera.ROIMotionEnergy.npy')
