@@ -229,8 +229,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                 if len(outputs) > 0:
                     for output in outputs:
                         ftp_patcher.create_dataset(path=output)
-                    else:
-                        _logger.warning("No new outputs computed.")
+                else:
+                    _logger.warning("No new outputs computed.")
                 # Update the version only now and only if new outputs are uploaded
                 if status == 0 and len(outputs) > 0:
                     one.alyx.rest('tasks', 'partial_update', id=tdict['id'],
