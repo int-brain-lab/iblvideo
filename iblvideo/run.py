@@ -17,6 +17,7 @@ from oneibl.patcher import FTPPatcher
 from iblvideo.choiceworld import dlc
 from iblvideo.motion_energy import motion_energy
 from iblvideo.weights import download_weights
+from iblvideo.utils import _check_nvidia_status, NvidiaDriverNotReady
 from iblvideo import __version__
 from ibllib.pipes import tasks
 from ibllib.qc.dlc import DlcQC
@@ -182,6 +183,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     50000   : 7.6 GB (body),  2.7 GB (left), 0.75 GB (right)
     None    :  25 GB (body), 17.5 GB (left), 12.5 GB (right)
     """
+    # Check if the GPU is addressable
+    _check_nvidia_status()
     # Catch all errors that are not caught inside run function and put them in the log
     try:
         # Create ONE instance if none is given
@@ -294,16 +297,16 @@ def run_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored',
     status_dict = {}
 
     # Check if any interrupted local sessions are present
-    count = 0
     if restart_local is True:
         local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/dlc_started')
         if len(local_tmp) > 0:
             local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))
+            n_sessions -= len(local_sessions)
             for eid in local_sessions:
                 print(f'Restarting local session {eid}')
                 status_dict[eid] = run_session(eid, machine=machine, one=one, **kwargs)
-                count += 1
 
+    count = 0
     last_query = datetime.now()
     while count < n_sessions:
         # Query EphysDLC tasks, find those with version lower than min_version

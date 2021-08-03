@@ -1,7 +1,14 @@
 import subprocess
 import logging
+from ibllib.exceptions import IblError
 
 _logger = logging.getLogger('ibllib')
+
+
+# ToDo: remove this here and import from ibblib once merged
+class NvidiaDriverNotReady(IblError):
+    explanation = ('Nvidia driver does not respond. This usually means the GPU is inaccessible and needs to be '
+                   'recovered through a system reboot.')
 
 
 def _run_command(command):
@@ -28,5 +35,5 @@ def _check_nvidia_status():
                                stderr=subprocess.PIPE, executable="/bin/bash")
     info, error = process.communicate()
     if process.returncode != 0:
-        raise RuntimeError(f"Nvida drivers not ready. \n {error.decode('utf-8')}")
+        raise NvidiaDriverNotReady(f"{error.decode('utf-8')}")
     _logger.info("nvidia-smi command successful")
