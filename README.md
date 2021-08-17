@@ -32,7 +32,7 @@ run_queue(n_sessions=10)
 ```
 ## Accessing results
 
-DLC results are stored on the Flatrion server, with the `dataset_type` being `camera.dlc` and can be searched as any other IBL datatype via ONE. See https://int-brain-lab.github.io/iblenv/ for details. There is further a script to produce labelled videos as seen in the images above for the inspection of particular trials: https://github.com/int-brain-lab/iblapps/blob/develop/dlc/DLC_labeled_video.py
+DLC results are stored on the Flatrion server, with the `dataset_type` being `camera.dlc` and can be searched as any other IBL datatype via ONE. See https://int-brain-lab.github.io/iblenv/ for details. There is a script to produce labelled videos as seen in the images above for the inspection of particular trials: https://github.com/int-brain-lab/iblapps/blob/develop/dlc/DLC_labeled_video.py and one to produce trial-averaged bheavioral activity plots using DLC traces: https://github.com/int-brain-lab/iblapps/blob/master/dlc/overview_plot_dlc.py 
 
 ## Installing DLC locally on an IBL server
 
