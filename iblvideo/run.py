@@ -274,16 +274,17 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
     return status
 
 
-def run_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
-              machine=None, restart_local=True, overwrite=True, n_sessions=1000, delta_query=600,
+def run_queue(machine=None, target_versions=(__version__),
+              statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
+              restart_local=True, overwrite=True, n_sessions=1000, delta_query=600,
               **kwargs):
     """
     Run all tasks that have a version below min_version and a status in statuses. By default
     overwrites pre-exisitng results.
 
-    :param min_version: str, version below which task should be (re)run
-    :param statuses: tuple, task statuses which should be (re)run
     :param machine: str, tag for the machine this job ran on
+    :param target_versions: str, if the task is at this version it should not be rerun
+    :param statuses: tuple, task statuses which should be (re)run
     :param restart_local: bool, whether to restart interrupted local jobs (default is True)
     :param overwrite: bool, whether overwrite existing outputs of previous runs (default is True)
     :param n_sessions: int, number of sessions to run from queue
@@ -315,9 +316,9 @@ def run_queue(min_version=__version__, statuses=('Empty', 'Complete', 'Errored',
         if (delta > delta_query) or (count == 0):
             last_query = datetime.now()
             all_tasks = one.alyx.rest('tasks', 'list', name='EphysDLC')
-            task_queue = [t for t in all_tasks if
-                          (t['version'] is None or parse(t['version']) < parse(min_version))
-                          and t['status'] in statuses]
+            task_queue = [t for t in all_tasks if t['status'] in statuses and
+                          (t['version'] is None or t['version'] not in target_versions)]
+            task_queue = sorted(task_queue, key=lambda k: k['priority'], reverse=True)
             if len(task_queue) == 0:
                 print("No sessions to run")
                 return
