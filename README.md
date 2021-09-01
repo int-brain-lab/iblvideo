@@ -89,7 +89,7 @@ Install packages (please observe order of those commands and Ubuntu version, you
 
 ```bash
 pip install -U setuptools
-pip install ibllib==1.11.0
+pip install git+https://github.com/int-brain-lab/ibllib.git
 pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl  
 pip install tensorflow-gpu==1.13.1  
 pip install deeplabcut==2.1.10  
