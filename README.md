@@ -85,7 +85,7 @@ virtualenv dlcenv --python=python3.7
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 ```
 
-Install packages (please observe order of those commands!)
+Install packages (please observe order of those commands and Ubuntu version, you may need to change the wxpython link!)
 
 ```bash
 pip install -U setuptools
