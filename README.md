@@ -128,6 +128,7 @@ Then clone and install iblvideo
 ```
 git clone https://github.com/int-brain-lab/iblvideo.git
 cd iblvideo
+pip install ibllib==1.11.0
 pip install -e .
 ```
 
