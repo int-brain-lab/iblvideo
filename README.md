@@ -107,6 +107,14 @@ Try importing tensorflow and deeplabcut
 ```
 python -c 'import deeplabcut, tensorflow'
 ```
+
+(If you get a pandas incompatibility error, try this:
+```
+pip uninstall pandas
+pip install pandas==1.1.5
+```
+)
+
 If this is successful (no errors) you can set up an alias in your .bashrc file to easily enter the iblvideo environment:
 ```bash
 nano ~/.bashrc
