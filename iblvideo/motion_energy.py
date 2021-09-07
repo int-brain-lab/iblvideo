@@ -26,22 +26,17 @@ def grayscale(x):
     return cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
 
 
-def get_dlc_midpoints(dlc_pqt, targets):
+def get_dlc_midpoints(dlc_pqt, target):
     # Load dataframe
     dlc_df = pd.read_parquet(dlc_pqt)
-    mloc = {'x': [], 'y': []}
-    for t in targets:
-        # Set values to nan if likelihood is too low and calcualte midpoints
-        idx = dlc_df.loc[dlc_df[f'{t}_likelihood'] < 0.9].index
-        dlc_df.loc[idx, [f'{t}_x', f'{t}_y']] = np.nan
-        for coord in ['x', 'y']:
-            if not all(np.isnan(dlc_df[f'{t}_{coord}'])):
-                mloc[coord].append(np.nanmean(dlc_df[f'{t}_{coord}']))
-    if len(mloc['x']) == 0 or len(mloc['y']) == 0:
-        raise ValueError(f'Failed to calculate midpoint for motion energy ROI, all NaN for '
-                         f'{targets} in {dlc_pqt}')
+    # Set values to nan if likelihood is too low and calcualte midpoints
+    idx = dlc_df.loc[dlc_df[f'{target}_likelihood'] < 0.9].index
+    dlc_df.loc[idx, [f'{target}_x', f'{target}_y']] = np.nan
+    if all(np.isnan(dlc_df[f'{target}_x'])) or all(np.isnan(dlc_df[f'{target}_y'])):
+        raise ValueError(f'Failed to calculate midpoint, {target} all NaN in {dlc_pqt}')
     else:
-        return [int(np.nanmean(mloc['x'])), int(np.nanmean(mloc['y']))]
+        mloc = [int(np.nanmean(dlc_df[f'{target}_x'])), int(np.nanmean(dlc_df[f'{target}_y']))]
+        return mloc
 
 
 def motion_energy(file_mp4, dlc_pqt, frames=10000):
@@ -67,14 +62,23 @@ def motion_energy(file_mp4, dlc_pqt, frames=10000):
 
     # Crop ROI
     if label == 'body':
-        tail_mid = get_dlc_midpoints(dlc_pqt, ['tail_start'])
+        tail_mid = get_dlc_midpoints(dlc_pqt, 'tail_start')
         anchor = np.array(tail_mid)
         w, h = int(anchor[0] * 3 / 5), 210
         x, y = int(anchor[0] - anchor[0] * 3 / 5), int(anchor[1] - 120)
     else:
-        nose_mid = get_dlc_midpoints(dlc_pqt, ['nose_tip'])
-        pupil_mid = get_dlc_midpoints(dlc_pqt, ['pupil_top_r', 'pupil_bottom_r',
-                                                'pupil_left_r', 'pupil_right_r'])
+        nose_mid = get_dlc_midpoints(dlc_pqt, 'nose_tip')
+        # Go through the different pupil points to see if any has not all NaNs
+        try:
+            pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_top_r')
+        except ValueError:
+            try:
+                pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_left_r')
+            except ValueError:
+                try:
+                    pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_right_r')
+                except ValueError:
+                    pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_bottom_r')
         anchor = np.mean([nose_mid, pupil_mid], axis=0)
         dist = np.sqrt(np.sum((np.array(nose_mid) - np.array(pupil_mid))**2, axis=0))
         w, h = int(dist / 2), int(dist / 3)
