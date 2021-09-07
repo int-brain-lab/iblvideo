@@ -62,6 +62,9 @@ def test_with_nans():
             df_nan['tail_start_y'] = np.nan
         else:
             df_nan['pupil_top_r_x'] = np.nan
+            df_nan['pupil_bottom_r_x'] = np.nan
+            df_nan['pupil_left_r_x'] = np.nan
+            df_nan['pupil_right_r_x'] = np.nan
         df_nan.to_parquet(nan_pqt)
         with pytest.raises(ValueError):
             motion_energy(file_mp4, nan_pqt)
