@@ -299,7 +299,7 @@ def run_queue(machine=None, target_versions=(__version__),
 
     # Check if any interrupted local sessions are present
     if restart_local is True:
-        local_tmp = glob(one._par.CACHE_DIR + '/*lab/Subjects/*/*/*/dlc_started')
+        local_tmp = glob(one._par.CACHE_DIR + '/*lab*/Subjects/*/*/*/dlc_started')
         if len(local_tmp) > 0:
             local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))
             n_sessions -= len(local_sessions)
