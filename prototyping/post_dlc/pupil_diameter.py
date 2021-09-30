@@ -185,11 +185,11 @@ if __name__ == "__main__":
     eid = '572a95d1-39ca-42e1-8424-5c9ffcb2df87'
     video_type = 'left'
     _, XYs = get_dlc_XYs(eid, video_type)    
-    pupil_diameter_raw_left = get_pupil_diameter(XYs, smooth=False)
-    pupil_diameter_smooth_left = get_pupil_diameter(XYs, smooth=True)
+    pupil_dia_raw_left = get_pupil_diameter(XYs, smooth=False)
+    pupil_dia_smooth_left = get_pupil_diameter(XYs, smooth=True)
         
     video_type = 'right'
     _, XYs = get_dlc_XYs(eid, video_type)  
-    pupil_diameter_raw_right = get_pupil_diameter(XYs, smooth=False)
-    pupil_diameter_smooth_right = get_pupil_diameter(XYs, smooth=True)
+    pupil_dia_raw_right = get_pupil_diameter(XYs, smooth=False)
+    pupil_dia_smooth_right = get_pupil_diameter(XYs, smooth=True)
 
