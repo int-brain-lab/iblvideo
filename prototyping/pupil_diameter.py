@@ -1,32 +1,15 @@
 import numpy as np
-import alf.io
-from oneibl.one import ONE
+from one.api import ONE
 from scipy.interpolate import interp1d
 
-def get_dlc_XYs(eid, video_type):
+
+def get_dlc_XYs(eid, video_type, query_type='remote'):
 
     #video_type = 'left'    
-    one = ONE() 
-    dataset_types = ['camera.dlc', 'camera.times']                     
-    a = one.list(eid,'dataset-types')
-    b = [x['dataset_type'] for x in a]
-    if not all([u in b for u in dataset_types]):
-        print('not all data available')    
-        return
-        
-    # clobber=True for force download            
-    one.load(eid, dataset_types = dataset_types)  
-    local_path = one.path_from_eid(eid)  
-    alf_path = local_path / 'alf'   
-    
-    cam0 = alf.io.load_object(
-        alf_path,
-        '%sCamera' %
-        video_type,
-        namespace='ibl')
-
-    Times = cam0['times']
-    cam = cam0['dlc']
+    Times = one.load_dataset(eid,f'alf/_ibl_{video_type}Camera.times.npy',
+                             query_type=query_type) 
+    cam = one.load_dataset(eid,f'alf/_ibl_{video_type}Camera.dlc.pqt', 
+                           query_type=query_type)
     points = np.unique(['_'.join(x.split('_')[:-1]) for x in cam.keys()])
 
     # Set values to nan if likelyhood is too low # for pqt: .to_numpy()
@@ -41,7 +24,7 @@ def get_dlc_XYs(eid, video_type):
         XYs[point] = np.array(
             [x, y])    
 
-    return Times, XYs      
+    return Times, XYs    
 
 
 def smooth_pupil_diameter(diam, window=31, order=3, interp_kind='cubic'):
@@ -194,10 +177,19 @@ def get_pupil_diameter(XYs, smooth=True):
 
 
 if __name__ == "__main__":    
-    eid = '7b074b1a-6576-4380-91e4-ad6cdf06c3a6'
-    video_type = 'left'
-    _, XYs = get_dlc_XYs(eid, video_type)
-    dia = get_pupil_diameter(XYs)
-    
 
+    # New dataset type 'alf/_ibl_post_dlc.pqt'
+    # that should contain camera specific outputs and also
+    # non-camera specific ones, such as 3d paw location and licks
+    one = ONE()    
+    eid = '572a95d1-39ca-42e1-8424-5c9ffcb2df87'
+    video_type = 'left'
+    _, XYs = get_dlc_XYs(eid, video_type)    
+    pupil_diameter_raw_left = get_pupil_diameter(XYs, smooth=False)
+    pupil_diameter_smooth_left = get_pupil_diameter(XYs, smooth=True)
+        
+    video_type = 'right'
+    _, XYs = get_dlc_XYs(eid, video_type)  
+    pupil_diameter_raw_right = get_pupil_diameter(XYs, smooth=False)
+    pupil_diameter_smooth_right = get_pupil_diameter(XYs, smooth=True)
 
