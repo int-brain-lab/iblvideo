@@ -59,7 +59,7 @@ Create and activate an environment called e.g. dlcenv
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
-virtualenv dlcenv 
+virtualenv dlcenv --python=python3.8
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 ```
 
@@ -74,31 +74,19 @@ pip install deeplabcut
 
 ### Test if tensorflow and deeplabcut installation was successful
 
-Export environment variable to avoid tensorflow issue and point to CUDA libraries
-```bash
-export TF_FORCE_GPU_ALLOW_GROWTH='true'
-export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:/lib/nccl/cuda-11:$LD_LIBRARY_PATH  
-```
-
-Try importing tensorflow and deeplabcut
 ```
 python -c 'import deeplabcut, tensorflow'
 ```
 
-(If you get a pandas incompatibility error, try this:
-```
-pip uninstall pandas
-pip install pandas==1.1.5
-```
-)
+If you get errors make sure the cuda libraries are correctly added to your paths in .bashrc as explained [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.ryxfckh2bbpl).
 
-If this is successful (no errors) you can set up an alias in your .bashrc file to easily enter the iblvideo environment:
+Once the import goes through without errors (it is ok to get the warning that you cannot use the GUI), you can set up an alias in your .bashrc file to easily enter the iblvideo environment:
 ```bash
 nano ~/.bashrc
 ```
 Enter this line under the other aliases:
 ```bash
-alias dlcenv="export TF_FORCE_GPU_ALLOW_GROWTH='true'; export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
+alias dlcenv="source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
 ```
 After opening a new terminal you should be able to type `dlcenv` and end up in an environment in which you can import tensorflow and deeplabcut like above.
 
