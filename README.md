@@ -125,10 +125,11 @@ The version of DLC weights and DLC test data are synchronized with the MAJOR.MIN
 
 If you update any of the DLC weights, you also need to update the MINOR version of the code and the DLC test data, and vice versa.
 1. For the weights, create a new directory called `weights_v{MAJOR}.{MINOR}` and copy the new weights, plus any unchanged weights into it.
-2. Make a new `dlc_test_data_v{MAJOR}.{MINOR}` directory, with subdirectories `input` and `output`.
+2. Make a new `dlc_test_data_v{MAJOR}.{MINOR}` directory.
 3. Copy the three videos from the `input` folder of the previous version dlc_test_data to the new one.
-4. Create the three parquet files to go in `output` by running iblvideo.dlc() with the new weights folder as `path_dlc`, and each of the videos in the new `input` folder as `file_mp4`.
-5. Zip and upload the new weights and test data folders to FlatIron :
+4. Create the three parquet files to go in by running iblvideo.dlc() with the new weights folder as `path_dlc`, and each of the videos in the new `input` folder as `file_mp4`.
+5. Rename the newly created folder `alf` inside the dlc_test_data folder into `output`.
+6. Zip and upload the new weights and test data folders to FlatIron :
 ```
 /resources/dlc/weights_v{MAJOR}.{MINOR}.zip
 /integration/dlc/test_data/dlc_test_data_v{MAJOR}.{MINOR}.zip
