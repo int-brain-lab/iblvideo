@@ -25,10 +25,10 @@ output = dlc("Path/to/file.mp4")
 from iblvideo import run_session
 run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
 ```
-### Running 10 sessions from the queue
+### Running the queue
 ```python
 from iblvideo import run_queue
-run_queue(n_sessions=10)
+run_queue(machine='mymachine')
 ```
 ## Accessing results
 
@@ -40,59 +40,36 @@ DLC results are stored on the Flatrion server, with the `dataset_type` being `ca
 
 Install local server as per [this instruction](https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4).
 
-Install CUDA 10.0 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo) to match the TensorFlow version 1.13.1 required for DLC.
+Install CUDA 11.2 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l)
 
 Install cuDNN, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
 
 ```bash
-wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-10.0-linux-x64-v7.6.5.32.tgz  
-tar -xvf cudnn-10.0-linux-x64-v7.6.5.32.tgz  
-sudo cp cuda/include/cudnn.h /usr/local/cuda-10.0/include  
-sudo cp cuda/lib64/libcudnn* /usr/local/cuda-10.0/lib64  
-sudo chmod a+r /usr/local/cuda-10.0/include/cudnn.h /usr/local/cuda-10.0/lib64/libcudnn*  
+wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-11.2-linux-x64-v8.1.1.33.tgz 
+tar -xvf cudnn-11.2-linux-x64-v8.1.1.33.tgz 
+sudo cp cuda/include/cudnn.h /usr/local/cuda-11.2/include  
+sudo cp cuda/lib64/libcudnn* /usr/local/cuda-11.2/lib64  
+sudo chmod a+r /usr/local/cuda-11.2/include/cudnn.h /usr/local/cuda-11.2/lib64/libcudnn*  
 ```
-
-(optional): check CUDNN installation or for troubleshooting only)
-Download and unzip https://ibl.flatironinstitute.org/resources/cudnn_samples_v7.zip
-If necessary, setup your CUDA environment variables with the version you want to test
-
-```
-cd cudnn_samples_v7/mnistCUDNN/
-make clean && make
-./mnistCUDNN
-```
-
-Should print a message that finishes with Test passed !
 
 ### Create a Python environment with TensorFlow and DLC
 
-Install a few things system wide and then python3.7
-
-```bash
-sudo apt update  
-sudo apt install software-properties-common  
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.7-tk  
-sudo apt install python3.7 python3.7-dev  
-```
-
-Create and activate a Python 3.7 environment called e.g. dlcenv
+Create and activate an environment called e.g. dlcenv
 
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
-virtualenv dlcenv --python=python3.7
+virtualenv dlcenv 
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 ```
 
-Install packages (please observe order of those commands and Ubuntu version, you may need to change the wxpython link!)
+Install packages
 
 ```bash
 pip install -U setuptools
-pip install git+https://github.com/int-brain-lab/ibllib.git@1.11.0
-pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.0.7-cp37-cp37m-linux_x86_64.whl  
-pip install tensorflow-gpu==1.13.1  
-pip install deeplabcut==2.1.10  
+pip install git+https://github.com/int-brain-lab/ibllib.git
+pip install tensorflow
+pip install deeplabcut
 ```
 
 ### Test if tensorflow and deeplabcut installation was successful
@@ -100,7 +77,7 @@ pip install deeplabcut==2.1.10
 Export environment variable to avoid tensorflow issue and point to CUDA libraries
 ```bash
 export TF_FORCE_GPU_ALLOW_GROWTH='true'
-export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10:$LD_LIBRARY_PATH  
+export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:/lib/nccl/cuda-11:$LD_LIBRARY_PATH  
 ```
 
 Try importing tensorflow and deeplabcut
