@@ -42,26 +42,45 @@ def get_licks(XYs):
     return sorted(list(set.union(*licks))) 
 
 
+def get_lick_times(eid, combine=False, video_type='left'):
+    
+    if combine:    
+        # combine licking events from left and right cam
+        lick_times = []
+        for video_type in ['right','left']:
+            times, XYs = get_dlc_XYs(eid, video_type)
+            r = get_licks(XYs)
+            # cover case that there are less times than DLC points            
+            idx = np.where(np.array(r)<len(times))[0][-1]            
+            lick_times.append(times[r[:idx]])
+        
+        lick_times = sorted(np.concatenate(lick_times))
+        
+    else:
+        times, XYs = get_dlc_XYs(eid, video_type)    
+        r = get_licks(XYs)
+        # cover case that there are less times than DLC points
+        idx = np.where(np.array(r)<len(times))[0][-1]              
+        lick_times = times[r[:idx]]
+
+    return lick_times
+        
+      
 
 if __name__ == "__main__":    
 
-    # New dataset type 'alf/_ibl_post_dlc.pqt'
-    # that should contain camera specific outputs and also
-    # non-camera specific ones, such as 3d paw location and licks
+    '''
+    There should be one pqt file per camera, e.g. _ibl_leftCamera.features.pqt 
+    and it will contain columns named in Pascal case, 
+    the same way you would name an ALF attribute, e.g. pupilDiameter_raw and 
+    lick_times.
+    '''
+    
     one = ONE()    
     eid = '572a95d1-39ca-42e1-8424-5c9ffcb2df87'
 
-    times_l, XYs_l = get_dlc_XYs(eid, 'left')
-    times_r, XYs_r = get_dlc_XYs(eid, 'right')    
+
+    lick_times_left = get_lick_times(eid, video_type = 'left')
+    lick_times_right = get_lick_times(eid, video_type = 'right')
     
-    DLC = {'left':[times_l, XYs_l], 'right':[times_r, XYs_r]}
-    
-    # get licks using both cameras    
-    lick_times = []
-    for video_type in ['right','left']:
-        times, XYs = DLC[video_type]
-        r = get_licks(XYs)
-        idx = np.where(np.array(r)<len(times))[0][-1]            
-        lick_times.append(times[r[:idx]])
-    
-    lick_times = sorted(np.concatenate(lick_times))
+   
