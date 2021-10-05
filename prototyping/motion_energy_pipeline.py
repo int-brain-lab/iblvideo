@@ -39,7 +39,7 @@ def get_dlc_XYs(eid, video_type):
 
     datasets = one.type2datasets(eid, dataset_types)
     one.load_datasets(eid, datasets=datasets)
-    local_path = one.path_from_eid(eid)  
+    local_path = one.eid2path(eid)
     alf_path = local_path / 'alf'   
     
     cam0 = alf.io.load_object(
@@ -258,7 +258,7 @@ def load_compute_ROI_ME(eid):
     # download all three raw videos
     datasets = one.type2datasets(eid, dataset_types)
     one.load_datasets(eid, datasets=datasets)
-    video_data = one.path_from_eid(eid) / 'raw_video_data'
+    video_data = one.eid2path(eid) / 'raw_video_data'
     
     for video_type in ['body','left','right']:
     

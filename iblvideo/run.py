@@ -312,7 +312,7 @@ def run_queue(machine=None, target_versions=(__version__), statuses=('Empty', 'W
     if restart_local is True:
         local_tmp = glob(one.alyx._par.CACHE_DIR + '/*lab*/Subjects/*/*/*/dlc_started')
         if len(local_tmp) > 0:
-            local_sessions = list(set([one.eid_from_path(local) for local in local_tmp]))
+            local_sessions = list(set([one.path2eid(local) for local in local_tmp]))
             n_sessions -= len(local_sessions)
             for eid in local_sessions:
                 print(f'Restarting local session {eid}')
