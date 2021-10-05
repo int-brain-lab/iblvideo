@@ -104,7 +104,7 @@ Update the image version in `docker-compose.yaml` test and queue configurations.
 cd ~/Documents/PYTHON
 git clone https://github.com/int-brain-lab/iblvideo
 cd iblvideo/docker
-docker build -t internationalbrainlab/dlc:base -f Dockerfile.base  # this one will take a long time
+docker build -t internationalbrainlab/dlc:base -f Dockerfile.base --no-cache .  # this one will take a long time
 ```
 
 Test the image by accessing a shell inside of the container:
@@ -112,7 +112,7 @@ Test the image by accessing a shell inside of the container:
 ```shell
 docker run -it --rm --gpus all -u $(id -u):$(id -g) -v /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron -v ~/Documents/PYTHON/iblvideo:/root internationalbrainlab/dlc:base
 python3
-from import deeplabcut
+import deeplabcut
 ```
 
 Eventually send the image to dockerhub
