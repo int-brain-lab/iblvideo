@@ -278,14 +278,15 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                               no_cache=True)[0]
         patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(), 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data, no_cache=True)
+        if session_path.joinpath('dlc_started').exists():
+            session_path.joinpath('dlc_started').unlink()
         return -1
     # Remove in progress flag
     session_path.joinpath('dlc_started').unlink()
     return status
 
 
-def run_queue(machine=None, target_versions=(__version__),
-              statuses=('Empty', 'Complete', 'Errored', 'Waiting'),
+def run_queue(machine=None, target_versions=(__version__), statuses=('Empty', 'Waiting', 'Complete'),
               restart_local=True, overwrite=True, n_sessions=1000, delta_query=600,
               **kwargs):
     """
