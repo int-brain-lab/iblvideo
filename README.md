@@ -54,6 +54,16 @@ sudo chmod a+r /usr/local/cuda-11.2/include/cudnn.h /usr/local/cuda-11.2/lib64/l
 
 ### Create a Python environment with TensorFlow and DLC
 
+Install python3.8 (if necessary)
+
+```bash
+sudo apt update  
+sudo apt install software-properties-common  
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get install python3.8-tk  
+sudo apt install python3.8 python3.8-dev  
+```
+
 Create and activate an environment called e.g. dlcenv
 
 ```bash
