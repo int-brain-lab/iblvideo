@@ -238,13 +238,11 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                 if len(outputs) > 0:
                     for output in outputs:
                         ftp_patcher.create_dataset(path=output)
+                    # Update the version only now and only if new outputs are uploaded
+                    one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'version': version})
                 else:
                     _logger.warning("No new outputs computed.")
-                # Update the version only now and only if new outputs are uploaded
-                if status == 0 and len(outputs) > 0:
-                    one.alyx.rest('tasks', 'partial_update', id=tdict['id'],
-                                  data={'version': version})
-            if status == 0 and remove_videos is True:
+            if remove_videos is True:
                 shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
             # Run DLC QC
@@ -278,11 +276,12 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
                               no_cache=True)[0]
         patch_data = {'log': tdict['log'] + '\n\n' + traceback.format_exc(), 'status': 'Errored'}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data, no_cache=True)
-        if session_path.joinpath('dlc_started').exists():
-            session_path.joinpath('dlc_started').unlink()
         return -1
     # Remove in progress flag
     session_path.joinpath('dlc_started').unlink()
+    # Set status to Incomplete if the length of cameras was < 3 but everything passed
+    if status == 0 and len(cams) < 3:
+        one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'status': 'Incomplete'}, no_cache=True)
     return status
 
 
