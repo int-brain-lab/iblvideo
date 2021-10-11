@@ -24,3 +24,5 @@ RUN python3 -m pip install -U setuptools
 RUN python3 -m pip install git+https://github.com/int-brain-lab/ibllib.git
 RUN python3 -m pip install tensorflow
 RUN python3 -m pip install deeplabcut
+
+ENV TF_FORCE_GPU_ALLOW_GROWTH 'true'

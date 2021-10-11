@@ -82,6 +82,13 @@ pip install tensorflow
 pip install deeplabcut
 ```
 
+Export environment variables 
+(the second command might already be set up with your cuda install)
+```bash
+export TF_FORCE_GPU_ALLOW_GROWTH='true'
+export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
+```
+
 ### Test if tensorflow and deeplabcut installation was successful
 
 ```
@@ -96,7 +103,8 @@ nano ~/.bashrc
 ```
 Enter this line under the other aliases:
 ```bash
-alias dlcenv="source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
+alias dlcenv="export TF_FORCE_GPU_ALLOW_GROWTH='true'; export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
+
 ```
 After opening a new terminal you should be able to type `dlcenv` and end up in an environment in which you can import tensorflow and deeplabcut like above.
 
