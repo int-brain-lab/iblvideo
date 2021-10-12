@@ -131,6 +131,7 @@ class TaskDLC(tasks.Task):
                 except BaseException:
                     _logger.error(f'DLC {cam}Camera failed.\n' + traceback.format_exc())
                     self.status = -1
+                    # We dont' run motion energy, or add any files to be patched if dlc failed to run
                     continue
 
             # If me outputs don't exist or should be overwritten, run me
@@ -148,7 +149,6 @@ class TaskDLC(tasks.Task):
                 except BaseException:
                     _logger.error(f'Motion energy {cam}Camera failed.\n' + traceback.format_exc())
                     self.status = -1
-                    continue
 
             if dlc_computed is True or dlc_mode == 'local':
                 dlc_results.append(dlc_result)
