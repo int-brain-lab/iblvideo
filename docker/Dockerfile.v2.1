@@ -1,0 +1,11 @@
+#docker build -t internationalbrainlab/dlc:v2.1 -f Dockerfile.v2.1 --no-cache .
+FROM internationalbrainlab/dlc:base
+
+# copy the weights and test data
+COPY weights_v2.1 weights_v2.1
+COPY me_test_data me_test_data
+COPY dlc_test_data_v2.1 dlc_test_data_v2.1
+
+# clone the code
+RUN git clone --depth 1 --single-branch --branch v2.1.0 https://github.com/int-brain-lab/iblvideo.git
+ENV PYTHONPATH=/iblvideo
