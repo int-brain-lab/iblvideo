@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import subprocess
 import alf.io
-from oneibl.one import ONE
+from one.api import ONE
 from pathlib import Path
 import os
 import time
@@ -35,11 +35,11 @@ def get_dlc_XYs(eid, video_type):
     a = one.list(eid,'dataset-types')   
     if not all([x['dataset_type'] for x in a]):
         print('not all data available')    
-        return   
-    
-                 
-    one.load(eid, dataset_types = dataset_types)
-    local_path = one.path_from_eid(eid)  
+        return
+
+    datasets = one.type2datasets(eid, dataset_types)
+    one.load_datasets(eid, datasets=datasets)
+    local_path = one.eid2path(eid)
     alf_path = local_path / 'alf'   
     
     cam0 = alf.io.load_object(
@@ -255,9 +255,10 @@ def load_compute_ROI_ME(eid):
         print('not all data available')    
         return    
 
-    # download all three raw videos             
-    one.load(eid, dataset_types)
-    video_data = one.path_from_eid(eid) / 'raw_video_data'
+    # download all three raw videos
+    datasets = one.type2datasets(eid, dataset_types)
+    one.load_datasets(eid, datasets=datasets)
+    video_data = one.eid2path(eid) / 'raw_video_data'
     
     for video_type in ['body','left','right']:
     

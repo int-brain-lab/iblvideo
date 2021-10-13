@@ -1,8 +1,8 @@
 import logging
 import shutil
 from pathlib import Path
-from ibllib.io import params
-from oneibl.webclient import http_download_file
+from iblutil.io import params
+from one.webclient import http_download_file
 from iblvideo import __version__
 
 _logger = logging.getLogger('ibllib')

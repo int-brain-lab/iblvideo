@@ -14,10 +14,8 @@ import pandas as pd
 import cv2
 import logging
 
-from oneibl.one import ONE
 from ibllib.io.video import get_video_frames_preload, label_from_path
 from ibllib.io.extractors.camera import get_video_length
-from oneibl.stream import VideoStreamer
 
 _log = logging.getLogger('ibllib')
 
