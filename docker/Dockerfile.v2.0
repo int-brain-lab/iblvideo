@@ -7,5 +7,5 @@ COPY me_test_data me_test_data
 COPY dlc_test_data_v2.0 dlc_test_data_v2.0
 
 # clone the code
-RUN git clone --depth 1 --single-branch --branch one2 https://github.com/int-brain-lab/iblvideo.git
+RUN git clone --depth 1 --single-branch --branch v2.0.0 https://github.com/int-brain-lab/iblvideo.git
 ENV PYTHONPATH=/iblvideo

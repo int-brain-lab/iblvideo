@@ -17,14 +17,14 @@ services:
       - ~/Documents/PYTHON/iblvideo:/iblvideo
       - ~:/root
   queue:
-    image: internationalbrainlab/dlc:v2.0
-    command: python3 -c "from iblvideo import run_queue; run_queue(target_versions=('1.2.0', '2.0.0'))"
+    image: internationalbrainlab/dlc:v2.1
+    command: python3 -c "from iblvideo import run_queue; run_queue(target_versions=('1.2.0', '2.1.0'))"
     runtime: nvidia
     volumes:
       - ~:/root
       - /mnt/s0/Data/FlatIron:/mnt/s0/Data/FlatIron
   test:
-    image: internationalbrainlab/dlc:v2.0
+    image: internationalbrainlab/dlc:v2.1
     command: bash -c "nvcc --version; pytest -s /iblvideo/iblvideo/tests"
     runtime: nvidia
     volumes:
