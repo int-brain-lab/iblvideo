@@ -28,7 +28,7 @@ def _download_dlc_test_data(version=__version__, one=None):
 
     # Construct URL and call download
     url = '{}/dlc_test_data_v{}.zip'.format(str(data_dir), '.'.join(version.split('.')[:-1]))
-    file_name, hash = one.alyx.download_file(url, cache_dir=local_path, return_md5=True)
+    file_name, hash = one.alyx.download_file(url, cache_dir=local_path, return_md5=True, silent=True)
     file_name = Path(file_name)
     _logger.info(f"Downloaded test data hash: {hash}, {file_name}")
     # unzip file
@@ -58,7 +58,7 @@ def _download_me_test_data(one=None):
 
     # Construct URL and call download
     url = '{}/me_test_data.zip'.format(str(data_dir))
-    file_name, hash = one.alyx.download_file(url, cache_dir=local_path, return_md5=True)
+    file_name, hash = one.alyx.download_file(url, cache_dir=local_path, return_md5=True, silent=True)
     file_name = Path(file_name)
     # unzip file
     test_dir = file_name.parent.joinpath(file_name.stem)
