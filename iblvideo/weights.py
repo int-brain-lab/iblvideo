@@ -2,14 +2,14 @@
 import logging
 import shutil
 from pathlib import Path
-from iblutil.io import params
-from one.webclient import http_download_file
+
+from one.api import ONE
 from iblvideo import __version__
 
 _logger = logging.getLogger('ibllib')
 
 
-def download_weights(version=__version__):
+def download_weights(version=__version__, one=None):
     """Download the DLC weights associated with current version from FlatIron."""
 
     # if there is a weight dir in the current path, use this one. Useful for Docker deployment
@@ -18,24 +18,18 @@ def download_weights(version=__version__):
         _logger.warning(f'Using cached directory at {local_weight_dir}')
         return local_weight_dir
 
-    # Read one_params file
-    par = params.read('one_params')
+    one = one or ONE()
     weights_dir = Path('resources', 'dlc')
 
     # Create target directory if it doesn't exist
-    weights_path = Path(par.CACHE_DIR).joinpath(weights_dir)
+    weights_path = Path(ONE().cache_dir).joinpath(weights_dir)
     weights_path.mkdir(exist_ok=True, parents=True)
     f"weights_v{'.'.join(version.split('.')[:-1])}"
     # Construct URL and call download
     # Weights versions are synchronized with minor versions of iblvideo
     # Therefore they are named only by major.minor excluding the patch
-    url = '{}/{}/weights_v{}.zip'.format(par.HTTP_DATA_SERVER, str(weights_dir),
-                                         '.'.join(version.split('.')[:-1]))
-    file_name, hash = http_download_file(url,
-                                         cache_dir=weights_path,
-                                         username=par.HTTP_DATA_SERVER_LOGIN,
-                                         password=par.HTTP_DATA_SERVER_PWD,
-                                         return_md5=True)
+    url = '{}/weights_v{}.zip'.format(str(weights_dir), '.'.join(version.split('.')[:-1]))
+    file_name, hash = one.alyx.download_file(url, cache_dir=weights_path, return_md5=True)
     file_name = Path(file_name)
     _logger.info(f"Downloaded weights: {hash}, {file_name}")
     weights_dir = file_name.parent.joinpath(file_name.stem)

@@ -29,7 +29,7 @@ docker-compose run queue
 - nvidia driver installed
 - a docker installation 
 - support for nvidia runtime in docker
-- ONE parameters setup to connect to the database [here](https://int-brain-lab.github.io/iblenv/one_docs/one_credentials.html) 
+- ONE parameters setup to connect to the database [here](https://int-brain-lab.github.io/ONE/one_installation.html) 
 
 ### Docker Installation instructions on Ubuntu 20.04, as of April 2021
 -	Step 1: make sure Nvidia driver is installed by typing `nvidia-smi`
@@ -48,9 +48,7 @@ docker-compose run queue
 # clone the iblvideo repository
 cd ~/Documents/PYTHON
 git clone https://github.com/int-brain-lab/iblvideo.git
-# copy one parameters from home to
 cd iblvideo
-cp ~/.one_params .one_params
 # run the tests
 cd docker
 docker-compose run test

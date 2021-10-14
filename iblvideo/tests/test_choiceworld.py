@@ -1,6 +1,8 @@
 import shutil
 import numpy as np
 import pandas as pd
+
+from one.api import ONE
 from iblvideo.choiceworld import dlc
 from iblvideo.weights import download_weights
 from iblvideo.tests import _download_dlc_test_data
@@ -9,8 +11,10 @@ from iblvideo import __version__
 
 def test_dlc(version=__version__):
 
-    test_data = _download_dlc_test_data()
-    path_dlc = download_weights(version=version)
+    one = ONE()
+
+    test_data = _download_dlc_test_data(one=one)
+    path_dlc = download_weights(version=version, one=one)
 
     for cam in ['body', 'left', 'right']:
         file_mp4 = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')

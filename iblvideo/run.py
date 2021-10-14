@@ -1,10 +1,8 @@
 import logging
-import shutil
 import os
 import traceback
 import time
 import cv2
-import warnings
 import shutil
 
 from glob import glob
@@ -22,7 +20,6 @@ from iblvideo.weights import download_weights
 from iblvideo.utils import _check_nvidia_status, NvidiaDriverNotReady
 from iblvideo import __version__
 from ibllib.pipes import tasks
-from ibllib.qc.dlc import DlcQC
 from ibllib.io.video import assert_valid_label
 
 _logger = logging.getLogger('ibllib')
@@ -121,7 +118,7 @@ class TaskDLC(tasks.Task):
             dlc_computed = False
             if dlc_result is None:
                 # Download weights if not exist locally
-                path_dlc = download_weights(version=version)
+                path_dlc = download_weights(version=version, one=self.one)
                 _logger.info(f'Running DLC on {cam}Camera.')
                 try:
                     dlc_result, timer[f'{cam}'] = dlc(file_mp4, path_dlc=path_dlc, force=overwrite,
