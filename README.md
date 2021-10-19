@@ -93,9 +93,8 @@ export TF_FORCE_GPU_ALLOW_GROWTH='true'
 export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 ```
 
-Activate the environment (if not still active) and try to import deeplabcut and tensorflow
+Try to import deeplabcut and tensorflow (don't forget that dlcenv has to be active)
 ```
-source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 python -c 'import deeplabcut, tensorflow'
 ```
 
