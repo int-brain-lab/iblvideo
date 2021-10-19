@@ -145,7 +145,7 @@ def _s01_subsample(file_in, file_out, force=False):
         frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         # get from 20 to 500 samples linearly spaced throughout the session
-        nsamples = min(max(20, frameCount / cap.get(cv2.CAP_PROP_FPS)), 500)
+        nsamples = min(max(20, int(frameCount / cap.get(cv2.CAP_PROP_FPS))), 500)
         samples = np.int32(np.round(np.linspace(0, frameCount - 1, nsamples)))
 
         size = (int(cap.get(3)), int(cap.get(4)))
