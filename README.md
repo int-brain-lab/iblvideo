@@ -42,7 +42,7 @@ DLC results are stored on the Flatrion server, with the `dataset_type` being `ca
 
 Install local server as per [this instruction](https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4).
 
-Install CUDA 11.2 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l)
+Install CUDA 11.2 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l). No need to set up the library paths yet, as we will do it below.
 
 Install cuDNN, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
 
@@ -66,38 +66,38 @@ sudo apt-get install python3.8-tk
 sudo apt install python3.8 python3.8-dev  
 ```
 
-Create and activate an environment called e.g. dlcenv
+Create an environment called e.g. dlcenv
 
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
 virtualenv dlcenv --python=python3.8
-source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 ```
 
-Install packages
+Activate the environment and install packages
 
 ```bash
+source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 pip install -U setuptools
 pip install git+https://github.com/int-brain-lab/ibllib.git
 pip install tensorflow
 pip install deeplabcut
 ```
 
-Export environment variables 
-(the second command might already be set up with your cuda install)
+### Test if tensorflow and deeplabcut installation was successful
+
+Export environment variables for testing
 ```bash
+export PATH=/usr/local/cuda-11.2/bin:$PATH
 export TF_FORCE_GPU_ALLOW_GROWTH='true'
 export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 ```
 
-### Test if tensorflow and deeplabcut installation was successful
-
+Activate the environment (if not still active) and try to import deeplabcut and tensorflow
 ```
+source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 python -c 'import deeplabcut, tensorflow'
 ```
-
-If you get errors make sure the cuda libraries are correctly added to your paths in .bashrc as explained [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.ryxfckh2bbpl).
 
 Once the import goes through without errors (it is ok to get the warning that you cannot use the GUI), you can set up an alias in your .bashrc file to easily enter the iblvideo environment:
 ```bash
@@ -105,7 +105,7 @@ nano ~/.bashrc
 ```
 Enter this line under the other aliases:
 ```bash
-alias dlcenv="export TF_FORCE_GPU_ALLOW_GROWTH='true'; export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
+alias dlcenv="export PATH=/usr/local/cuda-11.2/bin:$PATH; export TF_FORCE_GPU_ALLOW_GROWTH='true'; export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
 
 ```
 After opening a new terminal you should be able to type `dlcenv` and end up in an environment in which you can import tensorflow and deeplabcut like above.
