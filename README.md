@@ -98,7 +98,7 @@ Try to import deeplabcut and tensorflow (don't forget that dlcenv has to be acti
 python -c 'import deeplabcut, tensorflow'
 ```
 
-Once the import goes through without errors (it is ok to get the warning that you cannot use the GUI), you can set up an alias in your .bashrc file to easily enter the iblvideo environment:
+Once the import goes through without errors (it is ok to get the warning that you cannot use the GUI), you can set up an alias in your .bashrc file to easily enter the dlcenv environment:
 ```bash
 nano ~/.bashrc
 ```
