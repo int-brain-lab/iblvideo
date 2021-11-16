@@ -67,8 +67,7 @@ class TaskDLC(tasks.Task):
         cap.release()
         return intact
 
-    def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None,
-             overwrite=False):
+    def _run(self, cams=('left', 'body', 'right'), version=__version__, frames=None, overwrite=False):
         session_id = self.one.path2eid(self.session_path)
         timer = OrderedDict()
         dlc_results, me_results, me_rois = [], [], []
@@ -97,9 +96,11 @@ class TaskDLC(tasks.Task):
                 _logger.info(f'Downloading {cam}Camera.')
                 video_intact, clobber_vid, attempt = False, False, 0
                 while video_intact is False and attempt < 3:
-                    dset = self.one.alyx.rest('datasets', 'list', session=session_id,
-                                              name=f'_iblrig_{cam}Camera.raw.mp4', no_cache=True)
-                    file_mp4 = self.one._download_dataset(dset[0], clobber=clobber_vid)
+                    try:
+                        file_mp4 = self.one.load_dataset(session_id, f'{cam}Camera.raw', download_only=True,
+                                                         query_type='remote', clobber=clobber_vid)
+                    except ALFObjectNotFound:
+                        break
                     # Check if video is downloaded completely, otherwise retry twice
                     video_intact = self._video_intact(file_mp4)
                     if video_intact is False:
@@ -110,7 +111,8 @@ class TaskDLC(tasks.Task):
                 if video_intact is False:
                     self.status = -1
                     _logger.error(f'{cam}Camera video failed to download.')
-                    continue
+                    # No point in continuing here
+                    return dlc_results, me_results, me_rois
                 time_off = time.time()
                 timer[f'{cam}'][f'Download video'] = time_off - time_on
 
@@ -200,13 +202,8 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
         # Check if labels are valid
         cams = tuple(assert_valid_label(cam) for cam in cams)  # raises ValueError if label invalid
         # Check if all requested videos exist
-        vids = [dset['name'] for dset in one.alyx.rest('datasets', 'list',
-                                                       django=(f'session__id,{session_id},'
-                                                               'data_format__name,mp4,'
-                                                               f'name__icontains,camera'),
-                                                       no_cache=True
-                                                       )]
-        no_vid = [cam for cam in cams if f'_iblrig_{cam}Camera.raw.mp4' not in vids]
+        vids = one.list_datasets(session_id, filename=f'_iblrig_*Camera.raw.mp4', query_type='remote')
+        no_vid = [cam for cam in cams if f'raw_video_data/_iblrig_{cam}Camera.raw.mp4' not in vids]
         if len(no_vid) > 0:
             # If less datasets, update task and raise error
             log_str = '\n'.join([f"No raw video file found for {no_cam}Camera." for
