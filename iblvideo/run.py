@@ -191,9 +191,7 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
         # Create ONE instance if none is given
         one = one or ONE()
         session_path = one.eid2path(session_id)
-        tdict = one.alyx.rest('tasks', 'list',
-                              django=f"name__icontains,DLC,session__id,{session_id}",
-                              no_cache=True)[0]
+        tdict = one.alyx.rest('tasks', 'list', django=f"name__icontains,DLC,session__id,{session_id}", no_cache=True)[0]
     except IndexError:
         print(f"No DLC task found for session {session_id}")
         return -1
@@ -206,12 +204,11 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
         no_vid = [cam for cam in cams if f'raw_video_data/_iblrig_{cam}Camera.raw.mp4' not in vids]
         if len(no_vid) > 0:
             # If less datasets, update task and raise error
-            log_str = '\n'.join([f"No raw video file found for {no_cam}Camera." for
-                                 no_cam in no_vid])
-            patch_data = {'log': log_str, 'status': 'Errored'}
-            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data,
-                          no_cache=True)
-            return -1
+            log_str = '\n'.join([f"No raw video file found for {no_cam}Camera." for no_cam in no_vid])
+            # Here setting it to Empty and reducing priority, so it will be tried again later
+            patch_data = {'log': log_str, 'status': 'Empty', 'priority': tdict['priority']-10}
+            one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data, no_cache=True)
+            return
         else:
             # set a flag in local session folder to later resume if interrupted
             session_path.mkdir(parents=True, exist_ok=True)
