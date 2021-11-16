@@ -97,7 +97,7 @@ class TaskDLC(tasks.Task):
                 video_intact, clobber_vid, attempt = False, False, 0
                 while video_intact is False and attempt < 3:
                     try:
-                        file_mp4 = self.one.load_dataset(session_id, f'{cam}Camera.raw', download_only=True,
+                        file_mp4 = self.one.load_dataset(session_id, f'_iblrig_{cam}Camera.raw.mp4', download_only=True,
                                                          query_type='remote', clobber=clobber_vid)
                     except ALFObjectNotFound:
                         break
