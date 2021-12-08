@@ -200,8 +200,12 @@ def run_session(session_id, machine=None, cams=('left', 'body', 'right'), one=No
         # Check if labels are valid
         cams = tuple(assert_valid_label(cam) for cam in cams)  # raises ValueError if label invalid
         # Check if all requested videos exist
-        vids = one.list_datasets(session_id, filename=f'_iblrig_*Camera.raw.mp4', query_type='remote')
-        no_vid = [cam for cam in cams if f'raw_video_data/_iblrig_{cam}Camera.raw.mp4' not in vids]
+        try:
+            vids = one.list_datasets(session_id, filename=f'_iblrig_*Camera.raw.mp4', query_type='remote')
+            no_vid = [cam for cam in cams if f'raw_video_data/_iblrig_{cam}Camera.raw.mp4' not in vids]
+        except KeyError:
+            # This happens if no data whatsoever is on the server for this session
+            no_vid = [cam for cam in cams]
         if len(no_vid) > 0:
             # If less datasets, update task and raise error
             log_str = '\n'.join([f"No raw video file found for {no_cam}Camera." for no_cam in no_vid])
