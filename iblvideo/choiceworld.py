@@ -399,7 +399,7 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
         # Reset force to the original input value as the reset is network-specific
         force = input_force
 
-    out_file = _s06_extract_dlc_alf(tdir, file_label, networks,  file_mp4)
+    out_file = _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4)
 
     # at the end mop up the mess
     # For right camera video only
@@ -412,7 +412,6 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
     shutil.rmtree(tdir)
     # Back to home folder else there  are conflicts in a loop
     os.chdir(Path.home())
-    end_T = time.time()
     print(file_label)
     time_total_off = time.time()
     dlc_timer['DLC total'] = time_total_off - time_total_on

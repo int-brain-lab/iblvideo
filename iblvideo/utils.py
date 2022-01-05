@@ -1,6 +1,5 @@
 import subprocess
 import logging
-from ibllib.exceptions import IblError
 
 _logger = logging.getLogger('ibllib')
 
