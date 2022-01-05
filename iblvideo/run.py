@@ -1,22 +1,23 @@
 import logging
-import os
 import traceback
-import time
-import cv2
 import shutil
 
 from glob import glob
 from datetime import datetime
-from collections import OrderedDict
-
-import numpy as np
+from packaging.version import parse
 
 from one.api import ONE
 from ibllib.pipes.ephys_preprocessing import EphysDLC
 from ibllib.oneibl.patcher import FTPPatcher
 from ibllib.misc import check_nvidia_driver
+from iblvideo import __version__
 
 _logger = logging.getLogger('ibllib')
+
+status_dict = {0: 'Complete',
+               -1: 'Errored',
+               -2: 'Waiting',
+               -3: 'Incomplete'}
 
 
 def run_session(session_id, machine=None, cams=None, one=None, remove_videos=True, overwrite=True,
@@ -54,8 +55,7 @@ def run_session(session_id, machine=None, cams=None, one=None, remove_videos=Tru
         # create the task instance and run it, update task
         task = EphysDLC(session_path, one=one, taskid=tdict['id'], machine=machine, location=location, **kwargs)
         status = task.run(cams=cams, overwrite=overwrite)
-        patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log,
-                      'status': 'Errored' if status == -1 else 'Complete'}
+        patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log, 'status': status_dict[status]}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data, no_cache=True)
         # register the data using the FTP patcher
         if task.outputs:
@@ -68,6 +68,7 @@ def run_session(session_id, machine=None, cams=None, one=None, remove_videos=Tru
                 one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'version': task.version})
             else:
                 _logger.warning("No new outputs computed.")
+                one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'status': 'Empty'})
         if remove_videos is True:
             shutil.rmtree(session_path.joinpath('raw_video_data'), ignore_errors=True)
 
@@ -81,22 +82,19 @@ def run_session(session_id, machine=None, cams=None, one=None, remove_videos=Tru
         return -1
     # Remove in progress flag
     session_path.joinpath('dlc_started').unlink()
-    # Set status to Incomplete if the length of cameras was < 3 but everything passed
-    if status == 0 and len(cams) < 3:
-        one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'status': 'Incomplete'}, no_cache=True)
     return status
 
 
-def run_queue(machine=None, target_versions=(__version__), statuses=('Empty', 'Waiting', 'Complete'),
-              restart_local=True, overwrite=True, n_sessions=1000, delta_query=600,
-              **kwargs):
+def run_queue(machine=None, min_version=__version__, statuses=None, restart_local=True, overwrite=True,
+              n_sessions=1000, delta_query=600, **kwargs):
     """
-    Run all tasks that have a version below min_version and a status in statuses. By default
+    Run all tasks that have a version below min_version and a status in statuses. By default this
     overwrites pre-exisitng results.
 
     :param machine: str, tag for the machine this job ran on
-    :param target_versions: str, if the task is at this version it should not be rerun
-    :param statuses: tuple, task statuses which should be (re)run
+    :param min_version: str, rerun all tasks lower than this version (default is current version)
+    :param statuses: list, task statuses which should be (re)run
+                     (default is ['Empty', 'Waiting', 'Complete', 'Incomplete'])
     :param restart_local: bool, whether to restart interrupted local jobs (default is True)
     :param overwrite: bool, whether overwrite existing outputs of previous runs (default is True)
     :param n_sessions: int, number of sessions to run from queue
@@ -105,6 +103,8 @@ def run_queue(machine=None, target_versions=(__version__), statuses=('Empty', 'W
     """
 
     one = ONE()
+    statuses = statuses or ['Empty', 'Waiting', 'Complete', 'Incomplete']
+
     # Loop until n_sessions is reached or something breaks
     machine = machine or one.alyx.user
     status_dict = {}
@@ -129,7 +129,8 @@ def run_queue(machine=None, target_versions=(__version__), statuses=('Empty', 'W
             last_query = datetime.now()
             all_tasks = one.alyx.rest('tasks', 'list', name='EphysDLC', no_cache=True)
             task_queue = [t for t in all_tasks if t['status'] in statuses and
-                          (t['version'] is None or t['version'] not in target_versions)]
+                          (t['version'] is None or
+                           parse(t['version'].split('_')[-1]) < parse(min_version.split('_')[-1]))]
             task_queue = sorted(task_queue, key=lambda k: k['priority'], reverse=True)
             if len(task_queue) == 0:
                 print("No sessions to run")
@@ -142,8 +143,7 @@ def run_queue(machine=None, target_versions=(__version__), statuses=('Empty', 'W
             return
         # Run next session in the list, capture status in dict and move on to next session
         eid = sessions[0]
-        status_dict[eid] = run_session(sessions.pop(0), machine=machine, overwrite=overwrite,
-                                       one=one, **kwargs)
+        status_dict[eid] = run_session(sessions.pop(0), machine=machine, overwrite=overwrite, one=one, **kwargs)
         count += 1
 
     return status_dict

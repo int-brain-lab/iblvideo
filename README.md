@@ -129,7 +129,7 @@ python -c 'import iblvideo'
 ```
 ## Releasing a new version (for devs)
 
-We use semantic versioning MAJOR.MINOR.PATCH. If you update the version, see below for what to adapt.
+We use semantic versioning, with a prefix: `iblvideo_MAJOR.MINOR.PATCH`. If you update the version, see below for what to adapt.
 
 ### Any version update
 Update the version in
@@ -151,6 +151,6 @@ If you update any of the DLC weights, you also need to update the MINOR version 
 6. Zip and upload the new weights and test data folders to FlatIron :
 ```
 /resources/dlc/weights_v{MAJOR}.{MINOR}.zip
-/integration/dlc/test_data/dlc_test_data_v{MAJOR}.{MINOR}.zip
+/resources/dlc/dlc_test_data_v{MAJOR}.{MINOR}.zip
 ```
 6. Delete your local weights and test data and run tests/test_choiceworld.py to make sure everything worked.
