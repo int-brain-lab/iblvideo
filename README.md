@@ -22,16 +22,25 @@ from iblvideo import dlc
 output = dlc("Path/to/file.mp4")
 ```
 
-### Running DLC for one session given its EID
+### Running DLC for one session using ONE
 ```python
 from iblvideo import run_session
 run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
 ```
-### Running the queue
+### Running the queue using ONE
 ```python
-from iblvideo import run_queue
+from iblvideo import run_queue 
 run_queue(machine='mymachine')
 ```
+### Updating the environment
+```bash
+# Inside the main repository
+chmod 775 update_env.sh
+# If you installed your environment and repo in a different place than the example, 
+# # you need to open and adapt this script
+./update_env.sh
+```
+
 ## Accessing results
 
 DLC results are stored on the Flatrion server, with the `dataset_type` being `camera.dlc` and can be searched as any other IBL datatype via ONE. See https://int-brain-lab.github.io/iblenv/ for details. There is a script to produce labeled videos as seen in the images above for the inspection of particular trials (requires the legnthy download of full videos): https://github.com/int-brain-lab/iblapps/blob/develop/dlc/DLC_labeled_video.py and one to produce trial-averaged behavioral activity plots using DLC traces (fast, as this is downloading DLC traces and wheel data only): https://github.com/int-brain-lab/iblapps/blob/master/dlc/overview_plot_dlc.py 
