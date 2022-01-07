@@ -13,21 +13,21 @@ def _download_dlc_test_data(version=__version__, one=None):
     # Read one_params file
 
     # if there is a test dir in the current path, use this one. Useful for Docker deployment
-    local_test_dir = Path(f"dlc_test_data_v{'.'.join(version.split('.')[:-1])}").absolute()
+    local_test_dir = Path(f"dlc_test_data_v{'.'.join(version.split('_')[-1].split('.')[:-1])}").absolute()
     if local_test_dir.exists():
         _logger.warning(f'Using cached directory at {local_test_dir}')
         return local_test_dir
 
     # otherwise get it from the SDSC server
     one = one or ONE()
-    data_dir = Path('integration', 'dlc', 'test_data')
+    data_dir = Path('resources', 'dlc')
 
     # Create target directory if it doesn't exist
     local_path = Path(ONE().cache_dir).joinpath(data_dir)
     local_path.mkdir(exist_ok=True, parents=True)
 
     # Construct URL and call download
-    url = '{}/dlc_test_data_v{}.zip'.format(str(data_dir), '.'.join(version.split('.')[:-1]))
+    url = '{}/dlc_test_data_v{}.zip'.format(str(data_dir), '.'.join(version.split('_')[-1].split('.')[:-1]))
     file_name, hash = one.alyx.download_file(url, cache_dir=local_path, return_md5=True, silent=True)
     file_name = Path(file_name)
     _logger.info(f"Downloaded test data hash: {hash}, {file_name}")
@@ -50,7 +50,7 @@ def _download_me_test_data(one=None):
 
     # Read one_params file
     one = one or ONE()
-    data_dir = Path('integration', 'dlc', 'test_data')
+    data_dir = Path('resources', 'dlc')
 
     # Create target directory if it doesn't exist
     local_path = Path(ONE().cache_dir).joinpath(data_dir)
