@@ -378,7 +378,7 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
         time_on = time.time()
         if networks[k]['features'] is None:
             continue
-        # Run preprocessing depdening on the feature
+        # Run preprocessing depending on the feature
         if k == 'paws':
             preproc_vid, force = _s04_resample_paws(file2segment, tdir, force=force)
         elif k == 'eye':
