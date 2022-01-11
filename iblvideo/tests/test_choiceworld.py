@@ -40,13 +40,13 @@ def test_dlc(version=__version__):
                 out_pqt.loc[idx, [f'{t}_x', f'{t}_y', f'{t}_likelihood']] = np.nan
 
         try:
-            assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2, equal_nan=True)
+            assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=1, equal_nan=True)
         except AssertionError:
             diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))
             out_pqt.to_parquet(test_data.joinpath(f'_ibl_{cam}Camera.dlc.failed.pqt'))
 
             print(np.nanmax(diff, axis=0), np.nanmean(diff, axis=0))
-            assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=10e-2, equal_nan=True)
+            assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=1, equal_nan=True)
 
     alf_path = test_data.joinpath('alf')
     shutil.rmtree(alf_path)
