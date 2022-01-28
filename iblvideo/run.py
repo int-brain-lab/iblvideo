@@ -1,6 +1,7 @@
 import logging
 import traceback
 import shutil
+import requests
 
 from glob import glob
 from datetime import datetime
@@ -62,8 +63,16 @@ def run_session(session_id, machine=None, cams=None, one=None, remove_videos=Tru
             # it is safer to instantiate the FTP right before transfer to prevent time-out
             ftp_patcher = FTPPatcher(one=one)
             if len(task.outputs) > 0:
-                for output in task.outputs:
-                    ftp_patcher.create_dataset(path=output)
+                try:
+                    for output in task.outputs:
+                        ftp_patcher.create_dataset(path=output)
+                except requests.HTTPError:
+                    revision_path = session_path.joinpath('alf', f'#{datetime.today().strftime("%Y-%m-%d")}#')
+                    revision_path.mkdir()
+                    for output in task.outputs:
+                        new_output = revision_path.joinpath(output.name)
+                        shutil.move(output, new_output)
+                        ftp_patcher.create_dataset(path=new_output)
                 # Update the version only now and only if new outputs are uploaded
                 one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data={'version': task.version})
             else:
