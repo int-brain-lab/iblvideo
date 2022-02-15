@@ -67,7 +67,9 @@ def run_session(session_id, machine=None, cams=None, one=None, remove_videos=Tru
                     for output in task.outputs:
                         ftp_patcher.create_dataset(path=output)
                 except requests.HTTPError:
-                    revision_path = session_path.joinpath('alf', f'#{datetime.today().strftime("%Y-%m-%d")}#')
+                    revision = datetime.today().strftime("%Y-%m-%d")
+                    _logger.warning(f'Creating revision {revision}')
+                    revision_path = session_path.joinpath('alf', f'#{revision}#')
                     revision_path.mkdir()
                     for output in task.outputs:
                         new_output = revision_path.joinpath(output.name)
