@@ -52,8 +52,16 @@ def run_session(session_id, machine=None, cams=None, one=None, remove_videos=Tru
         # set a flag in local session folder to later resume if interrupted
         session_path.mkdir(parents=True, exist_ok=True)
         session_path.joinpath('dlc_started').touch(exist_ok=True)
-        # create the task instance and run it, update task
+        # create the task instance
         task = EphysDLC(session_path, one=one, taskid=tdict['id'], machine=machine, location=location, **kwargs)
+        # Overwrite the signature with the actual cameras needed. Since this is a class attribute, once we start
+        # doing this we have to do it every single time as it will transfer to the next task run
+        cams = cams or ['left', 'right', 'body']
+        task.signature['input_files'] = [(f'_iblrig_{cam}Camera.raw.mp4', 'raw_video_data', True) for cam in cams]
+        task.signature['output_files'] = [(f'_ibl_{cam}Camera.dlc.pqt', 'alf', True) for cam in cams]
+        task.signature['output_files'].extend([(f'{cam}Camera.ROIMotionEnergy.npy', 'alf', True) for cam in cams])
+        task.signature['output_files'].extend([(f'{cam}ROIMotionEnergy.position.npy', 'alf', True) for cam in cams])
+        # Run the task and update on Alyx
         status = task.run(cams=cams, overwrite=overwrite)
         patch_data = {'time_elapsed_secs': task.time_elapsed_secs, 'log': task.log, 'status': status_dict[status]}
         one.alyx.rest('tasks', 'partial_update', id=tdict['id'], data=patch_data, no_cache=True)
