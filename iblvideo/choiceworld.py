@@ -15,6 +15,7 @@ import cv2
 
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 from iblvideo.utils import _run_command
+from ibllib.io.video import get_video_meta
 
 _logger = logging.getLogger('ibllib')
 
@@ -90,7 +91,7 @@ def _get_crop_window(file_df_crop, network):
     return network['crop'](*xy)
 
 
-def _s00_transform_rightCam(file_mp4, tdir, force=False):
+def _s00_transform_rightCam(file_mp4, tdir, nframes, force=False):
     """
     Flip and rotate the right cam and increase spatial resolution.
     Such that the rightCamera video looks like the leftCamera video.
@@ -101,7 +102,7 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
         _logger.info('STEP 00a Flipped rightCamera video exists, not computing.')
     else:
         _logger.info('STEP 00a START Flipping and turning rightCamera video')
-        command_flip = (f'ffmpeg -nostats -y -loglevel 0 -i {file_mp4} -vf '
+        command_flip = (f'ffmpeg -nostats -y -loglevel 0 -i {file_mp4} -frames:v {nframes} -vf '
                         f'"transpose=1,transpose=1" -vf hflip {file_out1}')
         pop = _run_command(command_flip)
         if pop['process'].returncode != 0:
@@ -116,7 +117,7 @@ def _s00_transform_rightCam(file_mp4, tdir, force=False):
         _logger.info('STEP 00b Oversampled rightCamera video exists, not computing.')
     else:
         _logger.info('STEP 00b START Oversampling rightCamera video')
-        command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} '
+        command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} -frames:v {nframes}'
                             f'-vf scale=1280:1024 {file_out2}')
         pop = _run_command(command_upsample)
         if pop['process'].returncode != 0:
@@ -182,7 +183,7 @@ def _s02_detect_rois(tdir, sparse_video, dlc_params, create_labels=False, force=
     return file_out, force
 
 
-def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
+def _s03_crop_videos(file_df_crop, file_in, file_out, network, nframes, force=False):
     """
     Step 3 crop videos using ffmpeg.
     returns: dictionary of cropping coordinates relative to upper left corner
@@ -194,10 +195,10 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
         _logger.info(f'STEP 03 Cropped video {file_out.name} exists, not computing.')
     else:
         _logger.info(f'STEP 03 START generating cropped video {file_out.name}')
-        crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -vf "crop={w[0]}:{w[1]}:'
+        crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -frames:v {nframes} -vf "crop={w[0]}:{w[1]}:'
                         '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
         whxy = _get_crop_window(file_df_crop, network)
-        pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out, w=whxy))
+        pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out, nframes=nframes, w=whxy))
         if pop['process'].returncode != 0:
             _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI \
                           {network["label"]}, file: {file_in}')
@@ -208,7 +209,7 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, force=False):
     return file_out, force
 
 
-def _s04_brightness_eye(file_in, force=False):
+def _s04_brightness_eye(file_in, nframes, force=False):
     """
     Adjust brightness for eye for better network performance.
     wget -O- http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 | tar xj
@@ -223,7 +224,7 @@ def _s04_brightness_eye(file_in, force=False):
     else:
         # Else run command
         _logger.info(f'STEP 04 START Generating adjusting eye brightness video {file_out.name}')
-        cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf '
+        cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -frames:v {nframes} -vf '
                f'colorlevels=rimax=0.25:gimax=0.25:bimax=0.25 -c:a copy {file_out}')
         pop = _run_command(cmd)
         if pop['process'].returncode != 0:
@@ -234,7 +235,7 @@ def _s04_brightness_eye(file_in, force=False):
     return file_out, force
 
 
-def _s04_resample_paws(file_in, tdir, force=False):
+def _s04_resample_paws(file_in, tdir, nframes, force=False):
     """For paws, spatially downsample to speed up processing x100."""
     file_in = Path(file_in)
     file_out = Path(tdir) / file_in.name.replace('raw', 'paws_downsampled')
@@ -243,7 +244,7 @@ def _s04_resample_paws(file_in, tdir, force=False):
         _logger.info(f'STEP 04 resampled paws {file_out.name} exists, not computing')
     else:
         _logger.info(f'STEP 04 START generating resampled paws video {file_out.name}')
-        cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=128:102 -c:v libx264 -crf 23'
+        cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -frames:v {nframes} -vf scale=128:102 -c:v libx264 -crf 23'
                f' -c:a copy {file_out}')  # was 112:100
         pop = _run_command(cmd)
         if pop['process'].returncode != 0:
@@ -353,13 +354,15 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
     time_total_on = time.time()
     # Initiate
     file_mp4, dlc_params, networks, tdir, tfile, file_label = _dlc_init(file_mp4, path_dlc)
+    file_meta = get_video_meta(file_mp4)
+    nframes = file_meta['length']
 
     # Run the processing steps in order
     if 'rightCamera' not in file_mp4.name:
         file2segment = file_mp4
     else:
         time_on = time.time()
-        file2segment, force = _s00_transform_rightCam(file_mp4, tdir, force=force)  # CPU Python
+        file2segment, force = _s00_transform_rightCam(file_mp4, tdir, nframes, force=force)  # CPU Python
         time_off = time.time()
         dlc_timer['Transform right camera'] = time_off - time_on
 
@@ -380,14 +383,14 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
             continue
         # Run preprocessing depending on the feature
         if k == 'paws':
-            preproc_vid, force = _s04_resample_paws(file2segment, tdir, force=force)
+            preproc_vid, force = _s04_resample_paws(file2segment, tdir, nframes, force=force)
         elif k == 'eye':
             cropped_vid, force = _s03_crop_videos(file_df_crop, file2segment, tfile[k],
-                                                  networks[k], force=force)
-            preproc_vid, force = _s04_brightness_eye(cropped_vid, force=force)
+                                                  networks[k], nframes, force=force)
+            preproc_vid, force = _s04_brightness_eye(cropped_vid, nframes, force=force)
         else:
             preproc_vid, force = _s03_crop_videos(file_df_crop, file2segment, tfile[k],
-                                                  networks[k], force=force)
+                                                  networks[k], nframes, force=force)
         time_off = time.time()
         dlc_timer[f'Prepare video for {k} network'] = time_off - time_on
 
