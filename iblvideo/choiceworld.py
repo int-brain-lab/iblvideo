@@ -117,7 +117,7 @@ def _s00_transform_rightCam(file_mp4, tdir, nframes, force=False):
         _logger.info('STEP 00b Oversampled rightCamera video exists, not computing.')
     else:
         _logger.info('STEP 00b START Oversampling rightCamera video')
-        command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} -frames:v {nframes}'
+        command_upsample = (f'ffmpeg -nostats -y -loglevel 0 -i {file_out1} -frames:v {nframes} '
                             f'-vf scale=1280:1024 {file_out2}')
         pop = _run_command(command_upsample)
         if pop['process'].returncode != 0:
