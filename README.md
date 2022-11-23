@@ -11,7 +11,7 @@ DLC is used for markerless tracking of animal parts in these videos, returning f
 
 The following is an example frame from camera 'left'. Camera 'right' is flipped for labelling such that the frame looks the same as for the 'left' camera and the same DLC network can be applied. Hence 'paw_r' for each camera is the paw that is closer to the camera, respectively.
 
-<img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/side_view.png" width="50%" height="50%">
+<img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/side_view2.png" width="50%" height="50%">
 
 In addition, we track the `'tail_start'` in the body videos:
 
