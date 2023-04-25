@@ -37,3 +37,21 @@ def download_weights(version=__version__, one=None):
     if not weights_dir.exists():
         shutil.unpack_archive(str(file_name), weights_path)  # unzip file
     return weights_dir
+
+
+def download_lit_model(network, check_updates=True, overwrite=False):
+    """
+    Downloads a specific network from AWS and returns file name.
+
+    Parameters
+    ----------
+    network
+    check_updates
+    overwrite
+
+    Returns
+    -------
+
+    """
+    pass
+
