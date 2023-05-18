@@ -47,34 +47,47 @@ chmod 775 update_env.sh
 
 DLC results are stored on the Flatrion server, with the `dataset_type` being `camera.dlc` and can be searched as any other IBL datatype via ONE. See https://int-brain-lab.github.io/iblenv/ for details. There is a script to produce labeled videos as seen in the images above for the inspection of particular trials (requires the legnthy download of full videos): https://github.com/int-brain-lab/iblapps/blob/develop/dlc/DLC_labeled_video.py and one to produce trial-averaged behavioral activity plots using DLC traces (fast, as this is downloading DLC traces and wheel data only): https://github.com/int-brain-lab/iblapps/blob/master/dlc/overview_plot_dlc.py 
 
-## Installing DLC locally on an IBL server
+
+Tensor flow dictates the versions of Python / cuDNN and CUDA while `deeplabcut` keeps up to date with [tensorflow](https://www.tensorflow.org/install/source#gpu) (as of May 2023)
+
+| Version           | Python version | Compiler  | Build tools | cuDNN | CUDA |
+|-------------------|----------------|-----------|-------------|------|------|
+| tensorflow-2.12.0 | 3.8-3.11       | GCC 9.3.1 | Bazel 5.3.0 | 8.6  | 11.8 |
+| tensorflow-2.11.0 | 3.7-3.10       | GCC 9.3.1 | Bazel 5.3.0 | 8.1  | 11.2 |
+
+## Installing DLC locally on an IBL server - tensorflow 2.12.0
 
 ### Pre-requisites
 
 Install local server as per [this instruction](https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4).
 
-Install CUDA 11.2 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l). No need to set up the library paths yet, as we will do it below.
+Install CUDA 11.8 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l). No need to set up the library paths yet, as we will do it below.
 
-Install cuDNN, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
+Install cuDNN 8.6, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
 
 ```bash
-wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/cudnn-11.2-linux-x64-v8.1.1.33.tgz 
-tar -xvf cudnn-11.2-linux-x64-v8.1.1.33.tgz 
-sudo cp cuda/include/cudnn.h /usr/local/cuda-11.2/include  
-sudo cp cuda/lib64/libcudnn* /usr/local/cuda-11.2/lib64  
-sudo chmod a+r /usr/local/cuda-11.2/include/cudnn.h /usr/local/cuda-11.2/lib64/libcudnn*  
+# get the install archive
+CUDA_VERSION=11.8
+CUDNN_ARCHIVE=cudnn-linux-x86_64-8.9.1.23_cuda11-archive
+wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/$CUDNN_ARCHIVE
+# unpack the archive and copy libraries to the CUDA library path
+tar -xvf $CUDNN_ARCHIVE.tar.xz
+sudo cp $CUDNN_ARCHIVE/include/cudnn.h /usr/local/cuda-$CUDA_VERSION/include  
+sudo cp $CUDNN_ARCHIVE/lib/libcudnn* /usr/local/cuda-$CUDA_VERSION/lib64  
+sudo chmod a+r /usr/local/cuda-$CUDA_VERSION/include/cudnn.h /usr/local/cuda-$CUDA_VERSION/lib64/libcudnn*
 ```
 
 ### Create a Python environment with TensorFlow and DLC
 
-Install python3.8 (if necessary)
+Install python3.10 (NB: `torch`, `deeplabcut` and `python3.11` didn't play well for us, we tested 3.10)
 
 ```bash
-sudo apt update  
-sudo apt install software-properties-common  
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.8-tk  
-sudo apt install python3.8 python3.8-dev  
+sudo apt update -y 
+sudo apt install software-properties-common -y  
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt-get install python3.10-tk -y  
+sudo apt install python3.10 python3.10-dev -y 
+sudo apt install python3.10-distutils -y
 ```
 
 Create an environment called e.g. dlcenv
@@ -82,26 +95,27 @@ Create an environment called e.g. dlcenv
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
-virtualenv dlcenv --python=python3.8
+virtualenv dlcenv --python=python3.10
 ```
 
 Activate the environment and install packages
 
 ```bash
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
-pip install -U setuptools
-pip install git+https://github.com/int-brain-lab/ibllib.git
-pip install tensorflow
-pip install deeplabcut
+pip install setuptools==65
+pip install ibllib
+pip install torch==1.12
+pip install deeplabcut[tf]
 ```
 
 ### Test if tensorflow and deeplabcut installation was successful
 
 Export environment variables for testing
 ```bash
-export PATH=/usr/local/cuda-11.2/bin:$PATH
+$CUDA_VERSION=11.8
+export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
 export TF_FORCE_GPU_ALLOW_GROWTH='true'
-export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
+export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 ```
 
 Try to import deeplabcut and tensorflow (don't forget that dlcenv has to be active)
@@ -115,8 +129,7 @@ nano ~/.bashrc
 ```
 Enter this line under the other aliases:
 ```bash
-alias dlcenv="export PATH=/usr/local/cuda-11.2/bin:$PATH; export TF_FORCE_GPU_ALLOW_GROWTH='true'; export LD_LIBRARY_PATH=/usr/local/cuda-11.2/lib64:/usr/local/cuda-11.2/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
-
+alias dlcenv="CUDA_VERSION=11.8; export PATH=/usr/local/cuda-%CUDA_VERSION/bin:$PATH; export TF_FORCE_GPU_ALLOW_GROWTH='true'; export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/dlcenv/bin/activate"
 ```
 After opening a new terminal you should be able to type `dlcenv` and end up in an environment in which you can import tensorflow and deeplabcut like above.
 
@@ -138,6 +151,13 @@ Test if you install was successful
 ```
 python -c 'import iblvideo'
 ```
+
+Eventually run the tests:
+```shell
+pytest ./iblvideo/tests/test_choiceworld.py
+pytest ./iblvideo/tests/test_motion_energy.py
+```
+
 ## Releasing a new version (for devs)
 
 We use semantic versioning, with a prefix: `iblvideo_MAJOR.MINOR.PATCH`. If you update the version, see below for what to adapt.
