@@ -58,7 +58,7 @@ def _download_me_test_data(one=None):
 
     # Construct URL and call download
     url = '{}/me_test_data.zip'.format(str(data_dir))
-    file_name, hash = one.alyx.download_file(url, cache_dir=local_path, return_md5=True, silent=True)
+    file_name, hash = one.alyx.download_file(url, target_dir=local_path, return_md5=True, silent=True)
     file_name = Path(file_name)
     # unzip file
     test_dir = file_name.parent.joinpath(file_name.stem)
