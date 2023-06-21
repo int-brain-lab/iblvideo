@@ -1,5 +1,5 @@
 
-__version__ = 'iblvideo_2.2.0'  # This is the only place where the version is hard coded, only adapt here
+__version__ = 'iblvideo_2.2.1'  # This is the only place where the version is hard coded, only adapt here
 
 import deeplabcut
 
