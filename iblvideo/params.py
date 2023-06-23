@@ -3,53 +3,64 @@ SIDE_FEATURES = {
         'label': 'roi_detect',
         'features': None,
         'weights': 'roi_detect-*',
-        'crop': None,
+        'crop': lambda x, y: None,
         'postcrop_downsampling': 1,
-        'resize_dims': (512, 512),
+        'resize_dims': (512, 512),  # resize for training
+        'sequence_length': 16,
      },
     'nose_tip': {
         'label': 'nose_tip',
-        'features': ['nose_tip'],
+        'features': ['nose_tip'],  # window anchor from roi network
         'weights': 'nose_tip-*',
         'crop': lambda x, y: [100, 100, x - 50, y - 50],
         'postcrop_downsampling': 1,
+        'resize_dims': (128, 128),  # resize for training
+        'sequence_length': 96,
     },
     'eye': {
         'label': 'eye',
-        'features': ['pupil_top_r'],
+        'features': ['pupil_top_r'],  # window anchor from roi network
         'weights': 'eye-mic-*',
         'crop': lambda x, y: [100, 100, x - 50, y - 50],
         'postcrop_downsampling': 1,
+        'resize_dims': (128, 128),  # resize for training
+        'sequence_length': 96,
     },
     'paws': {
         'label': 'paws',
-        'features': ['nose_tip'],
+        'features': ['nose_tip'],  # dummy entry to force run with other specialized networks
         'weights': 'paw2-mic-*',
-        'crop': None,
+        'crop': lambda x, y: None,
         'postcrop_downsampling': 10,
+        'resize_dims': (128, 128),  # resize for training
+        'sequence_length': 96,
     },
     'tongue': {
         'label': 'tongue',
-        'features': ['tube_top', 'tube_bottom'],
+        'features': ['tube_top', 'tube_bottom'],  # window anchor from roi network
         'weights': 'tongue-mic-*',
         'crop': lambda x, y: [160, 160, x - 60, y - 100],
-        'postcrop_downsampling': 1
+        'postcrop_downsampling': 1,
+        'resize_dims': (128, 128),  # resize for training
+        'sequence_length': 96,
     },
 }
 
 BODY_FEATURES = {
-    'roi_detect':
-        {'label': 'roi_detect',
-         'features': None,
-         'weights': 'tail-mic-*',
-         'crop': None,
-         'postcrop_downsampling': 1},
-    'tail_start':
-        {'label': 'tail_start',
-         'features': ['tail_start'],
-         'weights': 'tail-mic-*',
-         'crop': lambda x, y: [220, 220, x - 110, y - 110],
-         'postcrop_downsampling': 1}
+    'roi_detect': {
+        'label': 'roi_detect',
+        'features': None,
+        'weights': 'tail-mic-*',
+        'crop': lambda x, y: None,
+        'postcrop_downsampling': 1,
+    },
+    'tail_start': {
+        'label': 'tail_start',
+        'features': ['tail_start'],
+        'weights': 'tail-mic-*',
+        'crop': lambda x, y: [220, 220, x - 110, y - 110],
+        'postcrop_downsampling': 1,
+    }
 }
 
 LEFT_VIDEO = {

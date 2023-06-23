@@ -14,8 +14,10 @@ from nvidia.dali import pipeline_def
 import nvidia.dali.fn as fn
 from nvidia.dali.plugin.pytorch import LastBatchPolicy
 import nvidia.dali.types as types
+import os
 import pandas as pd
 from pathlib import Path
+import torch
 from typing import List, Optional, Dict, Union
 import yaml
 
@@ -35,16 +37,14 @@ def collect_model_paths(view: str):
         }
 
 
-def _get_crop_window(file_df_crop, network):
-    """
-    Get average position of a pivot point for autocropping.
+def get_crop_window(file_df_crop: Path, network: dict):
+    """Get average position of a pivot point for autocropping.
+
     :param file_df_crop: Path to data frame from csv file from video data
-    :param network: dictionary describing the networks.
-                    See constants SIDE and BODY
-    :return: list of floats [width, height, x, y] defining window used for
-             ffmpeg crop command
+    :param network: dictionary describing the networks. See constants SIDE and BODY
+    :return: list of floats [width, height, x, y] defining window used for ffmpeg crop command
     """
-    df_crop = pd.read_csv(file_df_crop)
+    df_crop = pd.read_csv(file_df_crop, header=[0, 1, 2], index_col=0)
     XYs = []
     for part in network['features']:
         x_values = df_crop[(df_crop.keys()[0][0], part, 'x')].values
@@ -169,7 +169,7 @@ def video_pipe_crop_resize_flip(
     return video, -1
 
 
-def compute_num_iters(video_path, sequence_length, step, model_type):
+def compute_num_iters(video_path: str, sequence_length: int, step: int, model_type: str):
     frame_count = count_frames(video_path)
     if model_type == 'baseline':
         num_iters = int(np.ceil(frame_count / sequence_length))
@@ -191,7 +191,14 @@ def compute_num_iters(video_path, sequence_length, step, model_type):
     return num_iters
 
 
-def build_dataloader(network: str, mp4_file: str, view: str, model_type: str, sequence_length: int):
+def build_dataloader(
+    network: str,
+    mp4_file: str,
+    view: str,
+    model_type: str,
+    sequence_length: int,
+    crop_window: Optional[list] = None,
+) -> LitDaliWrapper:
 
     flip = True if view == 'right' else False
 
@@ -219,20 +226,14 @@ def build_dataloader(network: str, mp4_file: str, view: str, model_type: str, se
     }
 
     # set network-specific args
-    if network in ['roi_detect', 'paw']:
+    if network in ['roi_detect', 'paws']:
 
-        if network == 'roi_detect':
-            resize_dims = LEFT_VIDEO['features']['resize_dims']
-        elif network == 'paw':
-            f = SIDE_FEATURES['paws']['postcrop_downsampling']
-            resize_dims = (LEFT_VIDEO['original_size'][1] // f, LEFT_VIDEO['original_size'][0] // f)
-
+        resize_dims = LEFT_VIDEO['features'][network]['resize_dims']
         crop_params = None
         brightness = None
 
-    elif network in ['pupil', 'tongue', 'nose']:
+    elif network in ['eye', 'tongue', 'nose_tip']:
 
-        brightness = None
         if view == 'left':
             frame_width = LEFT_VIDEO['original_size'][0]
             frame_height = LEFT_VIDEO['original_size'][1]
@@ -240,38 +241,11 @@ def build_dataloader(network: str, mp4_file: str, view: str, model_type: str, se
             frame_width = RIGHT_VIDEO['original_size'][0]
             frame_height = RIGHT_VIDEO['original_size'][1]
 
-        if network == 'pupil':
-            brightness = 4.
-            if view == 'left':
-                crop_h, crop_w = 100, 100
-                crop_x, crop_y = 360, 30
-                resize_dims = None
-            else:
-                crop_h, crop_w = 50, 50
-                crop_x, crop_y = 350, 32
-                resize_dims = (100, 100)
-
-        elif network == 'tongue':
-            if view == 'left':
-                crop_h, crop_w = 160, 160
-                crop_x, crop_y = 120, 280
-                resize_dims = None
-            else:
-                crop_h, crop_w = 80, 80
-                crop_x, crop_y = 460, 140
-                resize_dims = (160, 160)
-
-        elif network == 'nose':
-            if view == 'left':
-                crop_h, crop_w = 100, 100
-                crop_x, crop_y = 80, 160
-                resize_dims = None
-            else:
-                crop_h, crop_w = 50, 50
-                crop_x, crop_y = 510, 80
-                resize_dims = (100, 100)
+        resize_dims = SIDE_FEATURES[network]['resize_dims']
+        brightness = 4. if network == 'eye' else None
 
         # dali normalizes crop params in a funny way
+        crop_w, crop_h, crop_x, crop_y = crop_window
         crop_x_norm = crop_x / (frame_width - crop_w)
         crop_y_norm = crop_y / (frame_height - crop_h)
         crop_params = {
@@ -309,13 +283,32 @@ def analyze_video(
     mp4_file: str,
     model_path: str,
     view: str,
-    create_labels: bool=False
+    create_labels: bool = False,
+    crop_window: Optional[list] = None,
+    sequence_length: int = 32,
+    save_dir: Optional[str] = None,
 ) -> pd.DataFrame:
+
+    def get_data_dir(n):
+        if n == 'nose_tip':
+            return '/media/mattw/behavior/pose-estimation-data-final/ibl-nose-tip'
+        elif n == 'eye':
+            return '/media/mattw/behavior/pose-estimation-data-final/ibl-pupil'
+        elif n == 'paws':
+            return '/media/mattw/behavior/pose-estimation-data-final/ibl-paw'
+        elif n == 'tongue':
+            return '/media/mattw/behavior/pose-estimation-data-final/ibl-tongue'
+        elif n == 'roi_detect':
+            return '/media/mattw/behavior/pose-estimation-data-final/ibl-roi-detect'
+        else:
+            raise NotImplementedError(f'add path for {n} network')
 
     # load config file
     cfg_file = Path(model_path) / '.hydra' / 'config.yaml'
     cfg = DictConfig(yaml.safe_load(open(str(cfg_file), 'r')))
     cfg.training.imgaug = 'default'  # IMPORTANT! don't augment frames
+    cfg.data.data_dir = get_data_dir(network)
+    cfg.data.video_dir = os.path.join(cfg.data.data_dir, 'videos')
 
     # build data module  # TODO: can we get rid of this?
     imgaug_transform = get_imgaug_transform(cfg=cfg)
@@ -328,8 +321,8 @@ def analyze_video(
         mp4_file=mp4_file,
         view=view,
         model_type='context' if cfg.model.do_context else 'baseline',
-        sequence_length=cfg.dali.context.predict.sequence_length if cfg.model.do_context
-            else cfg.dali.base.predict.sequence_length,
+        sequence_length=sequence_length,
+        crop_window=crop_window,
     )
 
     # load model
@@ -353,12 +346,17 @@ def analyze_video(
     # call this instance on a single vid's preds
     pred_handler = PredictionHandler(cfg=cfg, data_module=data_module, video_file=mp4_file)
     preds_df = pred_handler(preds=preds)
-    preds_df.to_csv(mp4_file.replace('.mp4', '.subsampled.csv'))
+    csv_file = mp4_file.replace('.mp4', f'.{network}.csv')
+    if save_dir:
+        csv_file = os.path.join(save_dir, os.path.basename(csv_file))
+    preds_df.to_csv(csv_file)
 
     # create labeled video
     if create_labels:
         from moviepy.editor import VideoFileClip
-        mp4_file_labeled = Path(str(mp4_file).replace('.mp4', '.labeled.mp4'))
+        mp4_file_labeled = Path(str(mp4_file).replace('.mp4', f'.{network}.labeled.mp4'))
+        if save_dir:
+            mp4_file_labeled = os.path.join(save_dir, os.path.basename(mp4_file_labeled))
         video_clip = VideoFileClip(mp4_file)
         # transform df to numpy array
         keypoints_arr = np.reshape(preds_df.to_numpy(), [preds_df.shape[0], -1, 3])
@@ -373,5 +371,13 @@ def analyze_video(
             mask_array=mask_array,
             filename=str(mp4_file_labeled),
         )
+
+    # clear up memory
+    del dataset
+    del data_module
+    del predict_loader
+    del model
+    del trainer
+    torch.cuda.empty_cache()
 
     return preds_df
