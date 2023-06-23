@@ -1,34 +1,40 @@
 SIDE_FEATURES = {
-    'roi_detect':
-        {'label': 'roi_detect',
-         'features': None,
-         'weights': 'roi_detect-*',
-         'crop': None,
-         'postcrop_downsampling': 1},
-    'nose_tip':
-        {'label': 'nose_tip',
-         'features': ['nose_tip'],
-         'weights': 'nose_tip-*',
-         'crop': lambda x, y: [100, 100, x - 50, y - 50],
-         'postcrop_downsampling': 1},
-    'eye':
-        {'label': 'eye',
-         'features': ['pupil_top_r'],
-         'weights': 'eye-mic-*',
-         'crop': lambda x, y: [100, 100, x - 50, y - 50],
-         'postcrop_downsampling': 1},
-    'paws':
-        {'label': 'paws',
-         'features': ['nose_tip'],
-         'weights': 'paw2-mic-*',
-         'crop': None,  # lambda x, y: [900, 800, x, y - 100],
-         'postcrop_downsampling': 10},
-    'tongue':
-        {'label': 'tongue',
-         'features': ['tube_top', 'tube_bottom'],
-         'weights': 'tongue-mic-*',
-         'crop': lambda x, y: [160, 160, x - 60, y - 100],
-         'postcrop_downsampling': 1},
+    'roi_detect': {
+        'label': 'roi_detect',
+        'features': None,
+        'weights': 'roi_detect-*',
+        'crop': None,
+        'postcrop_downsampling': 1,
+        'resize_dims': (512, 512),
+     },
+    'nose_tip': {
+        'label': 'nose_tip',
+        'features': ['nose_tip'],
+        'weights': 'nose_tip-*',
+        'crop': lambda x, y: [100, 100, x - 50, y - 50],
+        'postcrop_downsampling': 1,
+    },
+    'eye': {
+        'label': 'eye',
+        'features': ['pupil_top_r'],
+        'weights': 'eye-mic-*',
+        'crop': lambda x, y: [100, 100, x - 50, y - 50],
+        'postcrop_downsampling': 1,
+    },
+    'paws': {
+        'label': 'paws',
+        'features': ['nose_tip'],
+        'weights': 'paw2-mic-*',
+        'crop': None,
+        'postcrop_downsampling': 10,
+    },
+    'tongue': {
+        'label': 'tongue',
+        'features': ['tube_top', 'tube_bottom'],
+        'weights': 'tongue-mic-*',
+        'crop': lambda x, y: [160, 160, x - 60, y - 100],
+        'postcrop_downsampling': 1
+    },
 }
 
 BODY_FEATURES = {

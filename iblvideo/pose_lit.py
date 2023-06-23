@@ -1,4 +1,4 @@
-"""Functions to run DLC on IBL data with existing networks."""
+"""Functions to run Lightning Pose on IBL data with existing networks."""
 
 import cv2
 from glob import glob
@@ -8,32 +8,38 @@ import os
 import pandas as pd
 from pathlib import Path
 import shutil
+import sys
 
-from iblvideo.pose_lit_utils import analyze_video
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
+from iblvideo.pose_lit_utils import analyze_video, collect_model_paths
 from iblvideo.utils import _run_command
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
 
 
-def _s00_subsample(file_in, file_out, force=False):
+def _s00_subsample(file_in: Path, file_out: Path, force: bool = False) -> tuple:
+    """Step 0 subsample video for detection. Put 500 uniformly sampled frames into new video.
+
+    :param file_in: video file to subsample
+    :param file_out: subsampled video
+    :param force: whether to overwrite existing intermediate files
+    :return file_out, force: subsampled video, updated force parameter
     """
-    Step 0 subsample video for detection.
-    Put 500 uniformly sampled frames into new video.
-    """
-    file_in = Path(file_in)
-    file_out = Path(file_out)
+    step = '00'
+    action = f'Sparse video {file_out.name} for posture detection'
 
     if file_out.exists() and not force:
-        _logger.info(f"STEP 00 Sparse frame video {file_out.name} exists, not computing")
+        _logger.info(f'STEP {step} {action} exists, not computing')
     else:
-        _logger.info(f"STEP 00 START Generating sparse video {file_out.name} for posture detection")
+        _logger.info(f'STEP {step} START {action}')
+
         cap = cv2.VideoCapture(str(file_in))
-        frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         # get from 20 to 500 samples linearly spaced throughout the session
-        nsamples = min(max(20, int(frameCount / cap.get(cv2.CAP_PROP_FPS))), 500)
-        samples = np.int32(np.round(np.linspace(0, frameCount - 1, nsamples)))
+        nsamples = min(max(20, int(frame_count / cap.get(cv2.CAP_PROP_FPS))), 500)
+        samples = np.int32(np.round(np.linspace(0, frame_count - 1, nsamples)))
 
         size = (int(cap.get(3)), int(cap.get(4)))
         # fourcc = cv2.VideoWriter_fourcc(*'H264')  # new
@@ -44,29 +50,50 @@ def _s00_subsample(file_in, file_out, force=False):
             _, frame = cap.read()
             out.write(frame)
         out.release()
-        _logger.info(f"STEP 01 END Generating sparse video {file_out.name} for posture detection")
-        # Set force to true to recompute all subsequent steps
+        _logger.info(f'STEP {step} END {action}')
+        # set force to true to recompute all subsequent steps
         force = True
 
     return file_out, force
 
 
-def _s01_detect_rois(tdir, sparse_video, ckpt_file, view, force=False):
+def _s01_detect_rois(
+    tdir: Path,
+    mp4_file: Path,
+    model_path: Path,
+    view: str,
+    force: bool = False,
+    create_labels: bool = False,
+) -> tuple:
+    """Step 1 run Lightning Pose to detect ROIS.
+
+    :param tdir: temporary directory to store outputs
+    :param mp4_file: temporally subsampled video
+    :param model_path: path to model directory
+    :param view: camera view; 'left' | 'right' | 'body'
+    :param force: whether to overwrite existing intermediate files
+    :param create_labels: create a labeled video for debugging purposes
+    return file_out, force: Path to dataframe used to crop video, updated force parameter
     """
-    Step 1 run Lightning Pose to detect ROIS.
-    returns: Path to dataframe used to crop video
-    """
+    step = '01'
+    action = f'Posture detection for {mp4_file.name}'
+
     file_out = next(tdir.glob('*subsampled*.csv'), None)
     if file_out is None or force is True:
-        _logger.info(f"STEP 01 START Posture detection for {sparse_video.name}")
-        # out = deeplabcut.analyze_videos(dlc_params['roi_detect'], [str(sparse_video)])
-        out = analyze_videos(network='roi_detect', view=view, mp4_file=sparse_video)
+        _logger.info(f'STEP {step} START {action}')
+        out = analyze_video(
+            network='roi_detect',
+            mp4_file=str(mp4_file),
+            model_path=str(model_path),
+            view=view,
+            create_labels=create_labels,
+        )
         file_out = next(tdir.glob(f'*{out}*.csv'), None)
-        _logger.info(f"STEP 01 END Posture detection for {sparse_video.name}")
-        # Set force to true to recompute all subsequent steps
+        _logger.info(f'STEP {step} END {action}')
+        # set force to true to recompute all subsequent steps
         force = True
     else:
-        _logger.info(f"STEP 01 Posture detection for {sparse_video.name} exists, not computing.")
+        _logger.info(f'STEP {step} {action} exists, not computing.')
     return file_out, force
 
 
@@ -146,25 +173,30 @@ def _s03_extract_pose_alf(tdir, file_label, networks, file_mp4, *args):
     return file_alf
 
 
-def lightning_pose(file_mp4, weight_path=None, force=False):
-    """
-    Analyse a leftCamera, rightCamera or bodyCamera video with Lightning Pose.
+def lightning_pose(
+    mp4_file: str,
+    ckpts_path: str = None,
+    force: bool = False,
+    create_labels: bool = False,
+) -> Path:
+    """Analyse a leftCamera, rightCamera, or bodyCamera video with Lightning Pose.
 
-    The process consists in 4 steps:
+    The process consists of 4 steps:
     0- temporally subsample video frames using ffmpeg for ROI network
-    1- run Lightning Pose to detect ROIS: 'eye', 'nose_tip', 'tongue', 'paws'
+    1- run Lightning Pose to detect ROIS for: 'eye', 'nose_tip', 'tongue', 'paws'
     2- run specialized networks on each ROI
     3- output ALF dataset for the raw Lightning Pose output
 
-    :param file_mp4: video file to run
-    :param weight_path: path to folder with Lightning Pose weights
-    :param force: bool, whether to overwrite existing intermediate files
-    :return out_file: Path to Lightning Pose table in parquet file format
+    :param mp4_file: video file to run
+    :param ckpts_path: path to folder with Lightning Pose weights
+    :param force: whether to overwrite existing intermediate files
+    :param create_labels: create labeled videos for debugging
+    :return out_file: path to Lightning Pose table in parquet file format
     """
 
-    # Initiate
-    file_mp4 = Path(file_mp4)  # _iblrig_leftCamera.raw.mp4
-    file_label = file_mp4.stem.split('.')[0].split('_')[-1]
+    # initiate
+    mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
+    file_label = mp4_file.stem.split('.')[0].split('_')[-1]  # e.g. 'leftCamera'
     if 'bodyCamera' in file_label:
         view = 'body'
         networks = BODY_FEATURES
@@ -172,32 +204,58 @@ def lightning_pose(file_mp4, weight_path=None, force=False):
         view = 'right' if 'rightCamera' in file_label else 'left'
         networks = SIDE_FEATURES
 
-    # Create a directory for temporary files
-    raw_video_path = file_mp4.parent
+    # create a directory for temporary files
+    raw_video_path = mp4_file.parent
     tdir = raw_video_path.joinpath(f'lp_tmp_{file_label}')
     tdir.mkdir(exist_ok=True)
     # temporary file for temporally subsampled video
-    tfiles = {'mp4_sub': tdir / file_mp4.name.replace('.raw.', '.subsampled.')}
+    tfiles = {'mp4_sub': tdir / mp4_file.name.replace('.raw.', '.subsampled.')}
 
-    # collect all model checkpoints
-    ckpts_dict = _collect_model_checkpoints()
+    # collect all model paths
+    models_dict = collect_model_paths(view=view)
 
     # Run the processing steps in order
-    file_sparse, force = _s00_subsample(file_mp4, tfiles['mp4_sub'], force=force)
+    file_sparse, force = _s00_subsample(
+        file_in=Path(mp4_file),
+        file_out=Path(tfiles['mp4_sub']),
+        force=force,
+    )
 
-    file_df_crop, force = _s01_detect_rois(tdir, file_sparse, ckpts_dict['roi_detect'], view=view, force=force)
+    file_df_crop, force = _s01_detect_rois(
+        tdir=tdir,
+        mp4_file=file_sparse,
+        model_path=Path(models_dict['roi_detect']),
+        view=view,
+        force=force,
+        create_labels=create_labels,
+    )
 
     for k in networks:
         if networks[k]['features'] is None:
             continue
-        _s02_run_specialized_networks(ckpts_dict[k], network=k, view=view, force=force)
+        if k == 'nose_tip':
+            _s02_run_specialized_networks(ckpts_dict[k], network=k, view=view, force=force)
 
-    out_file = _s03_extract_pose_alf(tdir, file_label, networks, file_mp4)
+    # out_file = _s03_extract_pose_alf(tdir, file_label, networks, file_mp4)
+    #
+    # # at the end mop up the mess
+    # shutil.rmtree(tdir)
+    # # Back to home folder else there  are conflicts in a loop
+    # os.chdir(Path.home())
+    # print(file_label)
 
-    # at the end mop up the mess
-    shutil.rmtree(tdir)
-    # Back to home folder else there  are conflicts in a loop
-    os.chdir(Path.home())
-    print(file_label)
-
+    out_file = 'test'
     return out_file
+
+
+if __name__ == '__main__':
+
+    from iblvideo.tests.download_test_data import _download_dlc_test_data
+    test_dir = _download_dlc_test_data()
+    out_file = lightning_pose(
+        mp4_file=Path(test_dir) / 'input' / '_iblrig_leftCamera.raw.mp4',
+        ckpts_path=None,
+        force=False,
+        # force=True,
+        create_labels=True,
+    )
