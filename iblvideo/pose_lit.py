@@ -70,9 +70,8 @@ def _run_network(
     mp4_file: Path,
     model_path: Path,
     network: dict,
-    view: str,
+    video_params: dict,
     force: bool = False,
-    create_labels: bool = False,
     roi_df_file: Optional[Path] = None,
 ):
     """Step 1: run Lightning Pose networks.
@@ -80,9 +79,9 @@ def _run_network(
     :param tdir: temporary directory to store outputs
     :param mp4_file: temporally subsampled video
     :param model_path: path to model directory
-    :param view: camera view; 'left' | 'right' | 'body'
+    :param network:
+    :param video_params: camera params
     :param force: whether to overwrite existing intermediate files
-    :param create_labels: create a labeled video for debugging purposes
     return: path to dataframe used to crop video, updated force parameter
     """
     step = '01'
@@ -93,18 +92,22 @@ def _run_network(
         _logger.info(f'STEP {step}: {action} exists, not computing.')
     else:
         _logger.info(f'STEP {step}: START {action}')
+
+        # get crop info
         if roi_df_file:
             crop_window = get_crop_window(file_df_crop=roi_df_file, network=network)
         else:
             crop_window = None
+        # get batch size; can increase batch size with smaller frames
+        sequence_length = network['sequence_length'] * video_params['sampling']
+
         analyze_video(
             network=network['label'],
             mp4_file=str(mp4_file),
             model_path=str(model_path),
-            view=view,
-            create_labels=create_labels,
+            video_params=video_params,
             crop_window=crop_window,
-            sequence_length=network['sequence_length'],
+            sequence_length=sequence_length,
             save_dir=str(tdir),
         )
         file_out = next(tdir.glob(f'*{network["label"]}*.csv'), None)
@@ -116,7 +119,12 @@ def _run_network(
 
 
 def _extract_pose_alf(
-    tdir: Path, file_label: str, networks: dict, mp4_file: Path, roi_df_file: Path, *args
+    tdir: Path,
+    file_label: str,
+    networks: dict,
+    mp4_file: Path,
+    roi_df_file: Path,
+    force: bool = False,
 ):
     """Step 2: collect all outputs into a single file.
 
@@ -129,7 +137,7 @@ def _extract_pose_alf(
     alf_path.mkdir(exist_ok=True, parents=True)
     file_alf = alf_path.joinpath(f'_ibl_{file_label}.dlc.pqt')
 
-    if file_alf.exists():
+    if file_alf.exists() and not force:
         _logger.info(f'STEP {step}: {action} exists, not computing')
     else:
         _logger.info(f'STEP {step}: START {action}')
@@ -212,11 +220,13 @@ def lightning_pose(
     mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
     file_label = mp4_file.stem.split('.')[0].split('_')[-1]  # e.g. 'leftCamera'
     if 'bodyCamera' in file_label:
-        view = 'body'
-        networks = BODY_FEATURES
+        video_params = BODY_VIDEO
+    elif 'rightCamera' in file_label:
+        video_params = RIGHT_VIDEO
+    elif 'leftCamera' in file_label:
+        video_params = LEFT_VIDEO
     else:
-        view = 'right' if 'rightCamera' in file_label else 'left'
-        networks = SIDE_FEATURES
+        raise NotImplementedError
 
     # create a directory for temporary files
     raw_video_path = mp4_file.parent
@@ -236,15 +246,14 @@ def lightning_pose(
     roi_df_file, force = _run_network(
         tdir=tdir,
         mp4_file=file_sparse,
-        model_path=next(Path(ckpts_path).glob(networks['roi_detect']['weights'])),
-        network=networks['roi_detect'],
-        view=view,
+        model_path=next(Path(ckpts_path).glob(video_params['features']['roi_detect']['weights'])),
+        network=video_params['features']['roi_detect'],
+        video_params=video_params,
         force=force,
-        create_labels=create_labels,
     )
 
     # run all other networks
-    for net_name, net_params in networks.items():
+    for net_name, net_params in video_params['features'].items():
         if net_params['features'] is None:
             continue
         _run_network(
@@ -252,9 +261,8 @@ def lightning_pose(
             mp4_file=Path(mp4_file),
             model_path=next(Path(ckpts_path).glob(net_params['weights'])),
             network=net_params,
-            view=view,
+            video_params=video_params,
             force=force,
-            create_labels=False,  # need to make intermediate videos for this to work
             roi_df_file=roi_df_file,
         )
 
@@ -262,9 +270,10 @@ def lightning_pose(
     out_file = _extract_pose_alf(
         tdir=tdir,
         file_label=file_label,
-        networks=networks,
+        networks=video_params['features'],
         mp4_file=mp4_file,
         roi_df_file=roi_df_file,
+        force=force,
     )
 
     # create final video
@@ -274,7 +283,6 @@ def lightning_pose(
         mp4_file_labeled = Path(str(mp4_file).replace('.mp4', f'.labeled.mp4'))
         video_clip = VideoFileClip(str(mp4_file))
         preds_df = pd.read_parquet(out_file)
-        print(preds_df.head())
         # transform df to numpy array
         keypoints_arr = np.reshape(preds_df.to_numpy(), [preds_df.shape[0], -1, 3])
         xs_arr = keypoints_arr[:, :, 0]
@@ -287,12 +295,11 @@ def lightning_pose(
             ys_arr=ys_arr,
             mask_array=mask_array,
             filename=str(mp4_file_labeled),
+            dotsize=5 if 'left' in file_label else 3,
         )
 
-    # # at the end mop up the mess
-    # shutil.rmtree(tdir)
-    # # Back to home folder else there  are conflicts in a loop
-    # os.chdir(Path.home())
+    # clean up temp files
+    shutil.rmtree(tdir)
 
     return out_file
 
@@ -303,6 +310,7 @@ if __name__ == '__main__':
     test_dir = _download_dlc_test_data()
     alf_file = lightning_pose(
         mp4_file=Path(test_dir).joinpath('input/_iblrig_leftCamera.raw.mp4'),
+        # mp4_file=Path(test_dir).joinpath('input/_iblrig_rightCamera.raw.mp4'),
         ckpts_path='/media/mattw/ibl/tracking/current-lp-networks',  # TODO: remove hard-coding
         force=False,
         # force=True,

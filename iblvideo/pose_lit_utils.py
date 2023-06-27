@@ -3,11 +3,7 @@ import lightning.pytorch as pl
 from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
 from lightning_pose.data.dali import LitDaliWrapper
 from lightning_pose.data.utils import count_frames
-from lightning_pose.utils.predictions import (
-    create_labeled_video,
-    load_model_from_checkpoint,
-    PredictionHandler,
-)
+from lightning_pose.utils.predictions import load_model_from_checkpoint, PredictionHandler
 import numpy as np
 from omegaconf import DictConfig
 from nvidia.dali import pipeline_def
@@ -34,6 +30,7 @@ def get_crop_window(file_df_crop: Path, network: dict):
     df_crop = pd.read_csv(file_df_crop, header=[0, 1, 2], index_col=0)
     XYs = []
     for part in network['features']:
+        # get x/y values wrt actual video size, not LEFT video size returned by ROI network
         x_values = df_crop[(df_crop.keys()[0][0], part, 'x')].values
         y_values = df_crop[(df_crop.keys()[0][0], part, 'y')].values
         likelihoods = df_crop[(df_crop.keys()[0][0], part, 'likelihood')].values
@@ -116,9 +113,11 @@ def video_pipe_crop_resize_flip(
         dtype=types.DALIDataType.FLOAT,
         file_list_include_preceding_frame=True,  # to get rid of dali warnings
     )
+
     # original videos range [0, 255]; transform it to [0, 1]
     # torchvision automatically performs this transformation upon tensor creation
     video = (video / 255.0)
+
     # adjust color levels
     # brightness=4 is equivalent to ffmpeg's
     #     "colorlevels=rimax=0.25:gimax=0.25:bimax=0.25"
@@ -127,17 +126,25 @@ def video_pipe_crop_resize_flip(
             video,
             M=np.array([[brightness, 0, 0], [0, brightness, 0], [0, 0, brightness]])
         )
+        # clip
+        mask_high = video > 1.0
+        mask_low = video <= 1.0
+        video = mask_low * video + mask_high * types.Constant(1.0)
+
+    if flip:
+        video = fn.flip(video, horizontal=1)
+
     # change channel layout, crop, and normalize according to imagenet statistics
     if crop_params:
         video = fn.crop_mirror_normalize(
             video,
+            output_layout='FCHW',
+            mean=normalization_mean,
+            std=normalization_std,
             crop_h=crop_params['crop_h'],  # pixels
             crop_w=crop_params['crop_w'],  # pixels
             crop_pos_x=crop_params['crop_pos_x'],  # normalized in (0, 1)
             crop_pos_y=crop_params['crop_pos_y'],  # normalized in (0, 1)
-            output_layout='FCHW',
-            mean=normalization_mean,
-            std=normalization_std,
         )
     else:
         video = fn.crop_mirror_normalize(
@@ -146,12 +153,10 @@ def video_pipe_crop_resize_flip(
             mean=normalization_mean,
             std=normalization_std,
         )
+
     # resize to match accepted network sizes
     if resize_dims:
         video = fn.resize(video, size=resize_dims)
-    # flip video in horizontal direction to match left/right views
-    if flip:
-        video = fn.flip(video, horizontal=1)
 
     return video, -1
 
@@ -181,13 +186,11 @@ def compute_num_iters(video_path: str, sequence_length: int, step: int, model_ty
 def build_dataloader(
     network: str,
     mp4_file: str,
-    view: str,
+    video_params: dict,
     model_type: str,
     sequence_length: int,
     crop_window: Optional[list] = None,
 ) -> LitDaliWrapper:
-
-    flip = True if view == 'right' else False
 
     if model_type == 'baseline':
         # video reader args
@@ -212,27 +215,31 @@ def build_dataloader(
         'do_context': do_context,
     }
 
+    features = video_params['features'][network]
+    flip = video_params['flip']
+
     # set network-specific args
     if network in ['roi_detect', 'paws']:
 
-        resize_dims = LEFT_VIDEO['features'][network]['resize_dims']
+        # TODO: body roi_detect
         crop_params = None
         brightness = None
+        resize_dims = features['resize_dims']
 
     elif network in ['eye', 'tongue', 'nose_tip']:
 
-        if view == 'left':
-            frame_width = LEFT_VIDEO['original_size'][0]
-            frame_height = LEFT_VIDEO['original_size'][1]
-        else:
-            frame_width = RIGHT_VIDEO['original_size'][0]
-            frame_height = RIGHT_VIDEO['original_size'][1]
+        # TODO: body tail_base
 
-        resize_dims = SIDE_FEATURES[network]['resize_dims']
-        brightness = 4. if network == 'eye' else None
+        # resize crop window depending on view
+        crop_w, crop_h, crop_x, crop_y = crop_window
+        crop_w /= video_params['sampling']
+        crop_h /= video_params['sampling']
+        crop_x /= video_params['sampling']
+        crop_y /= video_params['sampling']
+        frame_width = video_params['original_size'][0]
+        frame_height = video_params['original_size'][1]
 
         # dali normalizes crop params in a funny way
-        crop_w, crop_h, crop_x, crop_y = crop_window
         crop_x_norm = crop_x / (frame_width - crop_w)
         crop_y_norm = crop_y / (frame_height - crop_h)
         crop_params = {
@@ -241,6 +248,9 @@ def build_dataloader(
             'crop_pos_x': crop_x_norm,
             'crop_pos_y': crop_y_norm,
         }
+
+        brightness = 4. if network == 'eye' else None
+        resize_dims = features['resize_dims']
 
     else:
         raise ValueError(f'{network} is not a valid network')
@@ -269,8 +279,7 @@ def analyze_video(
     network: str,
     mp4_file: str,
     model_path: str,
-    view: str,
-    create_labels: bool = False,
+    video_params: dict,
     crop_window: Optional[list] = None,
     sequence_length: int = 32,
     save_dir: Optional[str] = None,
@@ -284,7 +293,7 @@ def analyze_video(
     predict_loader = build_dataloader(
         network=network,
         mp4_file=mp4_file,
-        view=view,
+        video_params=video_params,
         model_type='context' if cfg.model.do_context else 'baseline',
         sequence_length=sequence_length,
         crop_window=crop_window,
@@ -316,27 +325,6 @@ def analyze_video(
     if save_dir:
         csv_file = os.path.join(save_dir, os.path.basename(csv_file))
     preds_df.to_csv(csv_file)
-
-    # create labeled video
-    if create_labels:
-        from moviepy.editor import VideoFileClip
-        mp4_file_labeled = Path(str(mp4_file).replace('.mp4', f'.{network}.labeled.mp4'))
-        if save_dir:
-            mp4_file_labeled = os.path.join(save_dir, os.path.basename(mp4_file_labeled))
-        video_clip = VideoFileClip(mp4_file)
-        # transform df to numpy array
-        keypoints_arr = np.reshape(preds_df.to_numpy(), [preds_df.shape[0], -1, 3])
-        xs_arr = keypoints_arr[:, :, 0]
-        ys_arr = keypoints_arr[:, :, 1]
-        mask_array = keypoints_arr[:, :, 2] > cfg.eval.get('confidence_thresh_for_vid', 0.9)
-        # video generation
-        create_labeled_video(
-            clip=video_clip,
-            xs_arr=xs_arr,
-            ys_arr=ys_arr,
-            mask_array=mask_array,
-            filename=str(mp4_file_labeled),
-        )
 
     # clear up memory
     del predict_loader
