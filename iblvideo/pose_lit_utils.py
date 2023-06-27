@@ -8,7 +8,6 @@ from lightning_pose.utils.predictions import (
     load_model_from_checkpoint,
     PredictionHandler,
 )
-from lightning_pose.utils.scripts import get_imgaug_transform, get_dataset, get_data_module
 import numpy as np
 from omegaconf import DictConfig
 from nvidia.dali import pipeline_def
@@ -277,31 +276,9 @@ def analyze_video(
     save_dir: Optional[str] = None,
 ) -> pd.DataFrame:
 
-    def get_data_dir(n):
-        if n == 'nose_tip':
-            return '/media/mattw/behavior/pose-estimation-data-final/ibl-nose-tip'
-        elif n == 'eye':
-            return '/media/mattw/behavior/pose-estimation-data-final/ibl-pupil'
-        elif n == 'paws':
-            return '/media/mattw/behavior/pose-estimation-data-final/ibl-paw'
-        elif n == 'tongue':
-            return '/media/mattw/behavior/pose-estimation-data-final/ibl-tongue'
-        elif n == 'roi_detect':
-            return '/media/mattw/behavior/pose-estimation-data-final/ibl-roi-detect'
-        else:
-            raise NotImplementedError(f'add path for {n} network')
-
     # load config file
-    cfg_file = Path(model_path) / '.hydra' / 'config.yaml'
+    cfg_file = Path(model_path).joinpath('.hydra/config.yaml')
     cfg = DictConfig(yaml.safe_load(open(str(cfg_file), 'r')))
-    cfg.training.imgaug = 'default'  # IMPORTANT! don't augment frames
-    cfg.data.data_dir = get_data_dir(network)
-    cfg.data.video_dir = os.path.join(cfg.data.data_dir, 'videos')
-
-    # build data module  # TODO: can we get rid of this?
-    imgaug_transform = get_imgaug_transform(cfg=cfg)
-    dataset = get_dataset(cfg=cfg, data_dir=cfg.data.data_dir, imgaug_transform=imgaug_transform)
-    data_module = get_data_module(cfg=cfg, dataset=dataset, video_dir=cfg.data.video_dir)
 
     # initialize data loader
     predict_loader = build_dataloader(
@@ -318,7 +295,8 @@ def analyze_video(
         cfg=cfg,
         ckpt_file=next(Path(model_path).glob('*/*/*/*/*.ckpt')),
         eval=True,
-        data_module=data_module,
+        data_module=None,
+        skip_data_module=True,
     )
 
     # initialize trainer to run inference
@@ -332,7 +310,7 @@ def analyze_video(
     )
 
     # call this instance on a single vid's preds
-    pred_handler = PredictionHandler(cfg=cfg, data_module=data_module, video_file=mp4_file)
+    pred_handler = PredictionHandler(cfg=cfg, data_module=None, video_file=mp4_file)
     preds_df = pred_handler(preds=preds)
     csv_file = mp4_file.replace('.mp4', f'.{network}.csv')
     if save_dir:
@@ -361,8 +339,6 @@ def analyze_video(
         )
 
     # clear up memory
-    del dataset
-    del data_module
     del predict_loader
     del model
     del trainer

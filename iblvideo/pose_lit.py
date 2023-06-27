@@ -12,7 +12,7 @@ import sys
 from typing import Optional
 
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
-from iblvideo.pose_lit_utils import analyze_video, collect_model_paths, get_crop_window
+from iblvideo.pose_lit_utils import analyze_video, get_crop_window
 from iblvideo.utils import _run_command
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -20,9 +20,10 @@ _logger = logging.getLogger('ibllib')
 
 
 # TODO:
-# - move networks to a single location, remove `get_data_dir` func in `analyze_video`
 # - test on right video
 # - compare left/right traces to DLC traces
+# - docstrings
+# - README
 
 
 def _subsample_video(file_in: Path, file_out: Path, force: bool = False) -> tuple:
@@ -195,10 +196,10 @@ def lightning_pose(
     """Analyse a leftCamera, rightCamera, or bodyCamera video with Lightning Pose.
 
     The process consists of 4 steps:
-    0- temporally subsample video frames using ffmpeg for ROI network
-    1- run Lightning Pose to detect ROIS for: 'eye', 'nose_tip', 'tongue', 'paws'
-    2- run specialized networks on each ROI
-    3- output ALF dataset for the raw Lightning Pose output
+    0. temporally subsample video frames using ffmpeg for ROI network
+    1. run Lightning Pose to detect ROIS for: 'eye', 'nose_tip', 'tongue', 'paws'
+    2. run specialized networks on each ROI
+    3. output ALF dataset for the raw Lightning Pose output
 
     :param mp4_file: video file to run
     :param ckpts_path: path to folder with Lightning Pose weights
@@ -232,11 +233,10 @@ def lightning_pose(
     )
 
     # run ROI network
-    proj_path = next(Path(ckpts_path).glob(networks['roi_detect']['weights']))
     roi_df_file, force = _run_network(
         tdir=tdir,
         mp4_file=file_sparse,
-        model_path=next(proj_path.glob('*/*/*/*/*/*/*.ckpt')),
+        model_path=next(Path(ckpts_path).glob(networks['roi_detect']['weights'])),
         network=networks['roi_detect'],
         view=view,
         force=force,
@@ -244,14 +244,14 @@ def lightning_pose(
     )
 
     # run all other networks
-    for k, v in networks.items():
-        if v['features'] is None:
+    for net_name, net_params in networks.items():
+        if net_params['features'] is None:
             continue
         _run_network(
             tdir=tdir,
             mp4_file=Path(mp4_file),
-            model_path=Path(models_dict[k]),
-            network=v,
+            model_path=next(Path(ckpts_path).glob(net_params['weights'])),
+            network=net_params,
             view=view,
             force=force,
             create_labels=False,  # need to make intermediate videos for this to work
