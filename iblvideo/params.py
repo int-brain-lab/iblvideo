@@ -5,8 +5,8 @@ SIDE_FEATURES = {
         'weights': 'roi_detect-*',
         'crop': lambda x, y: None,
         'postcrop_downsampling': 1,
-        'resize_dims': (512, 512),  # resize for training
-        'sequence_length': 16,
+        'resize_dims': (512, 512),  # frame size for training
+        'sequence_length': 16,  # batch size for inference; 16 works for 8GB GPU
      },
     'nose_tip': {
         'label': 'nose_tip',
@@ -14,8 +14,8 @@ SIDE_FEATURES = {
         'weights': 'nose_tip-*',
         'crop': lambda x, y: [100, 100, x - 50, y - 50],
         'postcrop_downsampling': 1,
-        'resize_dims': (128, 128),  # resize for training
-        'sequence_length': 96,
+        'resize_dims': (128, 128),  # frame size for training
+        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
     },
     'eye': {
         'label': 'eye',
@@ -23,8 +23,8 @@ SIDE_FEATURES = {
         'weights': 'eye-mic-*',
         'crop': lambda x, y: [100, 100, x - 50, y - 50],
         'postcrop_downsampling': 1,
-        'resize_dims': (128, 128),  # resize for training
-        'sequence_length': 96,
+        'resize_dims': (128, 128),  # frame size for training
+        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
     },
     'paws': {
         'label': 'paws',
@@ -32,8 +32,8 @@ SIDE_FEATURES = {
         'weights': 'paw2-mic-*',
         'crop': lambda x, y: None,
         'postcrop_downsampling': 10,
-        'resize_dims': (128, 128),  # resize for training
-        'sequence_length': 96,
+        'resize_dims': (128, 128),  # frame size for training
+        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
     },
     'tongue': {
         'label': 'tongue',
@@ -41,8 +41,8 @@ SIDE_FEATURES = {
         'weights': 'tongue-mic-*',
         'crop': lambda x, y: [160, 160, x - 60, y - 100],
         'postcrop_downsampling': 1,
-        'resize_dims': (128, 128),  # resize for training
-        'sequence_length': 96,
+        'resize_dims': (128, 128),  # frame size for training
+        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
     },
 }
 

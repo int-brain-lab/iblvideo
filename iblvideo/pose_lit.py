@@ -21,7 +21,6 @@ _logger = logging.getLogger('ibllib')
 
 # TODO:
 # - move networks to a single location, remove `get_data_dir` func in `analyze_video`
-# - figure out memory leak issue
 # - test on right video
 # - compare left/right traces to DLC traces
 
@@ -225,9 +224,6 @@ def lightning_pose(
     # temporary file for temporally subsampled video
     tfiles = {'mp4_sub': tdir / mp4_file.name.replace('.raw.', '.subsampled.')}
 
-    # collect all model paths
-    models_dict = collect_model_paths(view=view)
-
     # subsample video for ROI network
     file_sparse, force = _subsample_video(
         file_in=Path(mp4_file),
@@ -236,10 +232,11 @@ def lightning_pose(
     )
 
     # run ROI network
+    proj_path = next(Path(ckpts_path).glob(networks['roi_detect']['weights']))
     roi_df_file, force = _run_network(
         tdir=tdir,
         mp4_file=file_sparse,
-        model_path=Path(models_dict['roi_detect']),
+        model_path=next(proj_path.glob('*/*/*/*/*/*/*.ckpt')),
         network=networks['roi_detect'],
         view=view,
         force=force,
@@ -296,7 +293,6 @@ def lightning_pose(
     # shutil.rmtree(tdir)
     # # Back to home folder else there  are conflicts in a loop
     # os.chdir(Path.home())
-    # print(file_label)
 
     return out_file
 
@@ -307,7 +303,7 @@ if __name__ == '__main__':
     test_dir = _download_dlc_test_data()
     alf_file = lightning_pose(
         mp4_file=Path(test_dir).joinpath('input/_iblrig_leftCamera.raw.mp4'),
-        ckpts_path=None,
+        ckpts_path='/media/mattw/ibl/tracking/current-lp-networks',  # TODO: remove hard-coding
         force=False,
         # force=True,
         create_labels=True,

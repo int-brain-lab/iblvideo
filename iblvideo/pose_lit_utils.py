@@ -1,3 +1,4 @@
+import gc
 import lightning.pytorch as pl
 from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
 from lightning_pose.data.dali import LitDaliWrapper
@@ -22,19 +23,6 @@ from typing import List, Optional, Dict, Union
 import yaml
 
 from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
-
-
-def collect_model_paths(view: str):
-    if view == 'body':
-        raise NotImplementedError
-    else:
-        return {
-            'roi_detect': '/media/mattw/behavior/results/pose-estimation/ibl-roi-detect/2023-06-21/19-47-17',
-            'nose_tip': '/media/mattw/behavior/results/pose-estimation/ibl-nose-tip/2023-06-21/11-24-04',
-            'eye': '/media/mattw/behavior/results/pose-estimation/ibl-pupil/ensembling-expts/models/functional-nightingale-5302-exp0/outputs/2023-01-26/18-47-00',
-            'paws': '/media/mattw/behavior/results/pose-estimation/ibl-paw/ensembling-expts/models/discerning-hertz-4605-exp0/outputs/2023-02-06/19-40-18',
-            'tongue': '/media/mattw/behavior/results/pose-estimation/ibl-tongue/2023-06-21/12-38-42',
-        }
 
 
 def get_crop_window(file_df_crop: Path, network: dict):
@@ -378,6 +366,7 @@ def analyze_video(
     del predict_loader
     del model
     del trainer
+    gc.collect()  # GPU memory not cleared without this
     torch.cuda.empty_cache()
 
     return preds_df
