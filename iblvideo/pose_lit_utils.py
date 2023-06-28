@@ -193,7 +193,7 @@ def compute_num_iters(
 
 
 def build_dataloader(
-    network: str,
+    network_label: str,
     mp4_file: str,
     camera_params: dict,
     model_type: str,
@@ -202,7 +202,7 @@ def build_dataloader(
 ) -> LitDaliWrapper:
     """Build pytorch data loader that wraps DALI pipeline.
 
-    :param network: network name, key for `camera_params` features dict
+    :param network_label: network name, key for `camera_params` features dict
     :param mp4_file: path to video file
     :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
     :param model_type: 'baseline' | 'context'
@@ -234,20 +234,17 @@ def build_dataloader(
         'do_context': do_context,
     }
 
-    features = camera_params['features'][network]
+    features = camera_params['features'][network_label]
     flip = camera_params['flip']
 
     # set network-specific args
-    if network in ['roi_detect', 'paws']:
+    if network_label in ['roi_detect', 'paws', 'tail_start']:
 
-        # TODO: body roi_detect
         crop_params = None
         brightness = None
         resize_dims = features['resize_dims']
 
-    elif network in ['eye', 'tongue', 'nose_tip']:
-
-        # TODO: body tail_base
+    elif network_label in ['eye', 'tongue', 'nose_tip']:
 
         # resize crop window depending on view
         crop_w, crop_h, crop_x, crop_y = crop_window
@@ -268,11 +265,11 @@ def build_dataloader(
             'crop_pos_y': crop_y_norm,
         }
 
-        brightness = 4. if network == 'eye' else None
+        brightness = 4. if network_label == 'eye' else None
         resize_dims = features['resize_dims']
 
     else:
-        raise ValueError(f'{network} is not a valid network')
+        raise ValueError(f'{network_label} is not a valid network label')
 
     # build pipeline
     pipe = video_pipe_crop_resize_flip(
@@ -321,7 +318,7 @@ def analyze_video(
 
     # initialize data loader
     predict_loader = build_dataloader(
-        network=network,
+        network_label=network,
         mp4_file=mp4_file,
         camera_params=camera_params,
         model_type='context' if cfg.model.do_context else 'baseline',

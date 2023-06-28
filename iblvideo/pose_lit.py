@@ -21,7 +21,6 @@ _logger = logging.getLogger('ibllib')
 
 # TODO:
 # - tests
-# - README
 
 
 def _subsample_video(
@@ -166,7 +165,7 @@ def _extract_pose_alf(
             df.columns = columns
 
             # translate and scale the specialized window in the full initial frame
-            if net_name == 'paws':
+            if net_name in ['paws', 'tail_start']:
                 whxy = [0, 0, 0, 0]
             else:
                 whxy = get_crop_window(roi_df_file=roi_df_file, network_params=net_params)

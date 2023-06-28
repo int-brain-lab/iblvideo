@@ -60,7 +60,7 @@ BODY_FEATURES = {
         'label': 'tail_start',
         'features': ['tail_start'],
         'weights': 'tail-mic-*',
-        'crop': lambda x, y: [220, 220, x - 110, y - 110],
+        'crop': lambda x, y: None,  # [220, 220, x - 110, y - 110],
         'postcrop_downsampling': 1,
         'resize_dims': (128, 128),  # frame size for training
         'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
