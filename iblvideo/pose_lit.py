@@ -19,10 +19,6 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
 
 
-# TODO:
-# - tests
-
-
 def _subsample_video(
     file_in: Path,
     file_out: Path,
@@ -147,7 +143,7 @@ def _extract_pose_alf(
     # Create alf path to store final files
     alf_path = tdir.parent.parent.joinpath('alf')
     alf_path.mkdir(exist_ok=True, parents=True)
-    file_alf = alf_path.joinpath(f'_ibl_{file_label}.dlc.pqt')
+    file_alf = alf_path.joinpath(f'_ibl_{file_label}.lp.pqt')
 
     if file_alf.exists() and not force:
         _logger.info(f'STEP {step}: {action} exists, not computing')
