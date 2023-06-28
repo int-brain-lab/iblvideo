@@ -5,4 +5,5 @@ __version__ = 'iblvideo_2.2.1'  # This is the only place where the version is ha
 
 from iblvideo.run import run_session, run_queue
 from iblvideo.pose_dlc import dlc
+from iblvideo.pose_lit import lightning_pose
 from iblvideo.weights import download_weights

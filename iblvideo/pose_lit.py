@@ -13,12 +13,14 @@ from typing import Optional, Tuple
 
 from iblvideo.params import LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 from iblvideo.pose_lit_utils import analyze_video, get_crop_window
+from iblvideo.weights import download_weights
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
 
 
 # TODO:
+# - tests
 # - README
 
 
@@ -199,7 +201,7 @@ def _extract_pose_alf(
 
 def lightning_pose(
     mp4_file: str,
-    ckpts_path: str = None,
+    ckpts_path: Optional[Path] = None,
     force: bool = False,
     create_labels: bool = False,
 ) -> Path:
@@ -218,6 +220,9 @@ def lightning_pose(
     :return out_file: path to Lightning Pose table in parquet file format
     """
 
+    if ckpts_path is None:
+        ckpts_path = download_weights()
+
     # initiate
     mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
     file_label = mp4_file.stem.split('.')[0].split('_')[-1]  # e.g. 'leftCamera'
@@ -232,7 +237,7 @@ def lightning_pose(
 
     # create a directory for temporary files
     raw_video_path = mp4_file.parent
-    tdir = raw_video_path.joinpath(f'lp_tmp_{file_label}')
+    tdir = raw_video_path.joinpath(f'lp_tmp_iblrig_{file_label}.raw')
     tdir.mkdir(exist_ok=True)
     # temporary file for temporally subsampled video
     tfiles = {'mp4_sub': tdir / mp4_file.name.replace('.raw.', '.subsampled.')}
@@ -308,12 +313,18 @@ def lightning_pose(
 if __name__ == '__main__':
 
     from iblvideo.tests.download_test_data import _download_dlc_test_data
+
+    # cam = 'left'
+    # cam = 'right'
+    cam = 'body'
+
     test_dir = _download_dlc_test_data()
+    # ckpts_path_local = download_weights()
+    ckpts_path_local = Path('/media/mattw/ibl/tracking/current-lp-networks')
+
     alf_file = lightning_pose(
-        mp4_file=Path(test_dir).joinpath('input/_iblrig_leftCamera.raw.mp4'),
-        # mp4_file=Path(test_dir).joinpath('input/_iblrig_rightCamera.raw.mp4'),
-        ckpts_path='/media/mattw/ibl/tracking/current-lp-networks',  # TODO: remove hard-coding
+        mp4_file=Path(test_dir).joinpath(f'input/_iblrig_{cam}Camera.raw.mp4'),
+        ckpts_path=ckpts_path_local,
         force=False,
-        # force=True,
         create_labels=True,
     )
