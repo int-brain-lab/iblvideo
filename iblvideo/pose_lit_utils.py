@@ -1,3 +1,5 @@
+"""Helper functions to run Lightning Pose on a single IBL video with trained networks."""
+
 import gc
 import lightning.pytorch as pl
 from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
@@ -17,19 +19,17 @@ import torch
 from typing import List, Optional, Dict, Union
 import yaml
 
-from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 
+def get_crop_window(roi_df_file: Path, network_params: dict) -> list:
+    """Get average position of a anchor point for autocropping.
 
-def get_crop_window(file_df_crop: Path, network: dict):
-    """Get average position of a pivot point for autocropping.
-
-    :param file_df_crop: Path to data frame from csv file from video data
-    :param network: dictionary describing the networks. See constants SIDE and BODY
-    :return: list of floats [width, height, x, y] defining window used for ffmpeg crop command
+    :param roi_df_file: path to dataframe output by ROI network
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
+    :return: list of floats [width, height, x, y] defining window used for cropping
     """
-    df_crop = pd.read_csv(file_df_crop, header=[0, 1, 2], index_col=0)
+    df_crop = pd.read_csv(roi_df_file, header=[0, 1, 2], index_col=0)
     XYs = []
-    for part in network['features']:
+    for part in network_params['features']:
         # get x/y values wrt actual video size, not LEFT video size returned by ROI network
         x_values = df_crop[(df_crop.keys()[0][0], part, 'x')].values
         y_values = df_crop[(df_crop.keys()[0][0], part, 'y')].values
@@ -43,7 +43,7 @@ def get_crop_window(file_df_crop: Path, network: dict):
         XYs.append([int(np.nanmean(x)), int(np.nanmean(y))])
 
     xy = np.mean(XYs, axis=0)
-    return network['crop'](*xy)
+    return network_params['crop'](*xy)
 
 
 @pipeline_def
@@ -66,33 +66,31 @@ def video_pipe_crop_resize_flip(
     # batch_size,
     # num_threads,
     # device_id,
-):
+) -> tuple:
     """Video reader pipeline that loads videos, normalizes, crops, and optionally flips.
 
-    Args:
-        filenames: list of absolute paths of video files to feed through pipeline
-        sequence_length: number of frames to load per sequence
-        pad_sequences: allows creation of incomplete sequences if there is an
-            insufficient number of frames at the very end of the video
-        pad_last_batch: pad final batch with empty sequences
-        step: number of frames to advance on each read; will be different for context
-            vs non-context models
-        name: pipeline name, used to string together DataNode elements
-        crop_params: keys are
-            - 'crop_h': height in pixels
-            - 'crop_w': width in pixels
-            - 'crop_pos_x': x position of top left corner; normalized in (0, 1)
-            - 'crop_pos_y': y position of top left corner; normalized in (0, 1)
-        normalization_mean: mean values in (0, 1) to subtract from each channel
-        normalization_std: standard deviation values to subtract from each
-        resize_dims: [height, width] to resize raw frames
-        brightness: increase brightness of frames
-        flip: True to flip frame around vertical axis
-        batch_size: number of sequences per batch
-        num_threads: number of cpu threads used by the pipeline
-        device_id: id of the gpu used by the pipeline
-
-    Returns:
+    :param filenames: list of absolute paths of video files to feed through pipeline
+    :param sequence_length: number of frames to load per sequence
+    :param pad_sequences: allows creation of incomplete sequences if there is an insufficient
+        number of frames at the very end of the video
+    :param pad_last_batch: pad final batch with empty sequences
+    :param step: number of frames to advance on each read; will be different for context
+        vs non-context models
+    :param name: pipeline name, used to string together DALI DataNode elements
+    :param crop_params: keys are
+        - 'crop_h': height in pixels
+        - 'crop_w': width in pixels
+        - 'crop_pos_x': x position of top left corner; normalized in (0, 1)
+        - 'crop_pos_y': y position of top left corner; normalized in (0, 1)
+    :param normalization_mean: mean values in (0, 1) to subtract from each channel
+    :param normalization_std: standard deviation values to divide by for each channel
+    :param resize_dims: [height, width] to resize raw frames
+    :param brightness: multiplicative factor to increase brightness of frames
+    :param flip: True to flip frame around vertical axis
+    :param batch_size: number of sequences per batch
+    :param num_threads: number of cpu threads used by the pipeline
+    :param device_id: id of the gpu used by the pipeline
+    :return:
         pipeline object to be fed to DALIGenericIterator
         placeholder int to represent unused "transforms" field in dataloader
 
@@ -114,13 +112,11 @@ def video_pipe_crop_resize_flip(
         file_list_include_preceding_frame=True,  # to get rid of dali warnings
     )
 
-    # original videos range [0, 255]; transform it to [0, 1]
-    # torchvision automatically performs this transformation upon tensor creation
+    # original videos range [0, 255]; transform it to [0, 1] for our models
     video = (video / 255.0)
 
     # adjust color levels
-    # brightness=4 is equivalent to ffmpeg's
-    #     "colorlevels=rimax=0.25:gimax=0.25:bimax=0.25"
+    # brightness=4 is equivalent to ffmpeg's "colorlevels=rimax=0.25:gimax=0.25:bimax=0.25"
     if brightness:
         video = fn.coord_transform(
             video,
@@ -161,7 +157,20 @@ def video_pipe_crop_resize_flip(
     return video, -1
 
 
-def compute_num_iters(video_path: str, sequence_length: int, step: int, model_type: str):
+def compute_num_iters(
+    video_path: str,
+    sequence_length: int,
+    step: int,
+    model_type: str
+) -> int:
+    """Compute number of iterations necessary to iterate through a video.
+
+    :param video_path: absolute path to video file
+    :param sequence_length: number of frames to load per sequence
+    :param step: number of frames to advance on each read
+    :param model_type: 'baseline' or 'context', affects how sequence_length/step are interpreted
+    :return: number of iterations
+    """
     frame_count = count_frames(video_path)
     if model_type == 'baseline':
         num_iters = int(np.ceil(frame_count / sequence_length))
@@ -179,18 +188,28 @@ def compute_num_iters(video_path: str, sequence_length: int, step: int, model_ty
         else:
             raise NotImplementedError
     else:
-        raise ValueError(f'model_type must be "baseline" or "context", not {moel_type}')
+        raise ValueError(f'model_type must be "baseline" or "context", not {model_type}')
     return num_iters
 
 
 def build_dataloader(
     network: str,
     mp4_file: str,
-    video_params: dict,
+    camera_params: dict,
     model_type: str,
     sequence_length: int,
     crop_window: Optional[list] = None,
 ) -> LitDaliWrapper:
+    """Build pytorch data loader that wraps DALI pipeline.
+
+    :param network: network name, key for `camera_params` features dict
+    :param mp4_file: path to video file
+    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
+    :param model_type: 'baseline' | 'context'
+    :param sequence_length: number of frames to load per sequence
+    :param crop_window: list of floats [width, height, x, y] defining window used for cropping
+    :return: pytorch data loader
+    """
 
     if model_type == 'baseline':
         # video reader args
@@ -215,8 +234,8 @@ def build_dataloader(
         'do_context': do_context,
     }
 
-    features = video_params['features'][network]
-    flip = video_params['flip']
+    features = camera_params['features'][network]
+    flip = camera_params['flip']
 
     # set network-specific args
     if network in ['roi_detect', 'paws']:
@@ -232,12 +251,12 @@ def build_dataloader(
 
         # resize crop window depending on view
         crop_w, crop_h, crop_x, crop_y = crop_window
-        crop_w /= video_params['sampling']
-        crop_h /= video_params['sampling']
-        crop_x /= video_params['sampling']
-        crop_y /= video_params['sampling']
-        frame_width = video_params['original_size'][0]
-        frame_height = video_params['original_size'][1]
+        crop_w /= camera_params['sampling']
+        crop_h /= camera_params['sampling']
+        crop_x /= camera_params['sampling']
+        crop_y /= camera_params['sampling']
+        frame_width = camera_params['original_size'][0]
+        frame_height = camera_params['original_size'][1]
 
         # dali normalizes crop params in a funny way
         crop_x_norm = crop_x / (frame_width - crop_w)
@@ -279,11 +298,22 @@ def analyze_video(
     network: str,
     mp4_file: str,
     model_path: str,
-    video_params: dict,
-    crop_window: Optional[list] = None,
+    camera_params: dict,
     sequence_length: int = 32,
+    crop_window: Optional[list] = None,
     save_dir: Optional[str] = None,
 ) -> pd.DataFrame:
+    """Analyze video with a single network.
+
+    :param network: network name, key for `camera_params` features dict
+    :param mp4_file: path to video file
+    :param model_path: path to model directory that contains weights
+    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
+    :param sequence_length: number of frames to load per sequence
+    :param crop_window: list of floats [width, height, x, y] defining window used for cropping
+    :param save_dir: path to directory where results are saved in csv format
+    :return: pandas DataFrame containing results
+    """
 
     # load config file
     cfg_file = Path(model_path).joinpath('.hydra/config.yaml')
@@ -293,7 +323,7 @@ def analyze_video(
     predict_loader = build_dataloader(
         network=network,
         mp4_file=mp4_file,
-        video_params=video_params,
+        camera_params=camera_params,
         model_type='context' if cfg.model.do_context else 'baseline',
         sequence_length=sequence_length,
         crop_window=crop_window,
@@ -318,7 +348,7 @@ def analyze_video(
         return_predictions=True,
     )
 
-    # call this instance on a single vid's preds
+    # clean up predictions (resize, reformat, etc.)
     pred_handler = PredictionHandler(cfg=cfg, data_module=None, video_file=mp4_file)
     preds_df = pred_handler(preds=preds)
     csv_file = mp4_file.replace('.mp4', f'.{network}.csv')

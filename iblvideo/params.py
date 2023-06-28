@@ -53,6 +53,8 @@ BODY_FEATURES = {
         'weights': 'tail-mic-*',
         'crop': lambda x, y: None,
         'postcrop_downsampling': 1,
+        'resize_dims': (128, 128),  # frame size for training
+        'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
     },
     'tail_start': {
         'label': 'tail_start',
@@ -60,6 +62,8 @@ BODY_FEATURES = {
         'weights': 'tail-mic-*',
         'crop': lambda x, y: [220, 220, x - 110, y - 110],
         'postcrop_downsampling': 1,
+        'resize_dims': (128, 128),  # frame size for training
+        'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
     }
 }
 

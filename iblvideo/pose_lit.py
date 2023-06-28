@@ -1,4 +1,4 @@
-"""Functions to run Lightning Pose on IBL data with existing networks."""
+"""Pipeline to run Lightning Pose on a single IBL video with trained networks."""
 
 import cv2
 from glob import glob
@@ -9,30 +9,30 @@ import pandas as pd
 from pathlib import Path
 import shutil
 import sys
-from typing import Optional
+from typing import Optional, Tuple
 
-from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
+from iblvideo.params import LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 from iblvideo.pose_lit_utils import analyze_video, get_crop_window
-from iblvideo.utils import _run_command
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
 
 
 # TODO:
-# - test on right video
-# - compare left/right traces to DLC traces
-# - docstrings
 # - README
 
 
-def _subsample_video(file_in: Path, file_out: Path, force: bool = False) -> tuple:
-    """Step 0: subsample video for detection - put 500 uniformly sampled frames into new video.
+def _subsample_video(
+    file_in: Path,
+    file_out: Path,
+    force: bool = False
+) -> Tuple[Path, bool]:
+    """Step 0: subsample video for ROI detection using 500 uniformly sampled frames.
 
-    :param file_in: video file to subsample
-    :param file_out: subsampled video
+    :param file_in: path to video file to subsample
+    :param file_out: path to subsampled video file
     :param force: whether to overwrite existing intermediate files
-    :return: subsampled video, updated force parameter
+    :return: path subsampled video, updated force parameter
     """
     step = '00'
     action = f'Subsample video {file_out.name} for ROI detection'
@@ -49,18 +49,20 @@ def _subsample_video(file_in: Path, file_out: Path, force: bool = False) -> tupl
         nsamples = min(max(20, int(frame_count / cap.get(cv2.CAP_PROP_FPS))), 500)
         samples = np.int32(np.round(np.linspace(0, frame_count - 1, nsamples)))
 
+        # write out frames
         size = (int(cap.get(3)), int(cap.get(4)))
-        # fourcc = cv2.VideoWriter_fourcc(*'H264')  # new
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # old
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(str(file_out), fourcc, 5, size)
         for i in samples:
             cap.set(1, i)
             _, frame = cap.read()
             out.write(frame)
         out.release()
-        _logger.info(f'STEP {step}: END {action}')
+
         # set force to true to recompute all subsequent steps
         force = True
+
+        _logger.info(f'STEP {step}: END {action}')
 
     return file_out, force
 
@@ -69,25 +71,26 @@ def _run_network(
     tdir: Path,
     mp4_file: Path,
     model_path: Path,
-    network: dict,
-    video_params: dict,
+    network_params: dict,
+    camera_params: dict,
     force: bool = False,
     roi_df_file: Optional[Path] = None,
-):
+) -> Tuple[Path, bool]:
     """Step 1: run Lightning Pose networks.
 
     :param tdir: temporary directory to store outputs
-    :param mp4_file: temporally subsampled video
+    :param mp4_file: path to temporally subsampled video
     :param model_path: path to model directory
-    :param network:
-    :param video_params: camera params
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
+    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
     :param force: whether to overwrite existing intermediate files
-    return: path to dataframe used to crop video, updated force parameter
+    :param roi_df_file: path to dataframe output by ROI network, for computing crop window
+    return: path to dataframe with results, updated force parameter
     """
     step = '01'
-    action = f'Inference for {network["label"]} network on {mp4_file.name}'
+    action = f'Inference for {network_params["label"]} network on {mp4_file.name}'
 
-    file_out = next(tdir.glob(f'*{network["label"]}*.csv'), None)
+    file_out = next(tdir.glob(f'*{network_params["label"]}*.csv'), None)
     if file_out and not force:
         _logger.info(f'STEP {step}: {action} exists, not computing.')
     else:
@@ -95,25 +98,28 @@ def _run_network(
 
         # get crop info
         if roi_df_file:
-            crop_window = get_crop_window(file_df_crop=roi_df_file, network=network)
+            crop_window = get_crop_window(roi_df_file=roi_df_file, network_params=network_params)
         else:
             crop_window = None
+
         # get batch size; can increase batch size with smaller frames
-        sequence_length = network['sequence_length'] * video_params['sampling']
+        sequence_length = network_params['sequence_length'] * camera_params['sampling']
 
         analyze_video(
-            network=network['label'],
+            network=network_params['label'],
             mp4_file=str(mp4_file),
             model_path=str(model_path),
-            video_params=video_params,
+            camera_params=camera_params,
             crop_window=crop_window,
             sequence_length=sequence_length,
             save_dir=str(tdir),
         )
-        file_out = next(tdir.glob(f'*{network["label"]}*.csv'), None)
-        _logger.info(f'STEP {step}: END {action}')
+        file_out = next(tdir.glob(f'*{network_params["label"]}*.csv'), None)
+
         # set force to true to recompute all subsequent steps
         force = True
+
+        _logger.info(f'STEP {step}: END {action}')
 
     return file_out, force
 
@@ -121,13 +127,18 @@ def _run_network(
 def _extract_pose_alf(
     tdir: Path,
     file_label: str,
-    networks: dict,
-    mp4_file: Path,
+    camera_params: dict,
     roi_df_file: Path,
     force: bool = False,
-):
+) -> Path:
     """Step 2: collect all outputs into a single file.
 
+    :param tdir: temporary directory to store outputs
+    :param file_label: name of video, used for naming alf file
+    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
+    :param roi_df_file: path to dataframe output by ROI network, for computing crop window
+    :param force: whether to overwrite existing intermediate files
+    return: path to dataframe with results, updated force parameter
     """
     step = '02'
     action = f'Extract ALF files for {file_label}'
@@ -142,38 +153,31 @@ def _extract_pose_alf(
     else:
         _logger.info(f'STEP {step}: START {action}')
 
-        if 'bodyCamera' in file_label:
-            video_params = BODY_VIDEO
-        elif 'leftCamera' in file_label:
-            video_params = LEFT_VIDEO
-        elif 'rightCamera' in file_label:
-            video_params = RIGHT_VIDEO
-        else:
-            raise NotImplementedError
-
-        for k, v in networks.items():
-            if v['features'] is None:
+        for net_name, net_params in camera_params['features'].items():
+            if net_params['features'] is None:
                 # skip ROI network
                 continue
-            df = pd.read_csv(next(tdir.glob(f'*{k}*.csv')), header=[0, 1, 2], index_col=0)
-            if k == 'paws':
-                whxy = [0, 0, 0, 0]
-            else:
-                whxy = get_crop_window(file_df_crop=roi_df_file, network=v)
 
-            # Simplify the indices of the multi index df
+            # read df and simplify the indices of multi-index
+            df = pd.read_csv(next(tdir.glob(f'*{net_name}*.csv')), header=[0, 1, 2], index_col=0)
             columns = [f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()]
             df.columns = columns
 
             # translate and scale the specialized window in the full initial frame
-            post_crop_scale = v['postcrop_downsampling']
-            pre_crop_scale = 1.0 / video_params['sampling']
+            if net_name == 'paws':
+                whxy = [0, 0, 0, 0]
+            else:
+                whxy = get_crop_window(roi_df_file=roi_df_file, network_params=net_params)
+
+            post_crop_scale = net_params['postcrop_downsampling']
+            pre_crop_scale = 1.0 / camera_params['sampling']
+
             for ind in columns:
                 if ind[-1] == 'x':
                     df[ind] = df[ind].apply(
                         lambda x: (x * post_crop_scale + whxy[2]) * pre_crop_scale)
-                    if video_params['flip']:
-                        df[ind] = df[ind].apply(lambda x: video_params['original_size'][0] - x)
+                    if camera_params['flip']:
+                        df[ind] = df[ind].apply(lambda x: camera_params['original_size'][0] - x)
                 elif ind[-1] == 'y':
                     df[ind] = df[ind].apply(
                         lambda x: (x * post_crop_scale + whxy[3]) * pre_crop_scale)
@@ -182,10 +186,8 @@ def _extract_pose_alf(
             if 'df_full' not in locals():
                 df_full = df.copy()
             else:
-                df_full = pd.concat([
-                    df_full.reset_index(drop=True),
-                    df.reset_index(drop=True)
-                ], axis=1)
+                df_full = pd.concat(
+                    [df_full.reset_index(drop=True), df.reset_index(drop=True)], axis=1)
 
         # save in alf path
         df_full.to_parquet(file_alf)
@@ -220,11 +222,11 @@ def lightning_pose(
     mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
     file_label = mp4_file.stem.split('.')[0].split('_')[-1]  # e.g. 'leftCamera'
     if 'bodyCamera' in file_label:
-        video_params = BODY_VIDEO
+        camera_params = BODY_VIDEO
     elif 'rightCamera' in file_label:
-        video_params = RIGHT_VIDEO
+        camera_params = RIGHT_VIDEO
     elif 'leftCamera' in file_label:
-        video_params = LEFT_VIDEO
+        camera_params = LEFT_VIDEO
     else:
         raise NotImplementedError
 
@@ -246,22 +248,22 @@ def lightning_pose(
     roi_df_file, force = _run_network(
         tdir=tdir,
         mp4_file=file_sparse,
-        model_path=next(Path(ckpts_path).glob(video_params['features']['roi_detect']['weights'])),
-        network=video_params['features']['roi_detect'],
-        video_params=video_params,
+        model_path=next(Path(ckpts_path).glob(camera_params['features']['roi_detect']['weights'])),
+        network_params=camera_params['features']['roi_detect'],
+        camera_params=camera_params,
         force=force,
     )
 
     # run all other networks
-    for net_name, net_params in video_params['features'].items():
+    for net_name, net_params in camera_params['features'].items():
         if net_params['features'] is None:
             continue
         _run_network(
             tdir=tdir,
             mp4_file=Path(mp4_file),
             model_path=next(Path(ckpts_path).glob(net_params['weights'])),
-            network=net_params,
-            video_params=video_params,
+            network_params=net_params,
+            camera_params=camera_params,
             force=force,
             roi_df_file=roi_df_file,
         )
@@ -270,8 +272,7 @@ def lightning_pose(
     out_file = _extract_pose_alf(
         tdir=tdir,
         file_label=file_label,
-        networks=video_params['features'],
-        mp4_file=mp4_file,
+        camera_params=camera_params,
         roi_df_file=roi_df_file,
         force=force,
     )
