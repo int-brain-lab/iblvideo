@@ -112,7 +112,7 @@ pip install deeplabcut[tf]
 
 Export environment variables for testing
 ```bash
-$CUDA_VERSION=11.8
+CUDA_VERSION=11.8
 export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
 export TF_FORCE_GPU_ALLOW_GROWTH='true'
 export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
