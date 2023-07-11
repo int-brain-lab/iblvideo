@@ -69,7 +69,7 @@ Install cuDNN 8.6, an extension of the Cuda Toolkit for deep neural networks: Do
 # get the install archive
 CUDA_VERSION=11.8
 CUDNN_ARCHIVE=cudnn-linux-x86_64-8.9.1.23_cuda11-archive
-wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/$CUDNN_ARCHIVE
+wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/$CUDNN_ARCHIVE.tar.xz
 # unpack the archive and copy libraries to the CUDA library path
 tar -xvf $CUDNN_ARCHIVE.tar.xz
 sudo cp $CUDNN_ARCHIVE/include/cudnn.h /usr/local/cuda-$CUDA_VERSION/include  
