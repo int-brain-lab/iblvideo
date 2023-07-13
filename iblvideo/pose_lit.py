@@ -1,10 +1,8 @@
 """Pipeline to run Lightning Pose on a single IBL video with trained networks."""
 
 import cv2
-from glob import glob
 import logging
 import numpy as np
-import os
 import pandas as pd
 from pathlib import Path
 import shutil
@@ -143,7 +141,7 @@ def _extract_pose_alf(
     # Create alf path to store final files
     alf_path = tdir.parent.parent.joinpath('alf')
     alf_path.mkdir(exist_ok=True, parents=True)
-    file_alf = alf_path.joinpath(f'_ibl_{file_label}.lp.pqt')
+    file_alf = alf_path.joinpath(f'_ibl_{file_label}.lightningPose.pqt')
 
     if file_alf.exists() and not force:
         _logger.info(f'STEP {step}: {action} exists, not computing')
@@ -220,6 +218,7 @@ def lightning_pose(
 
     # initiate
     mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
+    # TODO: should use ibllib function for this but don't want circular import, maybe pass label in task?
     file_label = mp4_file.stem.split('.')[0].split('_')[-1]  # e.g. 'leftCamera'
     if 'bodyCamera' in file_label:
         camera_params = BODY_VIDEO
