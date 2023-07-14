@@ -24,21 +24,6 @@ from iblvideo import lightning_pose
 output = lightning_pose("Path/to/file.mp4")
 ```
 
-### Running LP for one session using ONE
-TODO!!
-```python
-from iblvideo import run_session
-run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
-```
-### Updating the environment
-```bash
-# Inside the main repository
-chmod 775 update_env.sh
-# If you installed your environment and repo in a different place than the example, 
-# # you need to open and adapt this script
-./update_env.sh
-```
-
 ## Installing LP locally on an IBL server
 
 ### Pre-requisites
