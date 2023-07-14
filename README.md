@@ -30,12 +30,6 @@ TODO!!
 from iblvideo import run_session
 run_session("db156b70-8ef8-4479-a519-ba6f8c4a73ee")
 ```
-### Running the queue using ONE
-TODO!!
-```python
-from iblvideo import run_queue 
-run_queue(machine='mymachine')
-```
 ### Updating the environment
 ```bash
 # Inside the main repository
@@ -45,31 +39,13 @@ chmod 775 update_env.sh
 ./update_env.sh
 ```
 
-## Accessing results
-
-LP results are stored on the Flatrion server, with the `dataset_type` being `camera.lp` and can be searched as any other IBL datatype via ONE. See https://int-brain-lab.github.io/iblenv/ for details. There is a script to produce labeled videos as seen in the images above for the inspection of particular trials (requires the legnthy download of full videos): https://github.com/int-brain-lab/iblapps/blob/develop/dlc/DLC_labeled_video.py and one to produce trial-averaged behavioral activity plots using DLC traces (fast, as this is downloading DLC traces and wheel data only): https://github.com/int-brain-lab/iblapps/blob/master/dlc/overview_plot_dlc.py 
-
-## Installing LP locally on an IBL server - pytorch xx
+## Installing LP locally on an IBL server
 
 ### Pre-requisites
 
 Install local server as per [this instruction](https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4).
 
 Install CUDA 11.8 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l). No need to set up the library paths yet, as we will do it below.
-
-Install cuDNN 8.6, an extension of the Cuda Toolkit for deep neural networks: Download cuDNN from FlatIron as shown below, or find it online.
-
-```bash
-# get the install archive
-CUDA_VERSION=11.8
-CUDNN_ARCHIVE=cudnn-linux-x86_64-8.9.1.23_cuda11-archive
-wget --user iblmember --password check_your_one_settings http://ibl.flatironinstitute.org/resources/$CUDNN_ARCHIVE
-# unpack the archive and copy libraries to the CUDA library path
-tar -xvf $CUDNN_ARCHIVE.tar.xz
-sudo cp $CUDNN_ARCHIVE/include/cudnn.h /usr/local/cuda-$CUDA_VERSION/include  
-sudo cp $CUDNN_ARCHIVE/lib/libcudnn* /usr/local/cuda-$CUDA_VERSION/lib64  
-sudo chmod a+r /usr/local/cuda-$CUDA_VERSION/include/cudnn.h /usr/local/cuda-$CUDA_VERSION/lib64/libcudnn*
-```
 
 ### Create a Python environment with Lightning Pose
 
@@ -83,31 +59,27 @@ sudo apt install python3.8 python3.8-dev -y
 sudo apt install python3.8-distutils -y
 ```
 
-Create an environment called e.g. lpenv
+Create an environment called e.g. litpose
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
-virtualenv lpenv --python=python3.8
+virtualenv litpose --python=python3.8
 ```
 
 Activate the environment and install packages
 ```bash
-source ~/Documents/PYTHON/envs/lpenv/bin/activate
-pip install setuptools==65
+CUDA_VERSION=11.8
+export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
+source ~/Documents/PYTHON/envs/litpose/bin/activate
+
 pip install ibllib
 pip install lightning-pose
 ```
 
 ### Test if lightning-pose installation was successful
 
-Export environment variables for testing
-```bash
-$CUDA_VERSION=11.8
-export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
-```
-
-Try to import lightning_pose (don't forget that lpenv has to be active)
+Try to import lightning_pose (don't forget that the env variables above have to be se and litpose env has to be active)
 ```
 python -c 'import lightning_pose'
 ```
@@ -118,7 +90,7 @@ nano ~/.bashrc
 ```
 Enter this line under the other aliases:
 ```bash
-alias lpenv="CUDA_VERSION=11.8; export PATH=/usr/local/cuda-%CUDA_VERSION/bin:$PATH; export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/lpenv/bin/activate"
+alias litpose="CUDA_VERSION=11.8; export PATH=/usr/local/cuda-%CUDA_VERSION/bin:$PATH; export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/litpose/bin/activate"
 ```
 After opening a new terminal you should be able to type `lpenv` and end up in an environment in which you can import lightning-pose like above.
 
@@ -127,7 +99,7 @@ After opening a new terminal you should be able to type `lpenv` and end up in an
 Make sure to be in the Documents/PYTHON folder and that the lpenv environment is activated
 ```bash
 cd ~/Documents/PYTHON
-lpenv
+litpose
 ```
 Then clone and install iblvideo
 ```
@@ -143,8 +115,7 @@ python -c 'import iblvideo'
 
 Eventually run the tests:
 ```shell
-pytest ./iblvideo/tests/test_choiceworld.py
-pytest ./iblvideo/tests/test_motion_energy.py
+pytest ./iblvideo/tests/test_pose_lp.py
 ```
 
 ## Releasing a new version (for devs)
