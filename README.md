@@ -64,7 +64,7 @@ pip install lightning-pose
 
 ### Test if lightning-pose installation was successful
 
-Try to import lightning_pose (don't forget that the env variables above have to be se and litpose env has to be active)
+Try to import lightning_pose (don't forget that the env variables above have to be set and litpose env has to be active)
 ```
 python -c 'import lightning_pose'
 ```
@@ -102,6 +102,26 @@ Eventually run the tests:
 ```shell
 pytest ./iblvideo/tests/test_pose_lp.py
 ```
+
+### Clone and install eks
+
+Make sure to be in the Documents/PYTHON folder and that the lpenv environment is activated
+```bash
+cd ~/Documents/PYTHON
+litpose
+```
+Then clone and install eks
+```
+git clone https://github.com/paninski-lab/eks.git
+cd eks
+pip install -e .
+```
+
+Test if you install was successful
+```
+python -c 'import eks'
+```
+
 
 ## Releasing a new version (for devs)
 

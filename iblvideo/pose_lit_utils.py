@@ -1,5 +1,7 @@
 """Helper functions to run Lightning Pose on a single IBL video with trained networks."""
 
+from eks.utils import convert_lp_dlc
+from eks.pupil_smoother import ensemble_kalman_smoother_pupil
 import gc
 import lightning.pytorch as pl
 from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
@@ -296,8 +298,9 @@ def analyze_video(
     mp4_file: str,
     model_path: str,
     camera_params: dict,
-    sequence_length: int = 32,
     crop_window: Optional[list] = None,
+    ensemble_number: int = 0,
+    sequence_length: int = 32,
     save_dir: Optional[str] = None,
 ) -> pd.DataFrame:
     """Analyze video with a single network.
@@ -308,6 +311,7 @@ def analyze_video(
     :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
     :param sequence_length: number of frames to load per sequence
     :param crop_window: list of floats [width, height, x, y] defining window used for cropping
+    :param ensemble_number: unique integer to track predictions from different ensemble members
     :param save_dir: path to directory where results are saved in csv format
     :return: pandas DataFrame containing results
     """
@@ -348,7 +352,7 @@ def analyze_video(
     # clean up predictions (resize, reformat, etc.)
     pred_handler = PredictionHandler(cfg=cfg, data_module=None, video_file=mp4_file)
     preds_df = pred_handler(preds=preds)
-    csv_file = mp4_file.replace('.mp4', f'.{network}.csv')
+    csv_file = mp4_file.replace('.mp4', f'.{network}{ensemble_number}.csv')
     if save_dir:
         csv_file = os.path.join(save_dir, os.path.basename(csv_file))
     preds_df.to_csv(csv_file)
@@ -361,3 +365,65 @@ def analyze_video(
     torch.cuda.empty_cache()
 
     return preds_df
+
+
+def run_eks(
+    network: str,
+    eks_params: dict,
+    mp4_file: str,
+    csv_files: list,
+) -> pd.DataFrame:
+    """Run ensemble Kalman smoother using multiple network predictions.
+
+    :param network: network name, key for `camera_params` features dict
+    :param eks_params: parameters for eks, will be network-specific
+    :param mp4_file: path to video file
+    :param csv_files: paths to individual network outputs
+    :return: pandas DataFrame containing eks results
+    """
+
+    if len(csv_files) == 0:
+        raise FileNotFoundError(f'Empty csv_files list provided to run_eks function')
+
+    if network == 'eye':
+
+        # load files and put them in correct format
+        markers_list = []
+        for csv_file in csv_files:
+            markers_curr = pd.read_csv(csv_file, header=[0, 1, 2], index_col=0)
+            keypoint_names = [c[1] for c in markers_curr.columns[::3]]
+            model_name = markers_curr.columns[0][0]
+            markers_curr_fmt = convert_lp_dlc(markers_curr, keypoint_names, model_name=model_name)
+            markers_list.append(markers_curr_fmt)
+
+        # parameters hand-picked for smoothing purposes (diameter_s, com_s, com_s)
+        state_transition_matrix = np.asarray([
+            [eks_params['diameter'], 0, 0],
+            [0, eks_params['com'], 0],
+            [0, 0, eks_params['com']]
+        ])
+
+        # run eks
+        df_dicts = ensemble_kalman_smoother_pupil(
+            markers_list=markers_list,
+            keypoint_names=keypoint_names,
+            tracker_name='ensemble-kalman_tracker',
+            state_transition_matrix=state_transition_matrix,
+            likelihood_default=1.0,
+        )
+        df_smoothed = df_dicts['markers_df']
+
+        # save smoothed predictions
+        csv_file_name = os.path.basename(mp4_file.replace('.mp4', f'.{network}.csv'))
+        csv_file_dir = os.path.dirname(csv_files[0])
+        csv_file_smooth = os.path.join(csv_file_dir, csv_file_name)
+        df_smoothed.to_csv(csv_file_smooth)
+
+        # delete individual predictions so that smoothed version is used downstream
+        for csv_file in csv_files:
+            os.remove(csv_file)
+
+    else:
+        raise NotImplementedError
+
+    return df_smoothed

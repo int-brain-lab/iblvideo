@@ -10,7 +10,7 @@ import sys
 from typing import Optional, Tuple
 
 from iblvideo.params import LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
-from iblvideo.pose_lit_utils import analyze_video, get_crop_window
+from iblvideo.pose_lit_utils import analyze_video, get_crop_window, run_eks
 from iblvideo.weights import download_weights
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -68,16 +68,18 @@ def _run_network(
     model_path: Path,
     network_params: dict,
     camera_params: dict,
+    ensemble_number: int = 0,
     force: bool = False,
     roi_df_file: Optional[Path] = None,
 ) -> Tuple[Path, bool]:
     """Step 1: run Lightning Pose networks.
 
     :param tdir: temporary directory to store outputs
-    :param mp4_file: path to temporally subsampled video
+    :param mp4_file: path to video
     :param model_path: path to model directory
     :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
     :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
+    :param ensemble_number: unique integer to track predictions from different ensemble members
     :param force: whether to overwrite existing intermediate files
     :param roi_df_file: path to dataframe output by ROI network, for computing crop window
     return: path to dataframe with results, updated force parameter
@@ -85,13 +87,14 @@ def _run_network(
     step = '01'
     action = f'Inference for {network_params["label"]} network on {mp4_file.name}'
 
-    file_out = next(tdir.glob(f'*{network_params["label"]}*.csv'), None)
+    file_out = next(tdir.glob(f'*{network_params["label"]}{ensemble_number}*.csv'), None)
     if file_out and not force:
         _logger.info(f'STEP {step}: {action} exists, not computing.')
     else:
         _logger.info(f'STEP {step}: START {action}')
 
         # get crop info
+        print(roi_df_file)
         if roi_df_file:
             crop_window = get_crop_window(roi_df_file=roi_df_file, network_params=network_params)
         else:
@@ -106,10 +109,55 @@ def _run_network(
             model_path=str(model_path),
             camera_params=camera_params,
             crop_window=crop_window,
+            ensemble_number=ensemble_number,
             sequence_length=sequence_length,
             save_dir=str(tdir),
         )
-        file_out = next(tdir.glob(f'*{network_params["label"]}*.csv'), None)
+        file_out = next(tdir.glob(f'*{network_params["label"]}{ensemble_number}*.csv'), None)
+
+        # set force to true to recompute all subsequent steps
+        force = True
+
+        _logger.info(f'STEP {step}: END {action}')
+
+    return file_out, force
+
+
+def _run_eks(
+    tdir: Path,
+    mp4_file: Path,
+    network_params: dict,
+    force: bool = False,
+) -> Tuple[Path, bool]:
+    """Step 1: run Lightning Pose networks.
+
+    :param tdir: temporary directory to store outputs
+    :param mp4_file: path to video
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
+    :param force: whether to overwrite existing intermediate files
+    return: path to dataframe with results, updated force parameter
+    """
+    step = '02'
+    action = f'EKS for {network_params["label"]} network on {mp4_file.name}'
+
+    # important! no * before .csv, we assume the eks output does not have ensemble number attached
+    file_out = next(tdir.glob(f'*{network_params["label"]}.csv'), None)
+    if file_out and not force:
+        _logger.info(f'STEP {step}: {action} exists, not computing.')
+    else:
+        _logger.info(f'STEP {step}: START {action}')
+
+        # important! there is a * before .csv to capture ensemble number
+        ens_files = list(tdir.glob(f'*{network_params["label"]}*.csv'))
+
+        run_eks(
+            network=network_params['label'],
+            eks_params=network_params['eks_params'],
+            mp4_file=str(mp4_file),
+            csv_files=ens_files,
+        )
+
+        file_out = next(tdir.glob(f'*{network_params["label"]}.csv'), None)
 
         # set force to true to recompute all subsequent steps
         force = True
@@ -135,7 +183,7 @@ def _extract_pose_alf(
     :param force: whether to overwrite existing intermediate files
     return: path to dataframe with results, updated force parameter
     """
-    step = '02'
+    step = '03'
     action = f'Extract ALF files for {file_label}'
 
     # Create alf path to store final files
@@ -253,19 +301,35 @@ def lightning_pose(
         force=force,
     )
 
-    # run all other networks
+    # run specialized networks
     for net_name, net_params in camera_params['features'].items():
         if net_params['features'] is None:
             continue
-        _run_network(
-            tdir=tdir,
-            mp4_file=Path(mp4_file),
-            model_path=next(Path(ckpts_path).glob(net_params['weights'])),
-            network_params=net_params,
-            camera_params=camera_params,
-            force=force,
-            roi_df_file=roi_df_file,
-        )
+        # potentially loop over multiple networks (when ensembling)
+        for m, model_path in enumerate(Path(ckpts_path).glob(net_params['weights'])):
+            _run_network(
+                tdir=tdir,
+                mp4_file=Path(mp4_file),
+                model_path=model_path,
+                network_params=net_params,
+                camera_params=camera_params,
+                ensemble_number=m,
+                force=force,
+                roi_df_file=roi_df_file,
+            )
+
+    # run single-view eks on any ensembles
+    for net_name, net_params in camera_params['features'].items():
+        if net_params['features'] is None:
+            continue
+        net_weights = Path(ckpts_path).glob(net_params['weights'])
+        if len(list(net_weights)) > 1:
+            _run_eks(
+                tdir=tdir,
+                mp4_file=Path(mp4_file),
+                network_params=net_params,
+                force=force,
+            )
 
     # collect all outputs into a single file
     out_file = _extract_pose_alf(
