@@ -333,7 +333,7 @@ def analyze_video(
     # load model
     model = load_model_from_checkpoint(
         cfg=cfg,
-        ckpt_file=next(Path(model_path).glob('*/*/*/*/*.ckpt')),
+        ckpt_file=str(next(Path(model_path).glob('*/*/*/*/*.ckpt'))),
         eval=True,
         data_module=None,
         skip_data_module=True,
