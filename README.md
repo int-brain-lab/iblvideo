@@ -158,6 +158,8 @@ pytest ./iblvideo/tests/test_choiceworld.py
 pytest ./iblvideo/tests/test_motion_energy.py
 ```
 
+Note that some variables are routinely computed from DLC output in the IBL ephys pipeline, such as pupil diameter and lick times. See ibllib/pipes/ephys_preprocessing.py EphysPostDLC and brainbox.behavior.dlc for more details.
+
 ## Releasing a new version (for devs)
 
 We use semantic versioning, with a prefix: `iblvideo_MAJOR.MINOR.PATCH`. If you update the version, see below for what to adapt.
