@@ -116,35 +116,43 @@ def interp_cca(eid, feature_l, feature_r, lp=False):
     return paw_lcam_cca[:,0], paw_rcam_cca[:,0]
 
 
-def plot_compare(eid, feature_l, feature_r):
+def plot_compare(eid, feature_l, feature_r, ax=None):
 
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(5,3))
+    alone = False
+    if not ax:
+        alone = True
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(5,3))
     
     k = 0
     for lp in [False, True]:
         paw_lcam_cca, paw_rcam_cca = interp_cca(eid, feature_l, 
                                                 feature_r, lp=lp)
-        
                                       
         ax[k].plot(paw_lcam_cca,paw_rcam_cca, linestyle='', 
                 marker='o', markersize=0.01,alpha=0.5, c='k',
                 markeredgecolor=None) 
                  
         r, p = pearsonr(paw_lcam_cca,paw_rcam_cca)         
-                 
-        ax[k].set_title(f'Pearson: {np.round(r,2)}, LP: {lp}')
+        
+        if alone:
+            ax[k].set_title(f'r: {np.round(r,2)}, LP: {lp}')
+        else:         
+            ax[k].set_title(f'[{feature_l}, {feature_r}]'
+                            f'\n r: {np.round(r,2)}, LP: {lp}')
          
         ax[k].set_xlabel('left cam cca dim')
         ax[k].set_ylabel('right cam cca dim')              
         k += 1
 
-    fig.suptitle(f"{eid}, \n {'/'.join(str(one.eid2path(eid)).split('/')[-5:])}"
-                 f" \n leftCam: {feature_l}, rightCam: {feature_r}")
-    fig.tight_layout()
-    return fig
+    if alone: 
+        fig.suptitle(f"{eid},"
+                     f" \n {'/'.join(str(one.eid2path(eid)).split('/')[-5:])}"
+                     f" \n leftCam: {feature_l}, rightCam: {feature_r}")
+        fig.tight_layout()
+        return fig
 
 
-def plot_bulk():
+def plot_bulk(combine=True):
 
     '''
     for some eids, save cca plots in folders
@@ -160,18 +168,48 @@ def plot_bulk():
             ['tongue_end_l','tongue_end_r'],
             ['tongue_end_r','tongue_end_l']] 
 
+    if combine:
+        fig, ax = plt.subplots(nrows=3, ncols=6, figsize = (15, 8))
 
 
-    plt.ioff()
+    plt.ioff()    
+
     for eid in eids:
-    
+
         p = Path(f'/home/mic/DLC_LP/{eid}')
         p.mkdir(parents=True, exist_ok=True)
         
+        k = 0
+        col = 0        
+        row = 0
+        
         for fpair in fpairs:
-            fig = plot_compare(eid, fpair[0], fpair[1]) 
-            fig.savefig(p / f'{fpair[0]}_{fpair[1]}.png')
-            plt.close()
+            if combine:
+
+                plot_compare(eid, fpair[0], fpair[1], 
+                             ax=[ax[row,col], ax[row, col+1]])
+            
+                k += 1
+                col += 2
+                
+                if col%6 == 0:
+                    col = 0
+
+                if k%3 == 0:
+                    row += 1
+                
+                            
+            else:
+                fig = plot_compare(eid, fpair[0], fpair[1]) 
+                fig.savefig(p / f'{fpair[0]}_{fpair[1]}.png')
+                plt.close()
+
+        if combine:
+            fig.suptitle(f"{eid}, cca analysis for left/right cam"
+               f" \n {'/'.join(str(one.eid2path(eid)).split('/')[-5:])}")
+                            
+            fig.tight_layout()
+            fig.savefig(p / f'cca_{eid}.png')    
 
     plt.ion()
 
