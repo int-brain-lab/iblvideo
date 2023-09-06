@@ -3,7 +3,7 @@ from one.api import ONE
 from brainbox.io.one import SessionLoader
 from brainbox.processing import bincount2D
 
-
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 from collections import Counter
 import pandas as pd
@@ -383,6 +383,7 @@ def eks_z(eid, cam='left'):
     parts = np.unique([x[:-4] for x in D])
 
     r = {}
+    trace = {}
 
     for part in parts:
     
@@ -392,47 +393,72 @@ def eks_z(eid, cam='left'):
               
         m = np.array(m)      
         ens_mean = np.mean(m, axis=0)
-        ens_std = np.std(m, axis=0)
-        max_ens_std = np.max(ens_std, axis=0)
+        ens_var = np.var(m, axis=0)
+        geo_ens_std = np.sqrt(ens_var[0,:] + ens_var[1,:])
         
         # compute for each net/obs the normed distance to ensemble mean
         u = []
         for net in range(5):
             u.append(np.sqrt(np.sum(np.square(m[net] - ens_mean),axis=0))
-                     /max_ens_std)
+                     /geo_ens_std)
                      
-        u = np.array(u)             
+        u = np.array(u)
+        trace[part] = u 
+                    
         obs_mean = np.mean(u,axis=1)        
         obs_std = np.std(u,axis=1)
 
         r[part] = [obs_mean, obs_std]
 
      
-    fig, ax = plt.subplots(figsize=(5,3))
+    fig, ax = plt.subplots(ncols=2, figsize=(8,6))
     
-    ax.bar(r.keys(), [np.mean(r[x][0]) for x in r], 
+    ax[0].bar(r.keys(), [np.mean(r[x][0]) for x in r], 
               yerr = [np.std(r[x][0]) for x in r], color='k', width=0)
               
-    ax.plot(r.keys(), [np.mean(r[x][0]) for x in r], linestyle='', 
+    ax[0].plot(r.keys(), [np.mean(r[x][0]) for x in r], linestyle='', 
               color='k', marker = 'o', markersize=10)                            
     
     for net in range(5):
-        ax.plot(r.keys(), [r[x][0][net] for x in r], marker = 'o', 
+        ax[0].plot(r.keys(), [r[x][0][net] for x in r], marker = 'o', 
         linestyle='', color='gray', markersize=5)
 
-    ax.set_ylabel('normed dist from ens_mean \n meaned over frames')
-    ax.set_xlabel('tracked points')
-    ax.set_xticklabels(list(r.keys()), rotation = 45)
-    ax.set_title(f"{cam}Camera \n {eid} \n {str(one.eid2path(eid)).split('/')[-3]}")
-    ax.annotate('5 nets', xy=(0, 0), xytext=(0.05, 0.05),
+    ax[0].set_ylabel('normed dist from ens_mean \n meaned over frames')
+    ax[0].set_xlabel('tracked points')
+    ax[0].set_xticklabels(list(r.keys()), rotation = 45)
+    ax[0].annotate('5 nets', xy=(0, 0), xytext=(0.05, 0.05),
              textcoords='axes fraction', fontsize=12, color='gray')
+                 
+    shift = max([max(np.mean(trace[part],axis=0)) - 
+           min(np.mean(trace[part],axis=0)) for part in trace])
+           
+    cs = list(mcolors.BASE_COLORS.keys())
+    
+    k = 0
+    for part in parts:
+        tr = np.mean(trace[part],axis=0) - k*shift
+        ax[1].plot(tr, label=part, c=cs[k])
+                
+        k += 1
+     
+    ax[1].legend().set_draggable(True)    
+    ax[1].set_ylabel('dist from ens_mean [a.u.]')
+    ax[1].set_xlabel('frames')    
+    
+    fig.suptitle(f"{cam}Camera \n {eid} "
+                    f"\n {str(one.eid2path(eid)).split('/')[-3]}")            
     fig.tight_layout()
 
-
+    p = Path(f'/home/mic/DLC_LP/{eid}')
+    p.mkdir(parents=True, exist_ok=True)
+       
+    s = (f'ensemble_{cam}_{eid}_'
+         f"{str(one.eid2path(eid)).split('/')[-3]}.png")    
+        
+    fig.savefig(p / s)
 
 
     
-
 
 
 
