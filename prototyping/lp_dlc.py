@@ -37,13 +37,15 @@ eids = ['51e53aff-1d5d-4182-a684-aba783d50ae5',
 def load_lp(eid, cam, masked=True):
 
     '''
-    for a given session and cam, load all lp tracked points
+    for a given session and cam, load all lp tracked points;
     '''
 
-    pth = one.eid2path(eid) / 'alf'
+    pth = ('/mnt/8cfe1683-d974-40f3-a20b-b217cad4722a/lp_ens'
+          f'/128x102_128x128/{eid}/_ibl_{cam}Camera.lightningPose.pqt') 
 
-    d = pd.read_parquet(pth / 'lp' / f'_ibl_{cam}Camera.dlc.pqt')
-    d['times'] = np.load(pth / f'_ibl_{cam}Camera.times.npy')
+    d = pd.read_parquet(pth)
+    d['times'] = np.load(one.eid2path(eid) / 'alf'
+                    / f'_ibl_{cam}Camera.times.npy')
 
     if masked:
         points = np.unique(['_'.join(x.split('_')[:-1]) 
@@ -350,7 +352,7 @@ def plot8(eid):
     fig.savefig(p / s)
 
 
-def eks_z(eid, cam='left'):
+def eks_z(eid, cam='left', getz=False, reso='128x102_128x128', save_=False):
 
     '''
     Ensemble Kalman Smoother (EKS) qc metric
@@ -359,22 +361,40 @@ def eks_z(eid, cam='left'):
     ||eks_prediction - ensemble_mean)|| / max(ensemble_std,c),
     where ||.|| is euclidean norm and c>0 is a rough estimate of the label noise,   
     so we don’t divide by any tiny numbers.
+    
+    Different resolutions:
+    128x102_128x128
+    320x256_128x128
+    320x256_256x256
+    
     '''
     
-    p = Path(f'/home/mic/DLC_LP/{eid}/{eid}/ensembles_{cam}Camera/')
+    p = Path('/mnt/8cfe1683-d974-40f3-a20b-b217cad4722a/lp_ens'
+            f'/{reso}/{eid}/ensembles_{cam}Camera/')
 
     D = {}
 
-    for net in range(5):   
+    scale = 1
+    if reso[:7] == '320x256':
+        scale = 2 if cam == 'right' else 4
+        
+    nets = 4 if reso[:7] == '320x256' else 5    
 
-        df = pd.read_csv(p / f'_iblrig_{cam}Camera.raw.eye{net}.csv')
+    for net in range(nets):   
 
-        D = D | {'_'.join([df[x][0],df[x][1],str(net)]): list(map(float, df[x][2:])) 
-                 for x in df.keys() if df[x][1] in ['x','y']}
+        try:
+            df = pd.read_csv(p / f'_iblrig_{cam}Camera.raw.eye{net}.csv')
+            D = D | {'_'.join([df[x][0],df[x][1],str(net)]): 
+                     list(map(float, df[x][2:])) 
+                     for x in df.keys() if df[x][1] in ['x','y']}
+            
+        except:
+            print('no pupil file')
 
         df = pd.read_csv(p / f'_iblrig_{cam}Camera.raw.paws{net}.csv')
 
-        D = D | {'_'.join([df[x][0],df[x][1],str(net)]): list(map(float, df[x][2:])) 
+        D = D | {'_'.join([df[x][0],df[x][1],str(net)]): 
+                 scale * np.array(list(map(float, df[x][2:]))) 
                  for x in df.keys() if df[x][1] in ['x','y']}        
 
     lst = [len(D[x]) for x in D]
@@ -382,25 +402,27 @@ def eks_z(eid, cam='left'):
 
     parts = np.unique([x[:-4] for x in D])
 
+
+    ts = np.load(one.eid2path(eid) / 'alf'
+                    / f'_ibl_{cam}Camera.times.npy')
+
     r = {}
     trace = {}
 
     for part in parts:
     
         m = []
-        for net in range(5):
+        for net in range(nets):
             m.append([D[f'{part}_x_{net}'], D[f'{part}_y_{net}']])
               
         m = np.array(m)      
         ens_mean = np.mean(m, axis=0)
         ens_var = np.var(m, axis=0)
-        geo_ens_std = np.sqrt(ens_var[0,:] + ens_var[1,:])
         
         # compute for each net/obs the normed distance to ensemble mean
         u = []
-        for net in range(5):
-            u.append(np.sqrt(np.sum(np.square(m[net] - ens_mean),axis=0))
-                     /geo_ens_std)
+        for net in range(nets):
+            u.append(np.sqrt(np.sum(np.square(m[net] - ens_mean),axis=0)))
                      
         u = np.array(u)
         trace[part] = u 
@@ -410,6 +432,9 @@ def eks_z(eid, cam='left'):
 
         r[part] = [obs_mean, obs_std]
 
+    if getz:
+        return trace
+        
      
     fig, ax = plt.subplots(ncols=2, figsize=(8,6))
     
@@ -419,11 +444,11 @@ def eks_z(eid, cam='left'):
     ax[0].plot(r.keys(), [np.mean(r[x][0]) for x in r], linestyle='', 
               color='k', marker = 'o', markersize=10)                            
     
-    for net in range(5):
+    for net in range(nets):
         ax[0].plot(r.keys(), [r[x][0][net] for x in r], marker = 'o', 
         linestyle='', color='gray', markersize=5)
 
-    ax[0].set_ylabel('normed dist from ens_mean \n meaned over frames')
+    ax[0].set_ylabel('dist from ens_mean \n meaned over frames')
     ax[0].set_xlabel('tracked points')
     ax[0].set_xticklabels(list(r.keys()), rotation = 45)
     ax[0].annotate('5 nets', xy=(0, 0), xytext=(0.05, 0.05),
@@ -437,25 +462,27 @@ def eks_z(eid, cam='left'):
     k = 0
     for part in parts:
         tr = np.mean(trace[part],axis=0) - k*shift
-        ax[1].plot(tr, label=part, c=cs[k])
+        ax[1].plot(ts[:len(tr)], tr, label=part, c=cs[k])
                 
         k += 1
      
     ax[1].legend().set_draggable(True)    
     ax[1].set_ylabel('dist from ens_mean [a.u.]')
-    ax[1].set_xlabel('frames')    
+    ax[1].set_xlabel('time [sec]')    
     
     fig.suptitle(f"{cam}Camera \n {eid} "
-                    f"\n {str(one.eid2path(eid)).split('/')[-3]}")            
+                    f"\n {str(one.eid2path(eid)).split('/')[-3]} {reso}")            
     fig.tight_layout()
 
-    p = Path(f'/home/mic/DLC_LP/{eid}')
-    p.mkdir(parents=True, exist_ok=True)
-       
-    s = (f'ensemble_{cam}_{eid}_'
-         f"{str(one.eid2path(eid)).split('/')[-3]}.png")    
-        
-    fig.savefig(p / s)
+    if save_:
+        p = Path(f'/home/mic/DLC_LP/{eid}')
+        p.mkdir(parents=True, exist_ok=True)
+           
+        s = (f'ensemble_{cam}_{eid}_'
+             f"{str(one.eid2path(eid)).split('/')[-3]}_{reso}.png")    
+            
+        fig.savefig(p / s)
+        plt.close()
 
 
     
