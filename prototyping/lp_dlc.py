@@ -13,7 +13,8 @@ from scipy.stats import pearsonr, gaussian_kde
 from scipy.interpolate import interp1d
 from pathlib import Path
 import math
-
+from itertools import combinations
+from matplotlib.ticker import MaxNLocator
 
 '''
 to get full dlc QC plot (trial averaged body part/feature positions, 
@@ -34,26 +35,67 @@ eids = ['51e53aff-1d5d-4182-a684-aba783d50ae5',
         'ee40aece-cffd-4edb-a4b6-155f158c666a']
 
 
-def load_lp(eid, cam, masked=True):
+def load_lp(eid, cam, masked=True, paws=False,
+            reso='128x102_128x128', flav='multi'):
 
     '''
     for a given session and cam, load all lp tracked points;
+    that's paw specific now; 
+    flav is either single or multi view EKS
     '''
-
-    pth = ('/mnt/8cfe1683-d974-40f3-a20b-b217cad4722a/lp_ens'
-          f'/128x102_128x128/{eid}/_ibl_{cam}Camera.lightningPose.pqt') 
-
-    d = pd.read_parquet(pth)
-    d['times'] = np.load(one.eid2path(eid) / 'alf'
-                    / f'_ibl_{cam}Camera.times.npy')
-
-    if masked:
-        points = np.unique(['_'.join(x.split('_')[:-1]) 
-                            for x in d.keys()])[1:]
+    if paws:
     
-        for point in points:
-            cond = d[f'{point}_likelihood'] < 0.9
-            d.loc[cond, [f'{point}_x', f'{point}_y']] = np.nan
+        pth = ('/mnt/8cfe1683-d974-40f3-a20b-b217cad4722a/lp_ens'
+              f'/{reso}/{eid}/ensembles_{cam}Camera/'
+              f'_iblrig_{cam}Camera.raw.paws.eks_{flav}.csv') 
+
+        d0 = pd.read_csv(pth, low_memory=False)
+
+
+        if reso[:7] == '128x102':
+            scale = 10 if cam == 'left' else 5
+        else:    
+            scale = 4 if cam == 'left' else 2
+
+       
+        # concat column keys
+        d = {d0[k][0]+'_'+d0[k][1]: scale * np.array(d0[k][2:].values, 
+             dtype=np.float32) for k in d0}
+             
+        del d['bodyparts_coords']
+        
+        k0 = list(d.keys())
+        for k in k0:
+            if 'likelihood' in k:
+                del d[k]    
+
+    
+    d['times'] = np.load(one.eid2path(eid) / 'alf'
+                    / f'_ibl_leftCamera.times.npy')
+                    
+
+    ls = [len(d[x]) for x in d]
+    if not all(ls == np.mean(ls)):
+        lsd = {x:len(d[x]) for x in d}
+        print(f'length mismatch: {lsd}')
+        print(eid, cam)
+        print('cutting times')
+        d['times'] = d['times'][:ls[0]]
+
+    if (not paws and reso == '128x102_128x128'):
+        # load old complete lp file        
+        pth = ('/mnt/8cfe1683-d974-40f3-a20b-b217cad4722a/lp_ens'
+              f'/{reso}/{eid}/_ibl_{cam}Camera.lightningPose.pqt') 
+
+        d = pd.read_parquet(pth)    
+
+        if masked:
+            points = np.unique(['_'.join(x.split('_')[:-1]) 
+                                for x in d.keys()])[1:]
+        
+            for point in points:
+                cond = d[f'{point}_likelihood'] < 0.9
+                d.loc[cond, [f'{point}_x', f'{point}_y']] = np.nan
 
     return d
     
@@ -373,19 +415,19 @@ def eks_z(eid, cam='left', getz=False, reso='128x102_128x128', save_=False):
             f'/{reso}/{eid}/ensembles_{cam}Camera/')
 
     D = {}
-
-    scale = 1
-    if reso[:7] == '320x256':
-        scale = 2 if cam == 'right' else 4
         
-    nets = 4 if reso[:7] == '320x256' else 5    
-
+    nets = 4 if reso[:7] == '320x256' else 5
+    
+    if reso[:7] == '128x102':
+        scale = 10 if cam == 'left' else 5
+    else:    
+        scale = 4 if cam == 'left' else 2
     for net in range(nets):   
 
         try:
             df = pd.read_csv(p / f'_iblrig_{cam}Camera.raw.eye{net}.csv')
             D = D | {'_'.join([df[x][0],df[x][1],str(net)]): 
-                     list(map(float, df[x][2:])) 
+                     scale * np.array(list(map(float, df[x][2:]))) 
                      for x in df.keys() if df[x][1] in ['x','y']}
             
         except:
@@ -485,9 +527,147 @@ def eks_z(eid, cam='left', getz=False, reso='128x102_128x128', save_=False):
         plt.close()
 
 
+#det = one.get_details(eid, True)['extended_qc']    
+
+def eval_paw_zscore(single=False):
+
+    '''
+    for paw-tracking
+    compare average z-score and variance across resolutions
+    '''
     
+    fig, axs = plt.subplots(nrows=2, ncols=3, sharex=True, 
+                            sharey=True, figsize=(18,10))
+                            
+    resos =  ['128x102_128x128',
+              '320x256_128x128',
+              '320x256_256x256']   
+                
+    pth = Path('/mnt/8cfe1683-d974-40f3-a20b-b217cad4722a/lp_ens'
+          f'/paws.npy')
+          
+    if pth.is_file():
+        DD = np.load(pth, allow_pickle=True).flat[0]
+        
+    else:
+        # combine all data
+        DD = {}
+        for reso in resos:
+            DD[reso] = {}
+            for cam in ['left', 'right']:
+                DD[reso][cam] = {}
+                for eid in eids:
+                    DD[reso][cam][eid] = load_lp(eid, cam, reso=reso, paws=True)    
+        
+                  
+        np.save(pth, DD, allow_pickle=True)   
 
 
+    c = 0
+    for reso in resos:
+        r = 0
+        for cam in ['left', 'right']:
+            D = []  # collect average scores
+            for eid in eids:
+                d = DD[reso][cam][eid]
+                
+                if single:
+                    # save single session traces
+                    p = Path(f'/home/mic/DLC_LP/{eid}')
+                    k0 = 0
+                    plt.ioff()
+                    fig0, ax0 = plt.subplots(nrows=len(d) - 1, 
+                                    sharex=True, figsize=(15,10))
+                    for tr in d:
+                        if tr == 'times':
+                            continue
+                        ax0[k0].plot(d['times'],d[tr], c='k')
+                        ax0[k0].set_xlabel('time [sec]')
+                        ax0[k0].set_ylabel(tr)
+                        k0+=1
+                        
+                    fig0.suptitle(f'{eid}, {reso}, {cam}') 
+                    fig0.tight_layout()    
+                    fig0.savefig(p / f'traces_{reso}_{cam}.png')
+                    plt.close(fig0)
+                    
+                    plt.ion()
+                  
+                D.append([np.mean(d[cc]) for cc in d 
+                          if cc[-1] not in ['s','x','y']])
+            
+            kks = list(d.keys())
+            for key in kks:
+                if key[-1] in ['s','x','y']:
+                    del d[key]
+            
+            ii = 0
+            for a in D:
+                axs[r,c].plot(np.arange(len(a)), a, label=eids[ii],
+                              marker='o', linewidth=0.5)
+            axs[r,c].set_xticks(np.arange(len(a)))    
+            axs[r,c].set_xticklabels(list(d.keys()), rotation=90)
+            axs[r,c].set_title(f'{reso}, {cam}')
+            axs[r,c].set_ylabel('mean over frames')
+            if r == 0 and c == 0:
+                axs[r,c].legend()
+            
+            r+=1
+        c+=1    
+
+    fig.tight_layout()
+
+
+def scatter_zscore():
+
+    '''
+    for each eid, side, show zscore scatter of reso combis
+    '''
+
+    resos =  ['128x102_128x128',
+              '320x256_128x128',
+              '320x256_256x256']  
+               
+                
+    pth = Path('/mnt/8cfe1683-d974-40f3-a20b-b217cad4722a/lp_ens'
+          f'/paws.npy')
+          
+    DD = np.load(pth, allow_pickle=True).flat[0] 
+    
+    for eid in eids:
+        p = Path(f'/home/mic/DLC_LP/{eid}')
+        fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(10,10),
+                                sharex=True, sharey=True)
+                                        
+                                 
+        c = 0
+        for comb in combinations(resos, 2):
+            r = 0
+            for cam in ['left', 'right']:
+                for paw in ['l','r']:
+                    a = DD[comb[0]][cam][eid][f'paw_{paw}_zscore']    
+                    b = DD[comb[1]][cam][eid][f'paw_{paw}_zscore']              
+                    axs[r,c].scatter(a,b, s=1, color='k', alpha=0.5)
+                    axs[r,c].set_title(f'cam {cam}, paw_{paw}_zscore')
+                    axs[r,c].set_xlabel(comb[0])
+                    axs[r,c].set_ylabel(comb[1])
+                    axs[r,c].plot([0, 1], [0, 1], transform=axs[r,c].transAxes,
+                                  color='k', linestyle='--')    
+                    r+=1
+            c+=1
+        
+        axs = axs.flatten()
+        for ax in axs:   
+            ax.set_aspect('equal', adjustable='box') 
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.set_xlim(0, 100)
+            ax.set_ylim(0, 100)
+            
+        fig.suptitle(f'{eid}, z-scores')    
+        fig.tight_layout()
+        fig.savefig(p / f'zscore_scatters_{eid}.png')
+        plt.close(fig)
 
 
 
