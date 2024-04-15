@@ -7,6 +7,7 @@ SIDE_FEATURES = {
         'postcrop_downsampling': 1,
         'resize_dims': (512, 512),  # frame size for training
         'sequence_length': 16,  # batch size for inference; 16 works for 8GB GPU
+        'eks_params': {},
      },
     'nose_tip': {
         'label': 'nose_tip',
@@ -16,6 +17,7 @@ SIDE_FEATURES = {
         'postcrop_downsampling': 1,
         'resize_dims': (128, 128),  # frame size for training
         'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'eks_params': {},
     },
     'eye': {
         'label': 'eye',
@@ -25,6 +27,10 @@ SIDE_FEATURES = {
         'postcrop_downsampling': 1,
         'resize_dims': (128, 128),  # frame size for training
         'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'eks_params': {  # smoothing params; closer to 1 = more smoothing
+            'diameter': 0.9999,
+            'com': 0.999,
+        },
     },
     'paws': {
         'label': 'paws',
@@ -34,6 +40,7 @@ SIDE_FEATURES = {
         'postcrop_downsampling': 10,
         'resize_dims': (128, 128),  # frame size for training
         'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'eks_params': {},
     },
     'tongue': {
         'label': 'tongue',
@@ -43,6 +50,7 @@ SIDE_FEATURES = {
         'postcrop_downsampling': 1,
         'resize_dims': (128, 128),  # frame size for training
         'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'eks_params': {},
     },
 }
 
@@ -55,6 +63,7 @@ BODY_FEATURES = {
         'postcrop_downsampling': 1,
         'resize_dims': (256, 256),  # frame size for training
         'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
+        'eks_params': {},
     },
     'tail_start': {
         'label': 'tail_start',
@@ -64,6 +73,7 @@ BODY_FEATURES = {
         'postcrop_downsampling': 1,
         'resize_dims': (256, 256),  # frame size for training
         'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
+        'eks_params': {},
     }
 }
 

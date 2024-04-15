@@ -16,14 +16,15 @@ def test_lightning_pose(version=__version__):
 
     test_data = _download_dlc_test_data(one=one)
     # ckpts_path = download_weights(version=version, one=one)
-    ckpts_path = Path('/media/mattw/ibl/tracking/current-lp-networks')
+    ckpts_path = Path('/mnt/s0/Data/resources/current-lp-networks')
+    # ckpts_path = Path('/media/mattw/ibl/tracking/current-lp-networks')
 
-    for cam in ['body', 'left', 'right']:
+    for cam in ['left', 'right', 'body']:
 
         mp4_file = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
         tmp_dir = test_data.joinpath('input', f'lp_tmp_iblrig_{cam}Camera.raw')
 
-        out_file = lightning_pose(mp4_file=mp4_file, ckpts_path=ckpts_path)
+        out_file = lightning_pose(mp4_file=mp4_file, ckpts_path=ckpts_path, force=True)
         assert out_file
         assert (tmp_dir.is_dir() is False)
 
@@ -46,7 +47,7 @@ def test_lightning_pose(version=__version__):
             assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=1, equal_nan=True)
         except AssertionError:
             diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))
-            out_pqt.to_parquet(test_data.joinpath(f'_ibl_{cam}Camera.lp.failed.pqt'))
+            out_pqt.to_parquet(test_data.joinpath(f'_ibl_{cam}Camera.lightningPose.failed.pqt'))
 
             print(np.nanmax(diff, axis=0), np.nanmean(diff, axis=0))
             assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=1, equal_nan=True)
