@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 from one.api import ONE
+from one.remote import aws
 from iblvideo import __version__
 
 _logger = logging.getLogger('ibllib')
@@ -38,19 +39,56 @@ def download_weights(version=__version__, one=None):
     return weights_dir
 
 
-def download_lit_model(network, check_updates=True, overwrite=False):
+def download_lit_model(version='v1.0', one=None, target_path=None, overwrite=False):
     """
     Downloads a specific network from AWS and returns file name.
 
     Parameters
     ----------
-    network
-    check_updates
-    overwrite
-
+    version : str
+        Version of the network models to download.
+    one : ONE
+        An instance of ONE to use for downloading. Defaults is None, in which case a new instance pointing to the
+        internal IBL database is instantiated.
+    target_path : Path
+        Path to download the network models to. If None, the default cache directory is used. Defaults to None.
+    overwrite : bool
+        If True, will re-download networks even if they exist locally and file sizes match. Defaults to False.
     Returns
     -------
 
     """
-    pass
 
+    # if there is a weight dir in the current path, use this one. Useful for Docker deployment
+    local_network_dir = Path(f"networks_{version}").absolute()
+    if local_network_dir.exists():
+        _logger.warning(f'Using cached directory at {local_network_dir}')
+        return local_network_dir
+
+    one = one or ONE(base_url='https://alyx.internationalbrainlab.org')
+
+    if target_path is None:
+        target_path = Path(one.cache_dir).joinpath('lightning_pose')
+        target_path.mkdir(exist_ok=True)
+    else:
+        assert target_path.exists(), 'The target_path you passed does not exist.'
+
+    full_path = target_path.joinpath(f'networks_{version}.zip')
+    s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
+    aws.s3_download_file(f"resources/lightning_pose/networks_{version}.zip", full_path, s3=s3,
+                         bucket_name=bucket_name, overwrite=overwrite)
+
+    if not full_path.exists():
+        print(f'Downloading of networks_{version} failed.')
+        return
+
+    # Unpack
+    unzipped = target_path.joinpath(f'networks_{version}')
+    if not unzipped.exists() or overwrite:
+        shutil.unpack_archive(str(full_path), target_path)  # unzip file
+
+    if not unzipped.exists():
+        print(f'Unzipping of {full_path} failed.')
+        return
+
+    return unzipped

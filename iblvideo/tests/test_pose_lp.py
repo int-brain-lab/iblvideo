@@ -1,11 +1,10 @@
 import shutil
 import numpy as np
 import pandas as pd
-from pathlib import Path
 
 from one.api import ONE
 from iblvideo.pose_lit import lightning_pose
-from iblvideo.weights import download_weights
+from iblvideo.weights import download_weights, download_lit_model
 from iblvideo.tests import _download_dlc_test_data
 from iblvideo import __version__
 
@@ -15,9 +14,7 @@ def test_lightning_pose(version=__version__):
     one = ONE()
 
     test_data = _download_dlc_test_data(one=one)
-    # ckpts_path = download_weights(version=version, one=one)
-    ckpts_path = Path('/mnt/s0/Data/resources/current-lp-networks')
-    # ckpts_path = Path('/media/mattw/ibl/tracking/current-lp-networks')
+    ckpts_path = download_lit_model(version=version, one=one)
 
     for cam in ['left', 'right', 'body']:
 

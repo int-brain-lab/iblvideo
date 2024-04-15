@@ -135,18 +135,11 @@ iblvideo/iblvideo/__init__.py
 Afterwards, tag the new version on Github.
 
 
-### Update MINOR or MAJOR
-The version of LP weights and LP test data are synchronized with the MAJOR.MINOR version of this code. (Note that the patch version is not included in the directory names)
+### Network model versioning
+For lightning pose, we are no longer linking the versioning of the networks models with the code version 
+(as was done for DLC). To update the models, upload them to the private S3 bucket in resources/lightning_pose with 
+filename `networks_vX.Y.zip`. Always keep the old models for reproducibility. Then update the default version number in 
+`iblvideo.weights.download_lit_model` to `vX.Y`
 
-If you update any of the LP weights, you also need to update the MINOR version of the code and the LP test data, and vice versa.
-1. For the weights, create a new directory called `weights_v{MAJOR}.{MINOR}` and copy the new weights, plus any unchanged weights into it.
-2. Make a new `lp_test_data_v{MAJOR}.{MINOR}` directory.
-3. Copy the three videos from the `input` folder of the previous version lp_test_data to the new one.
-4. Create the three parquet files to go in by running iblvideo.lp() with the new weights folder as `path_lp`, and each of the videos in the new `input` folder as `file_mp4`.
-5. Rename the newly created folder `alf` inside the lp_test_data folder into `output`.
-6. Zip and upload the new weights and test data folders to FlatIron :
-```
-/resources/lp/weights_v{MAJOR}.{MINOR}.zip
-/resources/lp/lp_test_data_v{MAJOR}.{MINOR}.zip
-```
-6. Delete your local weights and test data and run tests/test_choiceworld.py to make sure everything worked.
+You should always also bump the version in `iblvideo/__init__.py` when you update the models (at least the PATCH). 
+This way, the code version that is stored in the alyx task can always be linked to a specific model version.
