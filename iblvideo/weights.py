@@ -18,13 +18,12 @@ def download_weights(version=__version__, one=None):
         _logger.warning(f'Using cached directory at {local_weight_dir}')
         return local_weight_dir
 
-    one = one or ONE()
+    one = one or ONE(base_url='https://alyx.internationalbrainlab.org')
     weights_dir = Path('resources', 'dlc')
 
     # Create target directory if it doesn't exist
     weights_path = Path(ONE().cache_dir).joinpath(weights_dir)
     weights_path.mkdir(exist_ok=True, parents=True)
-    f"weights_v{'.'.join(version.split('.')[:-1])}"
     # Construct URL and call download
     # Weights versions are synchronized with minor versions of iblvideo
     # Therefore they are named only by major.minor excluding the patch
