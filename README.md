@@ -89,7 +89,7 @@ alias litpose='export CUDA_VERSION=11.8; export PATH=/usr/local/cuda-"$CUDA_VERS
 ```
 After opening a new terminal you should be able to type `litpose` and end up in an environment in which you can import lightning-pose like above.
 
-### Clone and install iblvideo
+### Clone and install eks and iblvideo
 
 Make sure to be in the Documents/PYTHON folder and that the litpose environment is activated
 ```bash
@@ -101,35 +101,21 @@ Then clone and install iblvideo
 git clone https://github.com/int-brain-lab/iblvideo.git
 cd iblvideo
 pip install -e .
-```
 
-Test if you install was successful
-```
-python -c 'import iblvideo'
-```
-
-Eventually run the tests:
-```shell
-pytest ./iblvideo/tests/test_pose_lp.py
-```
-
-### Clone and install eks
-
-Make sure to be in the Documents/PYTHON folder and that the lpenv environment is activated
-```bash
-cd ~/Documents/PYTHON
-litpose
-```
-Then clone and install eks
-```
 git clone https://github.com/paninski-lab/eks.git
 cd eks
 pip install -e .
 ```
 
-Test if you install was successful
+Test if your installs was successful
 ```
+python -c 'import iblvideo'
 python -c 'import eks'
+```
+
+Eventually run the tests:
+```shell
+pytest ./iblvideo/tests/test_pose_lp.py
 ```
 
 
