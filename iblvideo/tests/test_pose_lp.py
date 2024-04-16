@@ -3,24 +3,23 @@ import numpy as np
 import pandas as pd
 
 from one.api import ONE
-from iblvideo.choiceworld import dlc
-from iblvideo.weights import download_weights
+from iblvideo.pose_lit import lightning_pose
+from iblvideo.weights import download_weights, download_lit_model
 from iblvideo.tests import _download_dlc_test_data
-from iblvideo import __version__
 
-
-def test_dlc(version=__version__):
+def test_lightning_pose():
 
     one = ONE()
 
     test_data = _download_dlc_test_data(one=one)
-    path_dlc = download_weights(version=version, one=one)
+    ckpts_path = download_lit_model(one=one)
 
-    for cam in ['body', 'left', 'right']:
-        file_mp4 = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
-        tmp_dir = test_data.joinpath('input', f'dlc_tmp_iblrig_{cam}Camera.raw')
+    for cam in ['left', 'right', 'body']:
 
-        out_file, _ = dlc(file_mp4, path_dlc)
+        mp4_file = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
+        tmp_dir = test_data.joinpath('input', f'lp_tmp_iblrig_{cam}Camera.raw')
+
+        out_file = lightning_pose(mp4_file=mp4_file, ckpts_path=ckpts_path, force=True)
         assert out_file
         assert (tmp_dir.is_dir() is False)
 
@@ -43,7 +42,7 @@ def test_dlc(version=__version__):
             assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=1, equal_nan=True)
         except AssertionError:
             diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))
-            out_pqt.to_parquet(test_data.joinpath(f'_ibl_{cam}Camera.dlc.failed.pqt'))
+            out_pqt.to_parquet(test_data.joinpath(f'_ibl_{cam}Camera.lightningPose.failed.pqt'))
 
             print(np.nanmax(diff, axis=0), np.nanmean(diff, axis=0))
             assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=1, equal_nan=True)
