@@ -85,7 +85,7 @@ nano ~/.bashrc
 ```
 Enter this line under the other aliases:
 ```bash
-alias litpose="CUDA_VERSION=11.8; export PATH=/usr/local/cuda-%CUDA_VERSION/bin:$PATH; export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/litpose/bin/activate"
+alias litpose='export CUDA_VERSION=11.8; export PATH=/usr/local/cuda-"$CUDA_VERSION"/bin:$PATH; export LD_LIBRARY_PATH=/usr/local/cuda-"$CUDA_VERSION"/lib64:/usr/local/cuda-"$CUDA_VERSION"/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/litpose/bin/activate'
 ```
 After opening a new terminal you should be able to type `litpose` and end up in an environment in which you can import lightning-pose like above.
 
