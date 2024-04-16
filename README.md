@@ -1,4 +1,7 @@
 # Lightning Pose (LP) applied to IBL data
+
+You can find the README for pose tracking with DLC [here](README_DLC.md). 
+
 ## Video acquisition in IBL
 
 Mice are filmed in training rigs and recording rigs. In training rigs there is only one side camera recording at full resolution (1280x1024) and 30 Hz. In the recording rigs, there are three cameras, one called 'left' at full resolution 1280x1024 and 60 Hz filming the mouse from one side, one called 'right' at half resolution (640x512) and 150 Hz filming the mouse symmetrically from the other side, and one called 'body' filming the trunk of the mouse from above.
@@ -20,8 +23,15 @@ In addition, we track the `'tail_start'` in the body videos:
 ## Getting started
 ### Running LP for one mp4 video - stand-alone local run
 ```python
-from iblvideo import lightning_pose
-output = lightning_pose("Path/to/file.mp4")
+from one.api import ONE
+from iblvideo import download_lit_models, lightning_pose
+
+# Download the lightning pose models using ONE
+one = ONE()
+path_models = download_lit_models()
+
+# Run lightning pose on a video
+output = lightning_pose("Path/to/file.mp4", ckpts_path=path_models)
 ```
 
 ## Installing LP locally on an IBL server
@@ -77,11 +87,11 @@ Enter this line under the other aliases:
 ```bash
 alias litpose="CUDA_VERSION=11.8; export PATH=/usr/local/cuda-%CUDA_VERSION/bin:$PATH; export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/litpose/bin/activate"
 ```
-After opening a new terminal you should be able to type `lpenv` and end up in an environment in which you can import lightning-pose like above.
+After opening a new terminal you should be able to type `litpose` and end up in an environment in which you can import lightning-pose like above.
 
 ### Clone and install iblvideo
 
-Make sure to be in the Documents/PYTHON folder and that the lpenv environment is activated
+Make sure to be in the Documents/PYTHON folder and that the litpose environment is activated
 ```bash
 cd ~/Documents/PYTHON
 litpose
@@ -137,8 +147,8 @@ Afterwards, tag the new version on Github.
 
 ### Network model versioning
 For lightning pose, we are no longer linking the versioning of the networks models with the code version 
-(as was done for DLC). To update the models, upload them to the private S3 bucket in resources/lightning_pose with 
-filename `networks_vX.Y.zip`. Always keep the old models for reproducibility. Then update the default version number in 
+(as was done for DLC). To update the models, upload them to the private and public S3 bucket in resources/lightning_pose
+with filename `networks_vX.Y.zip`. Always keep the old models for reproducibility. Then update the default version number in 
 `iblvideo.weights.download_lit_model` to `vX.Y`
 
 You should always also bump the version in `iblvideo/__init__.py` when you update the models (at least the PATCH). 
