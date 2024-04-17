@@ -70,13 +70,13 @@ source ~/Documents/PYTHON/envs/litpose/bin/activate
 
 pip install ibllib
 pip install lightning-pose
+pip install git+https://github.com/int-brain-lab/iblvideo.git@litpose  # TODO: change to master once it's merged
+pip install git+https://github.com/paninski-lab/eks.git
 ```
 
-### Test if lightning-pose installation was successful
-
-Try to import lightning_pose (don't forget that the env variables above have to be set and litpose env has to be active)
+Test if your install was successful. Make sure that the environment is activated and that you have the correct CUDA version set.
 ```
-python -c 'import lightning_pose'
+python -c 'import iblvideo'
 ```
 
 Once the import goes through without errors (it is ok to get the warning that you cannot use the GUI), you can set up an alias in your .bashrc file to easily enter the lpenv environment:
@@ -89,33 +89,10 @@ alias litpose='export CUDA_VERSION=11.8; export PATH=/usr/local/cuda-"$CUDA_VERS
 ```
 After opening a new terminal you should be able to type `litpose` and end up in an environment in which you can import lightning-pose like above.
 
-### Clone and install eks and iblvideo
 
-Make sure to be in the Documents/PYTHON folder and that the litpose environment is activated
+Eventually run the tests. You need to find the iblvideo installation path (e.g. using `python -c "import iblvideo; print(iblvideo.__file__)"`) and navigate into it. Then run:
 ```bash
-cd ~/Documents/PYTHON
-litpose
-```
-Then clone and install iblvideo
-```
-git clone https://github.com/int-brain-lab/iblvideo.git
-cd iblvideo
-pip install -e .
-
-git clone https://github.com/paninski-lab/eks.git
-cd eks
-pip install -e .
-```
-
-Test if your installs was successful
-```
-python -c 'import iblvideo'
-python -c 'import eks'
-```
-
-Eventually run the tests:
-```shell
-pytest ./iblvideo/tests/test_pose_lp.py
+pytest ./tests/test_pose_lp.py
 ```
 
 
