@@ -70,7 +70,8 @@ source ~/Documents/PYTHON/envs/litpose/bin/activate
 
 pip install ibllib
 pip install lightning-pose
-pip install git+https://github.com/int-brain-lab/iblvideo.git@litpose  # TODO: change to master once it's merged
+# TODO: change to master once it's merged:
+pip install git+https://github.com/int-brain-lab/iblvideo.git@litpose
 pip install git+https://github.com/paninski-lab/eks.git
 ```
 
