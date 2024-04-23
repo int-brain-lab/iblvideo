@@ -69,7 +69,7 @@ def download_lit_model(version='v1.0', one=None, target_path=None, overwrite=Fal
 
     if target_path is None:
         target_path = Path(one.cache_dir).joinpath('resources', 'lightning_pose')
-        target_path.mkdir(exist_ok=True)
+        target_path.mkdir(exist_ok=True, parents=True)
     else:
         assert target_path.exists(), 'The target_path you passed does not exist.'
 
