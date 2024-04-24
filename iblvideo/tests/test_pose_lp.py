@@ -7,12 +7,11 @@ from iblvideo.pose_lit import lightning_pose
 from iblvideo.weights import download_weights, download_lit_model
 from iblvideo.tests import _download_dlc_test_data
 
+
 def test_lightning_pose():
 
-    one = ONE()
-
-    test_data = _download_dlc_test_data(one=one)
-    ckpts_path = download_lit_model(one=one)
+    test_data = _download_dlc_test_data()
+    ckpts_path = download_lit_model()
 
     for cam in ['left', 'right', 'body']:
 
