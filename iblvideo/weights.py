@@ -54,8 +54,11 @@ def download_lit_model(version='v1.0', one=None, target_path=None, overwrite=Fal
         Path to download the network models to. If None, the default cache directory is used. Defaults to None.
     overwrite : bool
         If True, will re-download networks even if they exist locally and file sizes match. Defaults to False.
+
     Returns
     -------
+    pathlib.Path
+        Path to the directory containing the networks models
 
     """
 

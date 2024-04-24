@@ -2,15 +2,14 @@ import shutil
 import numpy as np
 import pandas as pd
 
-from one.api import ONE
 from iblvideo.pose_lit import lightning_pose
 from iblvideo.weights import download_weights, download_lit_model
-from iblvideo.tests import _download_dlc_test_data
+from iblvideo.tests import _download_lp_test_data
 
 
 def test_lightning_pose():
 
-    test_data = _download_dlc_test_data()
+    test_data = _download_lp_test_data()
     ckpts_path = download_lit_model()
 
     for cam in ['left', 'right', 'body']:
