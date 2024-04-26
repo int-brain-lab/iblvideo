@@ -5,7 +5,7 @@ import pandas as pd
 from one.api import ONE
 from iblvideo.pose_dlc import dlc
 from iblvideo.weights import download_weights
-from iblvideo.tests import _download_dlc_test_data
+from iblvideo.tests.download_test_data import _download_dlc_test_data
 from iblvideo import __version__
 
 

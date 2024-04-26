@@ -4,7 +4,7 @@ import pandas as pd
 
 from iblvideo.pose_lit import lightning_pose
 from iblvideo.weights import download_weights, download_lit_model
-from iblvideo.tests import _download_lp_test_data
+from iblvideo.tests.download_test_data import _download_lp_test_data
 
 
 def test_lightning_pose():

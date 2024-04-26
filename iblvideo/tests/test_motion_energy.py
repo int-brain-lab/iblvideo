@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from iblvideo.motion_energy import motion_energy
-from iblvideo.tests import _download_me_test_data
+from iblvideo.tests.download_test_data import _download_me_test_data
 
 
 def test_motion_energy():
