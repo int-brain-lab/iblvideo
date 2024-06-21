@@ -40,7 +40,9 @@ SIDE_FEATURES = {
         'postcrop_downsampling': 10,
         'resize_dims': (128, 128),  # frame size for training
         'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
-        'eks_params': {},
+        'eks_params': {  # smooth params; ranges from .01-20; smaller values = more smoothing
+            's': 10,
+        },
     },
     'tongue': {
         'label': 'tongue',
