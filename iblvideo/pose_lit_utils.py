@@ -433,14 +433,14 @@ def run_eks(
         # loop over keypoints; apply eks to each individually
         for kp in keypoint_names:
             # run eks
-            keypoint_df_dict = ensemble_kalman_smoother_single_view(
+            keypoint_df_dict, s_final, nll_values = ensemble_kalman_smoother_single_view(
                 markers_list=markers_list,
                 keypoint_ensemble=kp,
                 smooth_param=eks_params['s'],
             )
             keypoint_df = keypoint_df_dict[kp + '_df']
             # put results into new dataframe
-            for coord in ['x', 'y']:
+            for coord in ['x', 'y', 'zscore']:
                 src_cols = ('ensemble-kalman_tracker', f'{kp}', coord)
                 dst_cols = ('ensemble-kalman_tracker', f'{kp}', coord)
                 df_smoothed.loc[:, dst_cols] = keypoint_df.loc[:, src_cols]
