@@ -2,6 +2,7 @@
 
 from eks.utils import convert_lp_dlc
 from eks.pupil_smoother import ensemble_kalman_smoother_pupil
+from eks.singleview_smoother import ensemble_kalman_smoother_single_view
 import gc
 import lightning.pytorch as pl
 from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
@@ -325,7 +326,7 @@ def analyze_video(
         network_label=network,
         mp4_file=mp4_file,
         camera_params=camera_params,
-        model_type='context' if cfg.model.do_context else 'baseline',
+        model_type='context' if cfg.model.model_type == 'heatmap_mhcrnn' else 'baseline',
         sequence_length=sequence_length,
         crop_window=crop_window,
     )
@@ -372,6 +373,7 @@ def run_eks(
     eks_params: dict,
     mp4_file: str,
     csv_files: list,
+    remove_files: bool = True,
 ) -> pd.DataFrame:
     """Run ensemble Kalman smoother using multiple network predictions.
 
@@ -379,22 +381,23 @@ def run_eks(
     :param eks_params: parameters for eks, will be network-specific
     :param mp4_file: path to video file
     :param csv_files: paths to individual network outputs
+    :param remove_files: True to remove prediction files from individual ensemble members
     :return: pandas DataFrame containing eks results
     """
 
     if len(csv_files) == 0:
         raise FileNotFoundError(f'Empty csv_files list provided to run_eks function')
 
-    if network == 'eye':
+    # load files and put them in correct format
+    markers_list = []
+    for csv_file in csv_files:
+        markers_curr = pd.read_csv(csv_file, header=[0, 1, 2], index_col=0)
+        keypoint_names = [c[1] for c in markers_curr.columns[::3]]
+        model_name = markers_curr.columns[0][0]
+        markers_curr_fmt = convert_lp_dlc(markers_curr, keypoint_names, model_name=model_name)
+        markers_list.append(markers_curr_fmt)
 
-        # load files and put them in correct format
-        markers_list = []
-        for csv_file in csv_files:
-            markers_curr = pd.read_csv(csv_file, header=[0, 1, 2], index_col=0)
-            keypoint_names = [c[1] for c in markers_curr.columns[::3]]
-            model_name = markers_curr.columns[0][0]
-            markers_curr_fmt = convert_lp_dlc(markers_curr, keypoint_names, model_name=model_name)
-            markers_list.append(markers_curr_fmt)
+    if network == 'eye':
 
         # parameters hand-picked for smoothing purposes (diameter_s, com_s, com_s)
         state_transition_matrix = np.asarray([
@@ -411,19 +414,49 @@ def run_eks(
             state_transition_matrix=state_transition_matrix,
             likelihood_default=1.0,
         )
-        df_smoothed = df_dicts['markers_df']
+        df_tmp = df_dicts['markers_df']
+        good_cols = [c[2].find('var') == -1 for c in df_tmp.columns.to_flat_index()]
+        df_smoothed = df_tmp.loc[:, good_cols]
 
-        # save smoothed predictions
-        csv_file_name = os.path.basename(mp4_file.replace('.mp4', f'.{network}.csv'))
-        csv_file_dir = os.path.dirname(csv_files[0])
-        csv_file_smooth = os.path.join(csv_file_dir, csv_file_name)
-        df_smoothed.to_csv(csv_file_smooth)
+    elif network == 'paws':
 
-        # delete individual predictions so that smoothed version is used downstream
-        for csv_file in csv_files:
-            os.remove(csv_file)
+        # make empty dataframe to write eks results into
+        df_smoothed = markers_curr.copy()
+        df_smoothed.columns = df_smoothed.columns.set_levels(['ensemble-kalman_tracker'], level=0)
+        for col in df_smoothed.columns:
+            if col[-1] == 'likelihood':
+                # set this to 1.0 so downstream filtering functions don't get tripped up
+                df_smoothed[col].values[:] = 1.0
+            else:
+                df_smoothed[col].values[:] = np.nan
+
+        # loop over keypoints; apply eks to each individually
+        for kp in keypoint_names:
+            # run eks
+            keypoint_df_dict = ensemble_kalman_smoother_single_view(
+                markers_list=markers_list,
+                keypoint_ensemble=kp,
+                smooth_param=eks_params['s'],
+            )
+            keypoint_df = keypoint_df_dict[kp + '_df']
+            # put results into new dataframe
+            for coord in ['x', 'y']:
+                src_cols = ('ensemble-kalman_tracker', f'{kp}', coord)
+                dst_cols = ('ensemble-kalman_tracker', f'{kp}', coord)
+                df_smoothed.loc[:, dst_cols] = keypoint_df.loc[:, src_cols]
 
     else:
         raise NotImplementedError
+
+    # save smoothed predictions
+    csv_file_name = os.path.basename(mp4_file.replace('.mp4', f'.{network}.csv'))
+    csv_file_dir = os.path.dirname(csv_files[0])
+    csv_file_smooth = os.path.join(csv_file_dir, csv_file_name)
+    df_smoothed.to_csv(csv_file_smooth)
+
+    # delete individual predictions so that smoothed version is used downstream
+    if remove_files:
+        for csv_file in csv_files:
+            os.remove(csv_file)
 
     return df_smoothed

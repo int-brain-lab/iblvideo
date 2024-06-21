@@ -16,10 +16,11 @@ def test_lightning_pose(version=__version__):
 
     test_data = _download_dlc_test_data(one=one)
     # ckpts_path = download_weights(version=version, one=one)
-    ckpts_path = Path('/mnt/s0/Data/resources/current-lp-networks')
-    # ckpts_path = Path('/media/mattw/ibl/tracking/current-lp-networks')
+    # ckpts_path = Path('/mnt/s0/Data/resources/current-lp-networks')
+    ckpts_path = Path('/media/mattw/ibl2/tracking/current-lp-networks')
 
     for cam in ['left', 'right', 'body']:
+    # for cam in ['left', 'right']:
 
         mp4_file = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
         tmp_dir = test_data.joinpath('input', f'lp_tmp_iblrig_{cam}Camera.raw')
@@ -29,8 +30,7 @@ def test_lightning_pose(version=__version__):
         assert (tmp_dir.is_dir() is False)
 
         out_pqt = pd.read_parquet(out_file)
-        ctrl_pqt = pd.read_parquet(
-            test_data.joinpath('output', f'_ibl_{cam}Camera.dlc.pqt'))
+        ctrl_pqt = pd.read_parquet(test_data.joinpath('output', f'_ibl_{cam}Camera.dlc.pqt'))
 
         assert np.all(out_pqt.columns == ctrl_pqt.columns)
 

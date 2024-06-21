@@ -245,6 +245,7 @@ def lightning_pose(
     ckpts_path: Optional[Path] = None,
     force: bool = False,
     create_labels: bool = False,
+    remove_files: bool = True,
 ) -> Path:
     """Analyse a leftCamera, rightCamera, or bodyCamera video with Lightning Pose.
 
@@ -258,6 +259,7 @@ def lightning_pose(
     :param ckpts_path: path to folder with Lightning Pose weights
     :param force: whether to overwrite existing intermediate files
     :param create_labels: create labeled videos for debugging
+    :param remove_files: True (default) to remove temp files, False to leave (for debugging)
     :return out_file: path to Lightning Pose table in parquet file format
     """
 
@@ -266,7 +268,7 @@ def lightning_pose(
 
     # initiate
     mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
-    # TODO: should use ibllib function for this but don't want circular import, maybe pass label in task?
+    # TODO: should use ibllib func for this, don't want circular import, maybe pass label in task?
     file_label = mp4_file.stem.split('.')[0].split('_')[-1]  # e.g. 'leftCamera'
     if 'bodyCamera' in file_label:
         camera_params = BODY_VIDEO
@@ -363,7 +365,8 @@ def lightning_pose(
         )
 
     # clean up temp files
-    shutil.rmtree(tdir)
+    if remove_files:
+        shutil.rmtree(tdir)
 
     return out_file
 
