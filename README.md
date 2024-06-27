@@ -70,9 +70,9 @@ source ~/Documents/PYTHON/envs/litpose/bin/activate
 
 pip install ibllib
 pip install lightning-pose
+pip install ensemble-kalman-smoother==1.1.0
 # TODO: change to master once it's merged:
 pip install git+https://github.com/int-brain-lab/iblvideo.git@litpose
-pip install git+https://github.com/paninski-lab/eks.git
 ```
 
 Test if your install was successful. Make sure that the environment is activated and that you have the correct CUDA version set.

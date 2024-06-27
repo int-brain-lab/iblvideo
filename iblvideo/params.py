@@ -16,7 +16,7 @@ SIDE_FEATURES = {
         'crop': lambda x, y: [100, 100, x - 50, y - 50],
         'postcrop_downsampling': 1,
         'resize_dims': (128, 128),  # frame size for training
-        'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU (smaller network)
         'eks_params': {},
     },
     'eye': {
@@ -51,7 +51,7 @@ SIDE_FEATURES = {
         'crop': lambda x, y: [160, 160, x - 60, y - 100],
         'postcrop_downsampling': 1,
         'resize_dims': (128, 128),  # frame size for training
-        'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU (smaller network)
         'eks_params': {},
     },
 }
