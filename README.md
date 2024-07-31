@@ -69,7 +69,7 @@ export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA
 source ~/Documents/PYTHON/envs/litpose/bin/activate
 
 pip install ibllib
-pip install lightning-pose>=1.5.0
+pip install lightning-pose>=1.5.1
 pip install ensemble-kalman-smoother==1.1.0
 # TODO: change to master once it's merged:
 pip install git+https://github.com/int-brain-lab/iblvideo.git@litpose
