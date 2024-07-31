@@ -94,7 +94,6 @@ def _run_network(
         _logger.info(f'STEP {step}: START {action}')
 
         # get crop info
-        print(roi_df_file)
         if roi_df_file:
             crop_window = get_crop_window(roi_df_file=roi_df_file, network_params=network_params)
         else:

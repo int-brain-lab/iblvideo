@@ -114,6 +114,7 @@ def video_pipe_crop_resize_flip(
         dtype=types.DALIDataType.FLOAT,
         file_list_include_preceding_frame=True,  # to get rid of dali warnings
     )
+    orig_size = fn.shapes(video)
 
     # original videos range [0, 255]; transform it to [0, 1] for our models
     video = (video / 255.0)
@@ -145,6 +146,8 @@ def video_pipe_crop_resize_flip(
             crop_pos_x=crop_params['crop_pos_x'],  # normalized in (0, 1)
             crop_pos_y=crop_params['crop_pos_y'],  # normalized in (0, 1)
         )
+        # update size of frames
+        orig_size = fn.shapes(video)
     else:
         video = fn.crop_mirror_normalize(
             video,
@@ -157,7 +160,7 @@ def video_pipe_crop_resize_flip(
     if resize_dims:
         video = fn.resize(video, size=resize_dims)
 
-    return video, -1
+    return video, -1, orig_size
 
 
 def compute_num_iters(
@@ -229,7 +232,7 @@ def build_dataloader(
     iter_args = {
         'num_iters': num_iters,
         'eval_mode': 'predict',
-        'output_map': ['frames', 'transforms'],
+        'output_map': ['frames', 'transforms', 'frame_size'],
         'last_batch_policy': LastBatchPolicy.FILL,
         'last_batch_padded': False,
         'auto_reset': False,
