@@ -1,5 +1,5 @@
 
-__version__ = '2.2.1.post0'  # This is the only place where the version is hard coded, only adapt here
+__version__ = '2.2.2.post0'  # This is the only place where the version is hard coded, only adapt here
 
 import deeplabcut
 

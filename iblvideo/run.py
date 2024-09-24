@@ -7,7 +7,7 @@ from datetime import datetime
 from packaging.version import parse
 
 from one.api import ONE
-from ibllib.pipes.ephys_preprocessing import EphysDLC
+from ibllib.pipes.video_tasks import DLC as EphysDLC
 from ibllib.oneibl.patcher import FTPPatcher
 from ibllib.misc import check_nvidia_driver
 from iblvideo import __version__
