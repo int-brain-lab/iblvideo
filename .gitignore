@@ -48,3 +48,6 @@ MANIFEST
 docker/.one_params
 docker/weight*
 docker/*test*
+
+# pytorch lighting
+*lightning_logs
