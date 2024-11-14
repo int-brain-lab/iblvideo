@@ -106,6 +106,8 @@ pip install setuptools==65
 pip install ibllib
 pip install torch==1.12
 pip install deeplabcut[tf]
+pip uninstall numpy
+pip install numpy==1.26
 ```
 
 ### Test if tensorflow and deeplabcut installation was successful
