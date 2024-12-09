@@ -2,6 +2,8 @@
 import logging
 import shutil
 from pathlib import Path
+import packaging
+from packaging.version import InvalidVersion
 
 from one.api import ONE
 from one.remote import aws
@@ -13,8 +15,14 @@ _logger = logging.getLogger('ibllib')
 def download_weights(version=__version__, one=None):
     """Download the DLC weights associated with current version from FlatIron."""
 
+    try:
+        vers = packaging.version.parse(version)
+        weight_vers = f'{vers.major}.{vers.minor}'
+    except InvalidVersion:
+        weight_vers = '.'.join(version.split('_')[-1].split('.')[:-1])
+
     # if there is a weight dir in the current path, use this one. Useful for Docker deployment
-    local_weight_dir = Path(f"weights_v{'.'.join(version.split('_')[-1].split('.')[:-1])}").absolute()
+    local_weight_dir = Path(f"weights_v{weight_vers}").absolute()
     if local_weight_dir.exists():
         _logger.warning(f'Using cached directory at {local_weight_dir}')
         return local_weight_dir
@@ -28,7 +36,7 @@ def download_weights(version=__version__, one=None):
     # Construct URL and call download
     # Weights versions are synchronized with minor versions of iblvideo
     # Therefore they are named only by major.minor excluding the patch
-    url = '{}/weights_v{}.zip'.format(str(weights_dir), '.'.join(version.split('_')[-1].split('.')[:-1]))
+    url = '{}/weights_v{}.zip'.format(str(weights_dir), weight_vers)
     file_name, hash = one.alyx.download_file(url, target_dir=weights_path, return_md5=True, silent=True)
     file_name = Path(file_name)
     _logger.info(f"Downloaded weights: {hash}, {file_name}")
