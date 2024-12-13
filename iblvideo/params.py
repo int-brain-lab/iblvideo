@@ -38,7 +38,7 @@ SIDE_FEATURES = {
         'weights': 'paw2-mic-*',
         'crop': lambda x, y: None,
         'postcrop_downsampling': 1,
-        'resize_dims': (128, 128),  # frame size for training
+        'resize_dims': (256, 256),  # frame size for training
         'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
         'eks_params': {  # smooth params; ranges from .01-20; smaller values = more smoothing
             's': 10,

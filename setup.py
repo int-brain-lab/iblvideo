@@ -6,7 +6,7 @@ from pathlib import Path
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 
 CURRENT_PYTHON = sys.version_info[:2]
-REQUIRED_PYTHON = (3, 7)
+REQUIRED_PYTHON = (3, 10)
 if CURRENT_PYTHON < REQUIRED_PYTHON:
     sys.stderr.write("""
 ==========================
@@ -24,8 +24,8 @@ setup(
     name='iblvideo',
     version="0.0.0",  #__version__,
     python_requires='>={}.{}'.format(*REQUIRED_PYTHON),
-    description='DLC applied to IBL data',
-    license="MIT",
+    description='IBL video processing pipeline',
+    license='MIT',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='IBL Staff',

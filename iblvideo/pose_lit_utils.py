@@ -1,26 +1,27 @@
 """Helper functions to run Lightning Pose on a single IBL video with trained networks."""
 
-from eks.utils import convert_lp_dlc
-from eks.pupil_smoother import ensemble_kalman_smoother_pupil
-from eks.singleview_smoother import ensemble_kalman_smoother_single_view
 import gc
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, Union
+
 import lightning.pytorch as pl
+import numpy as np
+import nvidia.dali.fn as fn
+import nvidia.dali.types as types
+import pandas as pd
+import torch
+import yaml
+from eks.ibl_pupil_smoother import ensemble_kalman_smoother_ibl_pupil
+from eks.singlecam_smoother import ensemble_kalman_smoother_singlecam
+from eks.utils import convert_lp_dlc
 from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
 from lightning_pose.data.dali import LitDaliWrapper
 from lightning_pose.data.utils import count_frames
-from lightning_pose.utils.predictions import load_model_from_checkpoint, PredictionHandler
-import numpy as np
-from omegaconf import DictConfig
+from lightning_pose.utils.predictions import PredictionHandler, load_model_from_checkpoint
 from nvidia.dali import pipeline_def
-import nvidia.dali.fn as fn
 from nvidia.dali.plugin.pytorch import LastBatchPolicy
-import nvidia.dali.types as types
-import os
-import pandas as pd
-from pathlib import Path
-import torch
-from typing import List, Optional, Dict, Union
-import yaml
+from omegaconf import DictConfig
 
 
 def get_crop_window(roi_df_file: Path, network_params: dict) -> list:
@@ -99,6 +100,8 @@ def video_pipe_crop_resize_flip(
 
     """
 
+    device = 'gpu'  # pipeline cannot run on cpu
+
     # read batches of video from file
     video = fn.readers.video(
         filenames=filenames,
@@ -107,14 +110,14 @@ def video_pipe_crop_resize_flip(
         pad_last_batch=pad_last_batch,
         step=step,
         name=name,
-        device='gpu',
+        device=device,
         random_shuffle=False,
         initial_fill=sequence_length,
         normalized=False,
         dtype=types.DALIDataType.FLOAT,
         file_list_include_preceding_frame=True,  # to get rid of dali warnings
     )
-    orig_size = fn.shapes(video)
+    orig_size = video.shape(device=device)
 
     # original videos range [0, 255]; transform it to [0, 1] for our models
     video = (video / 255.0)
@@ -147,7 +150,7 @@ def video_pipe_crop_resize_flip(
             crop_pos_y=crop_params['crop_pos_y'],  # normalized in (0, 1)
         )
         # update size of frames
-        orig_size = fn.shapes(video)
+        orig_size = video.shape(device=device)
     else:
         video = fn.crop_mirror_normalize(
             video,
@@ -322,6 +325,10 @@ def analyze_video(
 
     # load config file
     cfg_file = Path(model_path).joinpath('.hydra/config.yaml')
+    if not cfg_file.exists():
+        cfg_file = Path(model_path).joinpath('config.yaml')
+        if not cfg_file.exists():
+            raise IOError(f'Did not find {network} config.yaml file in model directory')
     cfg = DictConfig(yaml.safe_load(open(str(cfg_file), 'r')))
 
     # initialize data loader
@@ -402,51 +409,22 @@ def run_eks(
 
     if network == 'eye':
 
-        # parameters hand-picked for smoothing purposes (diameter_s, com_s, com_s)
-        state_transition_matrix = np.asarray([
-            [eks_params['diameter'], 0, 0],
-            [0, eks_params['com'], 0],
-            [0, 0, eks_params['com']]
-        ])
-
-        # run eks
-        df_dicts = ensemble_kalman_smoother_pupil(
+        df_smoothed, _, _ = ensemble_kalman_smoother_ibl_pupil(
             markers_list=markers_list,
-            keypoint_names=keypoint_names,
-            tracker_name='ensemble-kalman_tracker',
-            state_transition_matrix=state_transition_matrix,
-            likelihood_default=1.0,
+            smooth_params=[eks_params['diameter'], eks_params['com']],
+            avg_mode='median',
+            var_mode='conf_weighted_var',
         )
-        df_tmp = df_dicts['markers_df']
-        good_cols = [c[2].find('var') == -1 for c in df_tmp.columns.to_flat_index()]
-        df_smoothed = df_tmp.loc[:, good_cols]
 
     elif network == 'paws':
 
-        # make empty dataframe to write eks results into
-        df_smoothed = markers_curr.copy()
-        df_smoothed.columns = df_smoothed.columns.set_levels(['ensemble-kalman_tracker'], level=0)
-        for col in df_smoothed.columns:
-            if col[-1] == 'likelihood':
-                # set this to 1.0 so downstream filtering functions don't get tripped up
-                df_smoothed[col].values[:] = 1.0
-            else:
-                df_smoothed[col].values[:] = np.nan
-
-        # loop over keypoints; apply eks to each individually
-        for kp in keypoint_names:
-            # run eks
-            keypoint_df_dict, s_final, nll_values = ensemble_kalman_smoother_single_view(
-                markers_list=markers_list,
-                keypoint_ensemble=kp,
-                smooth_param=eks_params['s'],
-            )
-            keypoint_df = keypoint_df_dict[kp + '_df']
-            # put results into new dataframe
-            for coord in ['x', 'y', 'zscore']:
-                src_cols = ('ensemble-kalman_tracker', f'{kp}', coord)
-                dst_cols = ('ensemble-kalman_tracker', f'{kp}', coord)
-                df_smoothed.loc[:, dst_cols] = keypoint_df.loc[:, src_cols]
+        df_smoothed, _ = ensemble_kalman_smoother_singlecam(
+            markers_list=markers_list,
+            keypoint_names=keypoint_names,
+            smooth_param=eks_params['s'],
+            avg_mode='median',
+            var_mode='conf_weighted_var',
+        )
 
     else:
         raise NotImplementedError

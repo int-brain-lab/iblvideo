@@ -1,15 +1,18 @@
 """Pipeline to run Lightning Pose on a single IBL video with trained networks."""
 
-import cv2
 import logging
-import numpy as np
-import pandas as pd
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 from typing import Optional, Tuple
 
-from iblvideo.params import LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
+import cv2
+import numpy as np
+import pandas as pd
+from lightning_pose.utils.predictions import create_labeled_video
+from moviepy.editor import VideoFileClip
+
+from iblvideo.params import BODY_VIDEO, LEFT_VIDEO, RIGHT_VIDEO
 from iblvideo.pose_lit_utils import analyze_video, get_crop_window, run_eks
 from iblvideo.weights import download_weights
 
@@ -239,6 +242,41 @@ def _extract_pose_alf(
     return file_alf
 
 
+def _create_labeled_video(
+    mp4_file: Path,
+    preds_file: Path,
+    dotsize: int | float,
+) -> None:
+    """Step 3: plot all outputs on original video.
+
+    :param mp4_file: path to video
+    :param preds_file: pose predictions parquet file
+    return: None
+    """
+
+    mp4_file_labeled = Path(str(mp4_file).replace('.mp4', f'.labeled.mp4'))
+    video_clip = VideoFileClip(str(mp4_file))
+    preds_df = pd.read_parquet(preds_file)
+    # transform df to numpy array
+    xyl_mask = preds_df.columns.str.endswith(('_x', '_y', '_likelihood'))
+    keypoints_arr = np.reshape(
+        preds_df.loc[:, xyl_mask].to_numpy(),
+        [preds_df.shape[0], -1, 3],
+    )
+    xs_arr = keypoints_arr[:, :, 0]
+    ys_arr = keypoints_arr[:, :, 1]
+    mask_array = keypoints_arr[:, :, 2] > 0.9
+    # video generation
+    create_labeled_video(
+        clip=video_clip,
+        xs_arr=xs_arr,
+        ys_arr=ys_arr,
+        mask_array=mask_array,
+        output_video_path=str(mp4_file_labeled),
+        dotsize=dotsize,
+    )
+
+
 def lightning_pose(
     mp4_file: str,
     ckpts_path: Optional[Path] = None,
@@ -343,23 +381,9 @@ def lightning_pose(
 
     # create final video
     if create_labels:
-        from moviepy.editor import VideoFileClip
-        from lightning_pose.utils.predictions import create_labeled_video
-        mp4_file_labeled = Path(str(mp4_file).replace('.mp4', f'.labeled.mp4'))
-        video_clip = VideoFileClip(str(mp4_file))
-        preds_df = pd.read_parquet(out_file)
-        # transform df to numpy array
-        keypoints_arr = np.reshape(preds_df.to_numpy(), [preds_df.shape[0], -1, 3])
-        xs_arr = keypoints_arr[:, :, 0]
-        ys_arr = keypoints_arr[:, :, 1]
-        mask_array = keypoints_arr[:, :, 2] > 0.9
-        # video generation
-        create_labeled_video(
-            clip=video_clip,
-            xs_arr=xs_arr,
-            ys_arr=ys_arr,
-            mask_array=mask_array,
-            filename=str(mp4_file_labeled),
+        _create_labeled_video(
+            mp4_file=mp4_file,
+            preds_file=out_file,
             dotsize=5 if 'left' in file_label else 3,
         )
 

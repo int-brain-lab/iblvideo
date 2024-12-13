@@ -21,6 +21,7 @@ In addition, we track the `'tail_start'` in the body videos:
 <img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/body_view.png" width="50%" height="50%">
 
 ## Getting started
+
 ### Running LP for one mp4 video - stand-alone local run
 ```python
 from one.api import ONE
@@ -44,21 +45,21 @@ Install CUDA 11.8 libraries as documented [here](https://docs.google.com/documen
 
 ### Create a Python environment with Lightning Pose
 
-Install python3.8 (required by `lightning-pose`)
+Install python3.10 (required by `lightning-pose`)
 ```bash
 sudo apt update -y 
 sudo apt install software-properties-common -y  
 sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt-get install python3.8-tk -y  
-sudo apt install python3.8 python3.8-dev -y 
-sudo apt install python3.8-distutils -y
+sudo apt-get install python3.10-tk -y  
+sudo apt install python3.10 python3.10-dev -y 
+sudo apt install python3.10-distutils -y
 ```
 
-Create an environment called e.g. litpose
+Create an environment called e.g. `litpose`
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
-virtualenv litpose --python=python3.8
+virtualenv litpose --python=python3.10
 ```
 
 Activate the environment and install packages
@@ -69,8 +70,8 @@ export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA
 source ~/Documents/PYTHON/envs/litpose/bin/activate
 
 pip install ibllib
-pip install lightning-pose>=1.5.1
-pip install ensemble-kalman-smoother==1.1.0
+pip install lightning-pose==1.6.1
+pip install ensemble-kalman-smoother==3.0.0
 # TODO: change to master once it's merged:
 pip install git+https://github.com/int-brain-lab/iblvideo.git@litpose
 ```
