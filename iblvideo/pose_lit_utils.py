@@ -24,11 +24,12 @@ from nvidia.dali.plugin.pytorch import LastBatchPolicy
 from omegaconf import DictConfig
 
 
-def get_crop_window(roi_df_file: Path, network_params: dict) -> list:
+def get_crop_window(roi_df_file: Path, network_params: dict, scale: int) -> list:
     """Get average position of a anchor point for autocropping.
 
     :param roi_df_file: path to dataframe output by ROI network
     :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
+    :param scale: downsampling factor; >1 means reduce crop window parameters
     :return: list of floats [width, height, x, y] defining window used for cropping
     """
     df_crop = pd.read_csv(roi_df_file, header=[0, 1, 2], index_col=0)
@@ -47,7 +48,7 @@ def get_crop_window(roi_df_file: Path, network_params: dict) -> list:
         XYs.append([int(np.nanmean(x)), int(np.nanmean(y))])
 
     xy = np.mean(XYs, axis=0)
-    return network_params['crop'](*xy)
+    return network_params['crop'](*xy, scale)
 
 
 @pipeline_def
@@ -202,20 +203,24 @@ def compute_num_iters(
 
 
 def build_dataloader(
-    network_label: str,
+    network: str,
     mp4_file: str,
-    camera_params: dict,
     model_type: str,
     sequence_length: int,
+    flip: bool,
+    resize_dims: list,
+    original_dims: list,
     crop_window: Optional[list] = None,
 ) -> LitDaliWrapper:
     """Build pytorch data loader that wraps DALI pipeline.
 
-    :param network_label: network name, key for `camera_params` features dict
+    :param network: network name, key for `camera_params` features dict
     :param mp4_file: path to video file
-    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
     :param model_type: 'baseline' | 'context'
     :param sequence_length: number of frames to load per sequence
+    :param flip: True to flip horizontally
+    :param resize_dims: [height, width], resize dims for network resizing
+    :param original_dims: [height, width], original dims of video
     :param crop_window: list of floats [width, height, x, y] defining window used for cropping
     :return: pytorch data loader
     """
@@ -243,26 +248,16 @@ def build_dataloader(
         'do_context': do_context,
     }
 
-    features = camera_params['features'][network_label]
-    flip = camera_params['flip']
-
     # set network-specific args
-    if network_label in ['roi_detect', 'paws', 'tail_start']:
+    if network in ['roi_detect', 'paws', 'tail_start']:
 
         crop_params = None
         brightness = None
-        resize_dims = features['resize_dims']
 
-    elif network_label in ['eye', 'tongue', 'nose_tip']:
+    elif network in ['eye', 'tongue', 'nose_tip']:
 
-        # resize crop window depending on view
         crop_w, crop_h, crop_x, crop_y = crop_window
-        crop_w /= camera_params['sampling']
-        crop_h /= camera_params['sampling']
-        crop_x /= camera_params['sampling']
-        crop_y /= camera_params['sampling']
-        frame_width = camera_params['original_size'][0]
-        frame_height = camera_params['original_size'][1]
+        frame_height, frame_width = original_dims
 
         # dali normalizes crop params in a funny way
         crop_x_norm = crop_x / (frame_width - crop_w)
@@ -274,11 +269,10 @@ def build_dataloader(
             'crop_pos_y': crop_y_norm,
         }
 
-        brightness = 4. if network_label == 'eye' else None
-        resize_dims = features['resize_dims']
+        brightness = 4. if network == 'eye' else None
 
     else:
-        raise ValueError(f'{network_label} is not a valid network label')
+        raise ValueError(f'{network} is not a valid network label')
 
     # build pipeline
     pipe = video_pipe_crop_resize_flip(
@@ -304,7 +298,8 @@ def analyze_video(
     network: str,
     mp4_file: str,
     model_path: str,
-    camera_params: dict,
+    flip: bool,
+    original_dims: list,
     crop_window: Optional[list] = None,
     ensemble_number: int = 0,
     sequence_length: int = 32,
@@ -315,7 +310,8 @@ def analyze_video(
     :param network: network name, key for `camera_params` features dict
     :param mp4_file: path to video file
     :param model_path: path to model directory that contains weights
-    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
+    :param flip: True to flip horizontally
+    :param original_dims: [height, width], original dims of video
     :param sequence_length: number of frames to load per sequence
     :param crop_window: list of floats [width, height, x, y] defining window used for cropping
     :param ensemble_number: unique integer to track predictions from different ensemble members
@@ -333,12 +329,14 @@ def analyze_video(
 
     # initialize data loader
     predict_loader = build_dataloader(
-        network_label=network,
+        network=network,
         mp4_file=mp4_file,
-        camera_params=camera_params,
         model_type='context' if cfg.model.model_type == 'heatmap_mhcrnn' else 'baseline',
         sequence_length=sequence_length,
+        flip=flip,
         crop_window=crop_window,
+        resize_dims=[cfg.data.image_resize_dims.height, cfg.data.image_resize_dims.width],
+        original_dims=original_dims,
     )
 
     # load model

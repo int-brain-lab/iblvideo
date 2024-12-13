@@ -98,18 +98,23 @@ def _run_network(
 
         # get crop info
         if roi_df_file:
-            crop_window = get_crop_window(roi_df_file=roi_df_file, network_params=network_params)
+            crop_window = get_crop_window(
+                roi_df_file=roi_df_file,
+                network_params=network_params,
+                scale=camera_params['scale'],
+            )
         else:
             crop_window = None
 
         # get batch size; can increase batch size with smaller frames
-        sequence_length = network_params['sequence_length'] * camera_params['sampling']
+        sequence_length = network_params['sequence_length'] * camera_params['scale']
 
         analyze_video(
             network=network_params['label'],
             mp4_file=str(mp4_file),
             model_path=str(model_path),
-            camera_params=camera_params,
+            flip=camera_params['flip'],
+            original_dims=camera_params['original_size'],
             crop_window=crop_window,
             ensemble_number=ensemble_number,
             sequence_length=sequence_length,
@@ -212,20 +217,19 @@ def _extract_pose_alf(
             if net_name in ['paws', 'tail_start']:
                 whxy = [0, 0, 0, 0]
             else:
-                whxy = get_crop_window(roi_df_file=roi_df_file, network_params=net_params)
-
-            post_crop_scale = net_params['postcrop_downsampling']
-            pre_crop_scale = 1.0 / camera_params['sampling']
+                whxy = get_crop_window(
+                    roi_df_file=roi_df_file,
+                    network_params=net_params,
+                    scale=camera_params['scale'],
+                )
 
             for ind in columns:
                 if ind[-1] == 'x':
-                    df[ind] = df[ind].apply(
-                        lambda x: (x * post_crop_scale + whxy[2]) * pre_crop_scale)
+                    df[ind] = df[ind].apply(lambda x: x + whxy[2])
                     if camera_params['flip']:
-                        df[ind] = df[ind].apply(lambda x: camera_params['original_size'][0] - x)
+                        df[ind] = df[ind].apply(lambda x: camera_params['original_size'][1] - x)
                 elif ind[-1] == 'y':
-                    df[ind] = df[ind].apply(
-                        lambda x: (x * post_crop_scale + whxy[3]) * pre_crop_scale)
+                    df[ind] = df[ind].apply(lambda x: x + whxy[3])
 
             # concatenate this in one dataframe for all networks
             if 'df_full' not in locals():
