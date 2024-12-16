@@ -1,16 +1,17 @@
 import shutil
+
 import numpy as np
 import pandas as pd
 
 from iblvideo.pose_lit import lightning_pose
-from iblvideo.weights import download_weights, download_lit_model
 from iblvideo.tests.download_test_data import _download_lp_test_data
+from iblvideo.weights import download_lit_model
 
 
 def test_lightning_pose():
 
-    test_data = _download_lp_test_data()
-    ckpts_path = download_lit_model()
+    test_data = _download_lp_test_data(version='v1.0')
+    ckpts_path = download_lit_model(version='v2.0')
 
     for cam in ['left', 'right', 'body']:
 
@@ -22,10 +23,14 @@ def test_lightning_pose():
         assert (tmp_dir.is_dir() is False)
 
         out_pqt = pd.read_parquet(out_file)
-        ctrl_pqt = pd.read_parquet(
-            test_data.joinpath('output', f'_ibl_{cam}Camera.dlc.pqt'))
+        ctrl_pqt = pd.read_parquet(test_data.joinpath('output', f'_ibl_{cam}Camera.dlc.pqt'))
 
-        assert np.all(out_pqt.columns == ctrl_pqt.columns)
+        # make sure all keypoints exist in output
+        ctrl_columns = ctrl_pqt.columns.sort_values()
+        out_columns = out_pqt.columns[
+            out_pqt.columns.str.endswith(('_x', '_y', '_likelihood'))
+        ].sort_values()
+        assert np.all(out_columns == ctrl_columns)
 
         # only compare entries with likelihood over 0.9
         targets = np.unique(['_'.join(col.split('_')[:-1]) for col in ctrl_pqt.columns])
@@ -37,7 +42,10 @@ def test_lightning_pose():
                 out_pqt.loc[idx, [f'{t}_x', f'{t}_y', f'{t}_likelihood']] = np.nan
 
         try:
-            assert np.allclose(np.array(out_pqt), np.array(ctrl_pqt), rtol=1, equal_nan=True)
+            assert np.allclose(
+                np.array(out_pqt.loc[:, out_columns]), np.array(ctrl_pqt.loc[:, ctrl_columns]),
+                rtol=1, equal_nan=True,
+            )
         except AssertionError:
             diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))
             out_pqt.to_parquet(test_data.joinpath(f'_ibl_{cam}Camera.lightningPose.failed.pqt'))

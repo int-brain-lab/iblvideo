@@ -70,25 +70,29 @@ def _download_me_test_data(one=None):
 
 
 def _download_lp_test_data(version='v1.0', one=None, target_path=None, overwrite=False):
-    """
-    Downloads test data from AWS and unzips it
+    """Downloads test data from AWS, unzips it, and returns file name.
 
     Parameters
     ----------
     version : str
-        Version of the test data to download. Should be the same as the version in weights.download_lit_model
+        Version of the test data to download.
+        Should be the same as the version in weights.download_lit_model
     one : ONE
-        An instance of ONE to use for downloading. Defaults is None, in which case a new instance pointing to the
-        internal IBL database is instantiated.
+        An instance of ONE to use for downloading.
+        Defaults is None, in which case a new instance pointing to the internal IBL database is
+        instantiated.
     target_path : Path
-        Path to download test data to. If None, the default cache directory is used. Defaults to None.
+        Path to download test data to. If None, the default cache directory is used.
+        Defaults to None.
     overwrite : bool
-        If True, will re-download test data even if they exist locally and file sizes match. Defaults to False.
+        If True, will re-download test data even if they exist locally and file sizes match.
+        Defaults to False.
 
     Returns
     -------
     pathlib.Path
         Path to the directory containing the test data
+
     """
 
     # if there is a weight dir in the current path, use this one. Useful for Docker deployment
@@ -107,8 +111,10 @@ def _download_lp_test_data(version='v1.0', one=None, target_path=None, overwrite
 
     full_path = target_path.joinpath(f'lp_test_data_{version}.zip')
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
-    aws.s3_download_file(f"resources/lightning_pose/lp_test_data_{version}.zip", full_path, s3=s3,
-                         bucket_name=bucket_name, overwrite=overwrite)
+    aws.s3_download_file(
+        f"resources/lightning_pose/lp_test_data_{version}.zip", full_path, s3=s3,
+        bucket_name=bucket_name, overwrite=overwrite,
+    )
 
     if not full_path.exists():
         print(f'Downloading of lp_test_data_{version} failed.')

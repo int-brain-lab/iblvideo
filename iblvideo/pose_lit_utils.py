@@ -319,6 +319,13 @@ def analyze_video(
     :return: pandas DataFrame containing results
     """
 
+    # NOTE: this call is critical; it forces a flusing of the GPU memory, which indirectly mitgates
+    # memory fragmentation that can arise when processing a video with multiple networks.
+    # If, for example, this line is commented out, the `iblvideo/tests/test_pose_lp.py` test will
+    # fail because it runs many networks sequentially, each fragmenting the GPU memory (despite the
+    # variable deletions and garbage collection performed at the end of this function).
+    torch.cuda.synchronize()
+
     # load config file
     cfg_file = Path(model_path).joinpath('.hydra/config.yaml')
     if not cfg_file.exists():
@@ -366,7 +373,8 @@ def analyze_video(
         csv_file = os.path.join(save_dir, os.path.basename(csv_file))
     preds_df.to_csv(csv_file)
 
-    # clear up memory
+    # clear up GPU memory
+    del preds
     del predict_loader
     del model
     del trainer

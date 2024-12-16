@@ -48,20 +48,22 @@ def download_weights(version=__version__, one=None):
 
 
 def download_lit_model(version='v1.0', one=None, target_path=None, overwrite=False):
-    """
-    Downloads a specific network from AWS and returns file name.
+    """Downloads a specific network version from AWS, unzips it, and returns file name.
 
     Parameters
     ----------
     version : str
         Version of the network models to download.
     one : ONE
-        An instance of ONE to use for downloading. Defaults is None, in which case a new instance pointing to the
-        internal IBL database is instantiated.
+        An instance of ONE to use for downloading.
+        Defaults is None, in which case a new instance pointing to the internal IBL database is
+        instantiated.
     target_path : Path
-        Path to download the network models to. If None, the default cache directory is used. Defaults to None.
+        Path to download the network models to. If None, the default cache directory is used.
+        Defaults to None.
     overwrite : bool
-        If True, will re-download networks even if they exist locally and file sizes match. Defaults to False.
+        If True, will re-download networks even if they exist locally and file sizes match.
+        Defaults to False.
 
     Returns
     -------
@@ -86,8 +88,10 @@ def download_lit_model(version='v1.0', one=None, target_path=None, overwrite=Fal
 
     full_path = target_path.joinpath(f'networks_{version}.zip')
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
-    aws.s3_download_file(f"resources/lightning_pose/networks_{version}.zip", full_path, s3=s3,
-                         bucket_name=bucket_name, overwrite=overwrite)
+    aws.s3_download_file(
+        f"resources/lightning_pose/networks_{version}.zip", full_path, s3=s3,
+        bucket_name=bucket_name, overwrite=overwrite,
+    )
 
     if not full_path.exists():
         print(f'Downloading of networks_{version} failed.')
