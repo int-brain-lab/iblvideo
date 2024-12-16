@@ -431,6 +431,14 @@ def run_eks(
             avg_mode='median',
             var_mode='conf_weighted_var',
         )
+        # apply global variance inflation factor
+        # this value was computed from an independent labeled test set such that the posterior
+        # variance output by EKS (after multiplication by the global variance inflation factor) is
+        # roughly proportional to the squared pixel error
+        # (and therefore the EKS posterior standard deviation is proportional to pixel error)
+        print(df_smoothed.columns)
+        mask = df_smoothed.columns.get_level_values('coords').str.endswith('_posterior_var')
+        df_smoothed.loc[:, mask] *= 100.0
 
     else:
         raise NotImplementedError

@@ -14,7 +14,7 @@ from moviepy.editor import VideoFileClip
 
 from iblvideo.params import BODY_VIDEO, LEFT_VIDEO, RIGHT_VIDEO
 from iblvideo.pose_lit_utils import analyze_video, get_crop_window, run_eks
-from iblvideo.weights import download_weights
+from iblvideo.weights import download_lit_model
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
@@ -305,7 +305,7 @@ def lightning_pose(
     """
 
     if ckpts_path is None:
-        ckpts_path = download_weights()
+        ckpts_path = download_lit_model()
 
     # initiate
     mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
@@ -400,14 +400,14 @@ def lightning_pose(
 
 if __name__ == '__main__':
 
-    from iblvideo.tests.download_test_data import _download_dlc_test_data
+    from iblvideo.tests.download_test_data import _download_lp_test_data
 
-    # cam = 'left'
+    cam = 'left'
     # cam = 'right'
-    cam = 'body'
+    # cam = 'body'
 
-    test_dir = _download_dlc_test_data()
-    # ckpts_path_local = download_weights()
+    test_dir = _download_lp_test_data(version='v1.0')
+    # ckpts_path_local = download_lit_model(version='v2.0')
     ckpts_path_local = Path('/media/mattw/ibl/tracking/current-lp-networks')
 
     alf_file = lightning_pose(
