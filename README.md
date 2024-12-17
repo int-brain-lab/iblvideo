@@ -50,23 +50,23 @@ Install python3.10 (required by `lightning-pose`)
 sudo apt update -y 
 sudo apt install software-properties-common -y  
 sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt-get install python3.10-tk -y  
-sudo apt install python3.10 python3.10-dev -y 
-sudo apt install python3.10-distutils -y
+sudo apt update -y
+sudo apt install python3.10 -y
+sudo apt install python3.10-dev python3.10-distutils python3.10-venv -y
 ```
 
 Create an environment called e.g. `litpose`
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
-virtualenv litpose --python=python3.10
+python3.10 -m venv litpose
 ```
 
 Activate the environment and install packages
 ```bash
-CUDA_VERSION=11.8
-export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
+#CUDA_VERSION=11.8
+#export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
+#export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 source ~/Documents/PYTHON/envs/litpose/bin/activate
 
 pip install ibllib
@@ -81,7 +81,7 @@ Test if your install was successful. Make sure that the environment is activated
 python -c 'import iblvideo'
 ```
 
-Once the import goes through without errors (it is ok to get the warning that you cannot use the GUI), you can set up an alias in your .bashrc file to easily enter the lpenv environment:
+Once the import goes through without errors, you can set up an alias in your .bashrc file to easily enter the litpose environment:
 ```bash
 nano ~/.bashrc
 ```
