@@ -13,11 +13,11 @@ def test_motion_energy():
         print(f"Running test for {cam}")
         ctrl_me = np.load(test_data.joinpath(f'output/{cam}Camera.ROIMotionEnergy.npy'))
         ctrl_roi = np.load(test_data.joinpath(f'output/{cam}ROIMotionEnergy.position.npy'))
-        dlc_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
+        pose_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.lightningPose.pqt')
         file_mp4 = test_data.joinpath('raw_video_data', f'_iblrig_{cam}Camera.raw.mp4')
 
         # Test with all frames
-        me_file, roi_file = motion_energy(file_mp4, dlc_pqt, frames=None)
+        me_file, roi_file = motion_energy(file_mp4, pose_pqt, frames=None)
         test_me = np.load(me_file)
         test_roi = np.load(roi_file)
         assert all(test_me == ctrl_me)
@@ -34,11 +34,11 @@ def test_with_chunks():
         print(f"Running test for {cam}")
         ctrl_me = np.load(test_data.joinpath(f'output/{cam}Camera.ROIMotionEnergy.npy'))
         ctrl_roi = np.load(test_data.joinpath(f'output/{cam}ROIMotionEnergy.position.npy'))
-        dlc_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
+        pose_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.lightningPose.pqt')
         file_mp4 = test_data.joinpath('raw_video_data', f'_iblrig_{cam}Camera.raw.mp4')
 
         # Test with frame chunking
-        me_file, roi_file = motion_energy(file_mp4, dlc_pqt, frames=70)
+        me_file, roi_file = motion_energy(file_mp4, pose_pqt, frames=70)
         test_me = np.load(me_file)
         test_roi = np.load(roi_file)
         assert all(test_me == ctrl_me)
@@ -52,12 +52,12 @@ def test_with_nans():
     test_data = _download_me_test_data()
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
-        dlc_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
+        pose_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.lightningPose.pqt')
         nan_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.nan.pqt')
         file_mp4 = test_data.joinpath('raw_video_data', f'_iblrig_{cam}Camera.raw.mp4')
 
         # Test that all NaN in used columns give correct error
-        df_nan = pd.read_parquet(dlc_pqt)
+        df_nan = pd.read_parquet(pose_pqt)
         if cam == 'body':
             df_nan['tail_start_y'] = np.nan
         else:

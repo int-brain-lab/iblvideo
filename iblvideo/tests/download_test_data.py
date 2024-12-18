@@ -51,7 +51,7 @@ def _download_me_test_data(one=None):
 
     # Read one_params file
     one = one or ONE()
-    data_dir = Path('resources', 'dlc')
+    data_dir = Path('resources', 'lightning_pose')
 
     # Create target directory if it doesn't exist
     local_path = Path(ONE().cache_dir).joinpath(data_dir)
@@ -69,7 +69,7 @@ def _download_me_test_data(one=None):
     return Path(test_dir)
 
 
-def _download_lp_test_data(version='v1.0', one=None, target_path=None, overwrite=False):
+def _download_lp_test_data(version='v2.0', one=None, target_path=None, overwrite=False):
     """Downloads test data from AWS, unzips it, and returns file name.
 
     Parameters

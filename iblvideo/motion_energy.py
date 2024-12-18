@@ -24,7 +24,7 @@ def grayscale(x):
     return cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
 
 
-def get_dlc_midpoints(dlc_pqt, target):
+def get_pose_midpoints(dlc_pqt, target):
     # Load dataframe
     dlc_df = pd.read_parquet(dlc_pqt)
     # Set values to nan if likelihood is too low and calcualte midpoints
@@ -37,12 +37,12 @@ def get_dlc_midpoints(dlc_pqt, target):
         return mloc
 
 
-def motion_energy(file_mp4, dlc_pqt, frames=10000):
+def motion_energy(file_mp4, pose_pqt, frames=10000):
     """
     Compute motion energy on cropped frames of a single video
 
     :param file_mp4: Video file to run motion energy for
-    :param dlc_pqt: Path to dlc result in pqt file format.
+    :param pose_pqt: Path to pose estimation result in pqt file format.
     :param frames: Number of frames to load into memory at once. If None all frames are loaded.
     :return me_file: Path to numpy file contaiing motion energy.
     :return me_roi: Path to numpy file containing ROI coordinates.
@@ -56,27 +56,27 @@ def motion_energy(file_mp4, dlc_pqt, frames=10000):
     """
 
     start_T = time.time()
-    label = label_from_path(dlc_pqt)
+    label = label_from_path(pose_pqt)
 
     # Crop ROI
     if label == 'body':
-        tail_mid = get_dlc_midpoints(dlc_pqt, 'tail_start')
+        tail_mid = get_pose_midpoints(pose_pqt, 'tail_start')
         anchor = np.array(tail_mid)
         w, h = int(anchor[0] * 3 / 5), 210
         x, y = int(anchor[0] - anchor[0] * 3 / 5), int(anchor[1] - 120)
     else:
-        nose_mid = get_dlc_midpoints(dlc_pqt, 'nose_tip')
+        nose_mid = get_pose_midpoints(pose_pqt, 'nose_tip')
         # Go through the different pupil points to see if any has not all NaNs
         try:
-            pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_top_r')
+            pupil_mid = get_pose_midpoints(pose_pqt, 'pupil_top_r')
         except ValueError:
             try:
-                pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_left_r')
+                pupil_mid = get_pose_midpoints(pose_pqt, 'pupil_left_r')
             except ValueError:
                 try:
-                    pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_right_r')
+                    pupil_mid = get_pose_midpoints(pose_pqt, 'pupil_right_r')
                 except ValueError:
-                    pupil_mid = get_dlc_midpoints(dlc_pqt, 'pupil_bottom_r')
+                    pupil_mid = get_pose_midpoints(pose_pqt, 'pupil_bottom_r')
         anchor = np.mean([nose_mid, pupil_mid], axis=0)
         dist = np.sqrt(np.sum((np.array(nose_mid) - np.array(pupil_mid))**2, axis=0))
         w, h = int(dist / 2), int(dist / 3)
@@ -84,8 +84,10 @@ def motion_energy(file_mp4, dlc_pqt, frames=10000):
 
     # Check if the mask has negative values (sign that the midpoint location is off)
     if any(i < 0 for i in [x, y, w, h]) is True:
-        raise ValueError(f"ROI for motion energy on {label}Camera could not be computed. "
-                         f"Check for issues with the raw video or dlc output.")
+        raise ValueError(
+            f"ROI for motion energy on {label}Camera could not be computed. "
+            f"Check for issues with the raw video or dlc output."
+        )
 
     # Note that x and y are flipped when loading with cv2, therefore:
     mask = np.s_[y:y + h, x:x + w]

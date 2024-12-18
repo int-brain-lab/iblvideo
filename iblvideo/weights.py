@@ -47,7 +47,7 @@ def download_weights(version=__version__, one=None):
     return weights_dir
 
 
-def download_lit_model(version='v1.0', one=None, target_path=None, overwrite=False):
+def download_lit_model(version='v2.0', one=None, target_path=None, overwrite=False):
     """Downloads a specific network version from AWS, unzips it, and returns file name.
 
     Parameters

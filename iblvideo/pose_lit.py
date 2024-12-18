@@ -406,9 +406,8 @@ if __name__ == '__main__':
     # cam = 'right'
     # cam = 'body'
 
-    test_dir = _download_lp_test_data(version='v1.0')
-    # ckpts_path_local = download_lit_model(version='v2.0')
-    ckpts_path_local = Path('/media/mattw/ibl/tracking/current-lp-networks')
+    test_dir = _download_lp_test_data()
+    ckpts_path_local = download_lit_model()
 
     alf_file = lightning_pose(
         mp4_file=Path(test_dir).joinpath(f'input/_iblrig_{cam}Camera.raw.mp4'),
