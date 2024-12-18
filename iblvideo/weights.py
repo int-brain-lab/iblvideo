@@ -6,8 +6,8 @@ import packaging
 from packaging.version import InvalidVersion
 
 from one.api import ONE
-from one.remote import aws
 from iblvideo import __version__
+from iblvideo.utils import download_and_unzip_file_from_aws
 
 _logger = logging.getLogger('ibllib')
 
@@ -48,7 +48,7 @@ def download_weights(version=__version__, one=None):
 
 
 def download_lit_model(version='v2.0', one=None, target_path=None, overwrite=False):
-    """Downloads a specific network version from AWS, unzips it, and returns file name.
+    """Downloads specific LP networks version from AWS, unzips it, and returns file name.
 
     Parameters
     ----------
@@ -72,38 +72,5 @@ def download_lit_model(version='v2.0', one=None, target_path=None, overwrite=Fal
 
     """
 
-    # if there is a weight dir in the current path, use this one. Useful for Docker deployment
-    local_network_dir = Path(f"networks_{version}").absolute()
-    if local_network_dir.exists():
-        _logger.warning(f'Using cached directory at {local_network_dir}')
-        return local_network_dir
-
-    one = one or ONE(base_url='https://alyx.internationalbrainlab.org')
-
-    if target_path is None:
-        target_path = Path(one.cache_dir).joinpath('resources', 'lightning_pose')
-        target_path.mkdir(exist_ok=True, parents=True)
-    else:
-        assert target_path.exists(), 'The target_path you passed does not exist.'
-
-    full_path = target_path.joinpath(f'networks_{version}.zip')
-    s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
-    aws.s3_download_file(
-        f"resources/lightning_pose/networks_{version}.zip", full_path, s3=s3,
-        bucket_name=bucket_name, overwrite=overwrite,
-    )
-
-    if not full_path.exists():
-        print(f'Downloading of networks_{version} failed.')
-        return
-
-    # Unpack
-    unzipped = target_path.joinpath(f'networks_{version}')
-    if not unzipped.exists() or overwrite:
-        shutil.unpack_archive(str(full_path), target_path)  # unzip file
-
-    if not unzipped.exists():
-        print(f'Unzipping of {full_path} failed.')
-        return
-
-    return unzipped
+    filename = f'networks_{version}'
+    return download_and_unzip_file_from_aws(filename, one, target_path, overwrite)
