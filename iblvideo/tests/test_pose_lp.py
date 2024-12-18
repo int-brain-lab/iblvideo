@@ -1,7 +1,9 @@
+import gc
 import shutil
 
 import numpy as np
 import pandas as pd
+import torch
 
 from iblvideo.pose_lit import lightning_pose
 from iblvideo.tests.download_test_data import _download_lp_test_data
@@ -9,15 +11,33 @@ from iblvideo.weights import download_lit_model
 
 
 def test_lightning_pose_left():
-    _test_lightning_pose(cam='left')
+    try:
+        _test_lightning_pose(cam='left')
+    finally:
+        # clean up, even if error
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
 
 
 def test_lightning_pose_right():
-    _test_lightning_pose(cam='right')
+    try:
+        _test_lightning_pose(cam='right')
+    finally:
+        # clean up, even if error
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
 
 
 def test_lightning_pose_body():
-    _test_lightning_pose(cam='body')
+    try:
+        _test_lightning_pose(cam='body')
+    finally:
+        # clean up, even if error
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
 
 
 def _test_lightning_pose(cam):
