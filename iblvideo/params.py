@@ -20,7 +20,7 @@ SIDE_FEATURES = {
         'features': ['pupil_top_r'],  # window anchor from roi network
         'weights': 'eye-mic-*',
         'crop': lambda x, y, s: [100 / s, 100 / s, x - 50 / s, y - 50 / s],
-        'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'sequence_length': 64,  # batch size for inference; 64 works for 8GB GPU
         'eks_params': {  # smoothing params; closer to 1 = more smoothing
             'diameter': 0.9999,
             'com': 0.999,
@@ -31,7 +31,7 @@ SIDE_FEATURES = {
         'features': ['nose_tip'],  # dummy entry to force run with other specialized networks
         'weights': 'paw2-mic-*',
         'crop': lambda x, y, s: None,
-        'sequence_length': 48,  # batch size for inference; 48 works for 8GB GPU
+        'sequence_length': 24,  # batch size for inference; 24 works for 8GB GPU
         'eks_params': {  # smooth params; ranges from .01-20; smaller values = more smoothing
             's': 10,
         },

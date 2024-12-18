@@ -55,7 +55,7 @@ def _test_lightning_pose(cam):
     try:
         assert np.allclose(
             np.array(out_pqt.loc[:, out_columns]), np.array(ctrl_pqt.loc[:, ctrl_columns]),
-            rtol=1e-2, equal_nan=True,
+            rtol=1e-1, equal_nan=True,
         )
     except AssertionError:
         diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))

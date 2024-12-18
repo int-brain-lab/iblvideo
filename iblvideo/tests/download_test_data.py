@@ -69,7 +69,7 @@ def _download_me_test_data(one=None, target_path=None, overwrite=False):
     return download_and_unzip_file_from_aws(filename, one, target_path, overwrite)
 
 
-def _download_lp_test_data(version='v2.0', one=None, target_path=None, overwrite=False):
+def _download_lp_test_data(version='v2.1', one=None, target_path=None, overwrite=False):
     """Downloads test data from AWS, unzips it, and returns file name.
 
     Parameters
