@@ -162,7 +162,7 @@ Note that some variables are routinely computed from DLC output in the IBL ephys
 
 ## Releasing a new version (for devs)
 
-We use semantic versioning, with a prefix: `iblvideo_MAJOR.MINOR.PATCH`. If you update the version, see below for what to adapt.
+We use semantic versioning, with a prefix: `vMAJOR.MINOR.PATCH`. If you update the version, see below for what to adapt.
 
 ### Any version update
 Update the version in

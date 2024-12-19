@@ -26,7 +26,8 @@ In addition, we track the `'tail_start'` in the body videos:
 ### Running LP for one mp4 video - stand-alone local run
 ```python
 from one.api import ONE
-from iblvideo import download_lit_models, lightning_pose
+from iblvideo import download_lit_models
+from iblvideo.pose_lit import lightning_pose
 
 # Download the lightning pose models using ONE
 one = ONE()
