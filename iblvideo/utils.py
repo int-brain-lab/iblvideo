@@ -74,7 +74,7 @@ def download_and_unzip_file_from_aws(
     full_path = target_path.joinpath(f'{filename}.zip')
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
     aws.s3_download_file(
-        f'resources/lightning_pose/{filename}.zip', full_path, s3=s3,
+        f'resources/{directory}/{filename}.zip', full_path, s3=s3,
         bucket_name=bucket_name, overwrite=overwrite,
     )
 
