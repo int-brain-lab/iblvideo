@@ -20,7 +20,7 @@ In addition, we track the `'tail_start'` in the body videos:
 ## Getting started
 ### Running DLC for one mp4 video - stand-alone local run
 ```python
-from iblvideo import dlc
+from iblvideo.pose_dlc import dlc
 output = dlc("Path/to/file.mp4")
 ```
 
@@ -95,7 +95,7 @@ Create an environment called e.g. dlcenv
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
-virtualenv dlcenv --python=python3.10
+python3.10 -m venv dlcenv
 ```
 
 Activate the environment and install packages
@@ -154,7 +154,7 @@ python -c 'import iblvideo'
 
 Eventually run the tests:
 ```shell
-pytest ./iblvideo/tests/test_choiceworld.py
+pytest ./iblvideo/tests/test_pose_dlc.py
 pytest ./iblvideo/tests/test_motion_energy.py
 ```
 
@@ -186,4 +186,4 @@ If you update any of the DLC weights, you also need to update the MINOR version 
 /resources/dlc/weights_v{MAJOR}.{MINOR}.zip
 /resources/dlc/dlc_test_data_v{MAJOR}.{MINOR}.zip
 ```
-6. Delete your local weights and test data and run tests/test_choiceworld.py to make sure everything worked.
+6. Delete your local weights and test data and run tests/test_pose_dlc.py to make sure everything worked.

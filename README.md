@@ -1,6 +1,7 @@
-# Lightning Pose (LP) applied to IBL data
+# IBL video processing pipeline
 
-You can find the README for pose tracking with DLC [here](README_DLC.md). 
+This README details how to set up an environment that uses Lightning Pose for pose estimation.
+You can find the README for pose estimation with DLC [here](README_DLC.md). 
 
 ## Video acquisition in IBL
 

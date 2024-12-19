@@ -28,11 +28,15 @@ def _run_command(command):
         'stderr': error.decode()}
 
 
-def download_and_unzip_file_from_aws(filename, one=None, target_path=None, overwrite=False):
+def download_and_unzip_file_from_aws(
+    directory, filename, one=None, target_path=None, overwrite=False
+):
     """Download zipfile from AWS `resources/lightning_pose` bucket, unzip, return directory name.
 
     Parameters
     ----------
+    directory : str
+        name of directory under 'resources' in AWS
     filename : str
         name of zipped file to download from AWS, without '.zip' extension
     one : ONE
@@ -62,7 +66,7 @@ def download_and_unzip_file_from_aws(filename, one=None, target_path=None, overw
     one = one or ONE(base_url='https://alyx.internationalbrainlab.org')
 
     if target_path is None:
-        target_path = Path(one.cache_dir).joinpath('resources', 'lightning_pose')
+        target_path = Path(one.cache_dir).joinpath('resources', directory)
         target_path.mkdir(exist_ok=True, parents=True)
     else:
         assert target_path.exists(), 'The target_path you passed does not exist.'

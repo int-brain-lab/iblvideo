@@ -19,6 +19,8 @@ status_dict = {0: 'Complete',
                -2: 'Waiting',
                -3: 'Incomplete'}
 
+# TODO: make compatible with Lightning Pose
+
 
 def run_session(session_id, machine=None, cams=None, one=None, remove_videos=True, overwrite=True,
                 location='remote', **kwargs):
