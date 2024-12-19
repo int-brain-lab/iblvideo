@@ -449,7 +449,6 @@ def run_eks(
         # variance output by EKS (after multiplication by the global variance inflation factor) is
         # roughly proportional to the squared pixel error
         # (and therefore the EKS posterior standard deviation is proportional to pixel error)
-        print(df_smoothed.columns)
         mask = df_smoothed.columns.get_level_values('coords').str.endswith('_posterior_var')
         df_smoothed.loc[:, mask] *= 100.0
 

@@ -224,11 +224,11 @@ def _extract_pose_alf(
                 )
 
             for ind in columns:
-                if ind[-1] == 'x':
+                if ind.endswith(('_x', '_x_ens_median')):
                     df[ind] = df[ind].apply(lambda x: x + whxy[2])
                     if camera_params['flip']:
                         df[ind] = df[ind].apply(lambda x: camera_params['original_size'][1] - x)
-                elif ind[-1] == 'y':
+                elif ind.endswith(('_y', '_y_ens_median')):
                     df[ind] = df[ind].apply(lambda x: x + whxy[3])
 
             # concatenate this in one dataframe for all networks
