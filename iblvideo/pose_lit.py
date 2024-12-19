@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 import cv2
 import numpy as np
 import pandas as pd
+import torch
 from lightning_pose.utils.predictions import create_labeled_video
 from moviepy.editor import VideoFileClip
 
@@ -107,7 +108,13 @@ def _run_network(
             crop_window = None
 
         # get batch size; can increase batch size with smaller frames
-        sequence_length = network_params['sequence_length'] * camera_params['scale']
+        sequence_length = network_params['sequence_length']
+        if camera_params['scale'] == 2:
+            sequence_length *= 3
+        # can also increase batch size with larger GPU memory
+        mem = torch.cuda.get_device_properties(0).total_memory / 1e9  # in GB
+        if mem >= 10.0:
+            sequence_length = int(1.25 * sequence_length)
 
         analyze_video(
             network=network_params['label'],

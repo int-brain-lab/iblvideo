@@ -52,15 +52,15 @@ BODY_FEATURES = {
         'features': None,
         'weights': 'tail-mic-*',
         'crop': lambda x, y, s: None,
-        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
+        'sequence_length': 196,  # batch size for inference; 196 works for 8GB GPU
         'eks_params': {},
     },
     'tail_start': {
         'label': 'tail_start',
         'features': ['tail_start'],
         'weights': 'tail-mic-*',
-        'crop': lambda x, y, s: None,  # [220, 220, x - 110, y - 110],
-        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU
+        'crop': lambda x, y, s: [220, 220, x - 110, y - 110],
+        'sequence_length': 196,  # batch size for inference; 196 works for 8GB GPU
         'eks_params': {},
     }
 }
