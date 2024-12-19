@@ -357,7 +357,7 @@ def analyze_video(
     )
 
     # initialize trainer to run inference
-    trainer = pl.Trainer(accelerator='gpu')
+    trainer = pl.Trainer(accelerator='gpu', logger=False)
 
     # run inference
     preds = trainer.predict(
