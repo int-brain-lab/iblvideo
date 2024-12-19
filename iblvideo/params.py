@@ -33,7 +33,7 @@ SIDE_FEATURES = {
         'crop': lambda x, y, s: None,
         'sequence_length': 24,  # batch size for inference; 24 works for 8GB GPU
         'eks_params': {  # smooth params; ranges from .01-20; smaller values = more smoothing
-            's': 10,
+            's': 10,  # this will be updated based on framerate
         },
     },
     'tongue': {

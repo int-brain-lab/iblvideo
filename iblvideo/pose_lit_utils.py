@@ -19,6 +19,7 @@ from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
 from lightning_pose.data.dali import LitDaliWrapper
 from lightning_pose.data.utils import count_frames
 from lightning_pose.utils.predictions import PredictionHandler, load_model_from_checkpoint
+from moviepy.editor import VideoFileClip
 from nvidia.dali import pipeline_def
 from nvidia.dali.plugin.pytorch import LastBatchPolicy
 from omegaconf import DictConfig
@@ -404,6 +405,11 @@ def run_eks(
     if len(csv_files) == 0:
         raise FileNotFoundError(f'Empty csv_files list provided to run_eks function')
 
+    # get framerate of video in order to modify smoothing params
+    clip = VideoFileClip(mp4_file)
+    fps = clip.fps
+    clip.close()
+
     # load files and put them in correct format
     markers_list = []
     for csv_file in csv_files:
@@ -424,10 +430,17 @@ def run_eks(
 
     elif network == 'paws':
 
+        if 25.0 <= fps <= 35.0:
+            smooth_param = 100.0  # based on inspection of training videos
+        elif 55.0 <= fps <= 65.0:
+            smooth_param = eks_params['s']
+        else:
+            smooth_param = eks_params['s']
+
         df_smoothed, _ = ensemble_kalman_smoother_singlecam(
             markers_list=markers_list,
             keypoint_names=keypoint_names,
-            smooth_param=eks_params['s'],
+            smooth_param=smooth_param,
             avg_mode='median',
             var_mode='conf_weighted_var',
         )
