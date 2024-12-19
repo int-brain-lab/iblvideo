@@ -31,7 +31,7 @@ SIDE_FEATURES = {
         'features': ['nose_tip'],  # dummy entry to force run with other specialized networks
         'weights': 'paw2-mic-*',
         'crop': lambda x, y, s: None,
-        'sequence_length': 25,  # batch size for inference; 25 works for 8GB GPU
+        'sequence_length': 24,  # batch size for inference; 24 works for 8GB GPU
         'eks_params': {  # smooth params; ranges from .01-20; smaller values = more smoothing
             's': 10,  # this will be updated based on framerate
         },
