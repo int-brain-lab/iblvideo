@@ -171,8 +171,19 @@ iblvideo/iblvideo/__init__.py
 ```
 Afterwards, tag the new version on Github.
 
+### Network model versioning
+As of `iblvideo v3.0.0` we are no longer linking the versioning of the networks models with the code version. 
+When the models are updated the test data should also be updated.
+Then upload both to the private and public S3 bucket in resources/dlc with filename `networks_vX.Y.zip` and `dlc_test_data_vX.Y.zip` respectively. 
+Always keep the old models for reproducibility.
+Then update the default DLC version number to the new version `vX.Y` in `iblvideo.__init__.py` (parameter `__dlc_version__`).
 
-### Update MINOR or MAJOR
+You should always also bump the code version in `iblvideo/__init__.py` when you update the models. 
+This way, the code version that is stored in the alyx task can always be linked to a specific model version.
+
+### Network model versioning (deprecated)
+This documentation corresponds to all versions <3.0.0.
+
 The version of DLC weights and DLC test data are synchronized with the MAJOR.MINOR version of this code. (Note that the patch version is not included in the directory names)
 
 If you update any of the DLC weights, you also need to update the MINOR version of the code and the DLC test data, and vice versa.

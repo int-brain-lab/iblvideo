@@ -6,9 +6,30 @@ from iblvideo.motion_energy import motion_energy
 from iblvideo.tests.download_test_data import _download_me_test_data
 
 
-def test_motion_energy():
+def test_motion_energy_with_dlc():
 
-    test_data = _download_me_test_data()
+    test_data = _download_me_test_data(tracker='dlc')
+    for cam in ['body', 'left', 'right']:
+        print(f"Running test for {cam}")
+        ctrl_me = np.load(test_data.joinpath(f'output/{cam}Camera.ROIMotionEnergy.npy'))
+        ctrl_roi = np.load(test_data.joinpath(f'output/{cam}ROIMotionEnergy.position.npy'))
+        pose_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.dlc.pqt')
+        file_mp4 = test_data.joinpath('raw_video_data', f'_iblrig_{cam}Camera.raw.mp4')
+
+        # Test with all frames
+        me_file, roi_file = motion_energy(file_mp4, pose_pqt, frames=None)
+        test_me = np.load(me_file)
+        test_roi = np.load(roi_file)
+        assert all(test_me == ctrl_me)
+        assert all(test_roi == ctrl_roi)
+
+        os.remove(me_file)
+        os.remove(roi_file)
+
+
+def test_motion_energy_with_lp():
+
+    test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
         ctrl_me = np.load(test_data.joinpath(f'output/{cam}Camera.ROIMotionEnergy.npy'))
@@ -29,7 +50,7 @@ def test_motion_energy():
 
 def test_with_chunks():
 
-    test_data = _download_me_test_data()
+    test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
         ctrl_me = np.load(test_data.joinpath(f'output/{cam}Camera.ROIMotionEnergy.npy'))
@@ -49,7 +70,7 @@ def test_with_chunks():
 
 
 def test_with_nans():
-    test_data = _download_me_test_data()
+    test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
         pose_pqt = test_data.joinpath(f'alf/_ibl_{cam}Camera.lightningPose.pqt')

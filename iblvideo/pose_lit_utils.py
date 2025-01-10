@@ -29,7 +29,7 @@ def get_crop_window(roi_df_file: Path, network_params: dict, scale: int) -> list
     """Get average position of a anchor point for autocropping.
 
     :param roi_df_file: path to dataframe output by ROI network
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
     :param scale: downsampling factor; >1 means reduce crop window parameters
     :return: list of floats [width, height, x, y] defining window used for cropping
     """

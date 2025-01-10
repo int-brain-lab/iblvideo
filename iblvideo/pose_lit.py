@@ -13,7 +13,7 @@ import torch
 from lightning_pose.utils.predictions import create_labeled_video
 from moviepy.editor import VideoFileClip
 
-from iblvideo.params import BODY_VIDEO, LEFT_VIDEO, RIGHT_VIDEO
+from iblvideo.params_lp import BODY_VIDEO, LEFT_VIDEO, RIGHT_VIDEO
 from iblvideo.pose_lit_utils import analyze_video, get_crop_window, run_eks
 from iblvideo.weights import download_lit_model
 
@@ -81,8 +81,8 @@ def _run_network(
     :param tdir: temporary directory to store outputs
     :param mp4_file: path to video
     :param model_path: path to model directory
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
-    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params_lp.py
     :param ensemble_number: unique integer to track predictions from different ensemble members
     :param force: whether to overwrite existing intermediate files
     :param roi_df_file: path to dataframe output by ROI network, for computing crop window
@@ -149,7 +149,7 @@ def _run_eks(
 
     :param tdir: temporary directory to store outputs
     :param mp4_file: path to video
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params.py
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
     :param force: whether to overwrite existing intermediate files
     return: path to dataframe with results, updated force parameter
     """
@@ -194,7 +194,7 @@ def _extract_pose_alf(
 
     :param tdir: temporary directory to store outputs
     :param file_label: name of video, used for naming alf file
-    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params.py
+    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params_lp.py
     :param roi_df_file: path to dataframe output by ROI network, for computing crop window
     :param force: whether to overwrite existing intermediate files
     return: path to dataframe with results, updated force parameter

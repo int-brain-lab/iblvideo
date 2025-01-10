@@ -47,21 +47,21 @@ BODY_FEATURES = {
 }
 
 LEFT_VIDEO = {
-    'original_size': [1280, 1024],
+    'original_size': [1280, 1024],  # width, height
     'flip': False,
     'features': SIDE_FEATURES,
     'sampling': 1,  # sampling factor applied before cropping, if > 1 means upsampling
 }
 
 RIGHT_VIDEO = {
-    'original_size': [1280 // 2, 1024 // 2],
+    'original_size': [1280 // 2, 1024 // 2],  # width, height
     'flip': True,
     'features': SIDE_FEATURES,
     'sampling': 2,  # sampling factor applied before cropping, if > 1 means upsampling
 }
 
 BODY_VIDEO = {
-    'original_size': [1280 // 2, 1024 // 2],
+    'original_size': [1280 // 2, 1024 // 2],  # width, height
     'flip': False,
     'features': BODY_FEATURES,
     'sampling': 1,  # sampling factor applied before cropping, if > 1 means upsampling

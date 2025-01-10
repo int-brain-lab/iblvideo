@@ -16,7 +16,7 @@ def _download_dlc_test_data(version=__dlc_version__, one=None, target_path=None,
     ----------
     version : str
         Version of the test data to download.
-        Should be the same as the version in weights.download_lit_model
+        Should be the same as the version in weights.download_weights
     one : ONE
         An instance of ONE to use for downloading.
         Defaults is None, in which case a new instance pointing to the internal IBL database is
@@ -40,8 +40,8 @@ def _download_dlc_test_data(version=__dlc_version__, one=None, target_path=None,
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def _download_me_test_data(one=None, target_path=None, overwrite=False):
-    """Download motion energy test data from AWS, unzip it, and returns file name.
+def _download_me_test_data(one=None, target_path=None, overwrite=False, tracker='dlc'):
+    """Download motion energy test data from AWS, unzip it, and return file name.
 
     eid: cde63527-7f5a-4cc3-8ac2-215d82e7da26
 
@@ -57,6 +57,8 @@ def _download_me_test_data(one=None, target_path=None, overwrite=False):
     overwrite : bool
         If True, will re-download test data even if they exist locally and file sizes match.
         Defaults to False.
+    tracker : str
+        'dlc' or 'lightning_pose'
 
     Returns
     -------
@@ -65,7 +67,7 @@ def _download_me_test_data(one=None, target_path=None, overwrite=False):
 
     """
 
-    directory = 'lightning_pose'
+    directory = tracker
     filename = 'me_test_data'
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 

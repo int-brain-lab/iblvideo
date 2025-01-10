@@ -113,11 +113,11 @@ Afterwards, tag the new version on Github.
 
 
 ### Network model versioning
-For lightning pose, we are no longer linking the versioning of the networks models with the code version 
-(as was done for DLC). When the models are updated the test data should also be updated. Then upload both to the private 
-and public S3 bucket in resources/lightning_pose with filename `networks_vX.Y.zip` and `lp_test_data_vX.Y.zip` respectively. 
-Always keep the old models for reproducibility. Then update the default version number to the new version `vX.Y` in the 
-functions `iblvideo.weights.download_lit_model` and `iblvideo.tests.download_test_data._download_lp_test_data`.
+As of `iblvideo v3.0.0` we are no longer linking the versioning of the networks models with the code version. 
+When the models are updated the test data should also be updated.
+Then upload both to the private and public S3 bucket in resources/lightning_pose with filename `networks_vX.Y.zip` and `lp_test_data_vX.Y.zip` respectively. 
+Always keep the old models for reproducibility.
+Then update the default LP version number to the new version `vX.Y` in `iblvideo.__init__.py` (parameter `__lp_version__`).
 
-You should always also bump the code version in `iblvideo/__init__.py` when you update the models (at least the PATCH). 
+You should always also bump the code version in `iblvideo/__init__.py` when you update the models. 
 This way, the code version that is stored in the alyx task can always be linked to a specific model version.

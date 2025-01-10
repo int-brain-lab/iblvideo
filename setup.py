@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys
 from pathlib import Path
-# from iblvideo.__init__ import __version__
+from iblvideo.__init__ import __version__
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 
@@ -22,7 +22,7 @@ with open("README.md", 'r') as f:
 
 setup(
     name='iblvideo',
-    version="0.0.0",  #__version__,
+    version=__version__,
     python_requires='>={}.{}'.format(*REQUIRED_PYTHON),
     description='IBL video processing pipeline',
     license='MIT',
