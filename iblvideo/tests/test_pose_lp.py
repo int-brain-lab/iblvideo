@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from iblvideo.pose_lit import lightning_pose
+from iblvideo.pose_lp import lightning_pose
 from iblvideo.tests.download_test_data import _download_lp_test_data
-from iblvideo.weights import download_lit_model
+from iblvideo.weights import download_lp_models
 
 
 def _run_test_in_process(cam):
@@ -24,7 +24,7 @@ def _run_test_in_process(cam):
 def _test_lightning_pose(cam):
 
     test_data = _download_lp_test_data()
-    ckpts_path = download_lit_model()
+    ckpts_path = download_lp_models()
 
     mp4_file = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
     tmp_dir = test_data.joinpath('input', f'lp_tmp_iblrig_{cam}Camera.raw')

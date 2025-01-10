@@ -43,7 +43,7 @@ def download_weights(version=__dlc_version__, one=None, target_path=None, overwr
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def download_lit_model(version=__lp_version__, one=None, target_path=None, overwrite=False):
+def download_lp_models(version=__lp_version__, one=None, target_path=None, overwrite=False):
     """Downloads specific LP networks version from AWS, unzips it, and returns file name.
 
     Parameters

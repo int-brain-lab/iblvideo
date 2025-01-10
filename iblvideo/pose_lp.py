@@ -14,8 +14,8 @@ from lightning_pose.utils.predictions import create_labeled_video
 from moviepy.editor import VideoFileClip
 
 from iblvideo.params_lp import BODY_VIDEO, LEFT_VIDEO, RIGHT_VIDEO
-from iblvideo.pose_lit_utils import analyze_video, get_crop_window, run_eks
-from iblvideo.weights import download_lit_model
+from iblvideo.pose_lp_utils import analyze_video, get_crop_window, run_eks
+from iblvideo.weights import download_lp_models
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
@@ -314,7 +314,7 @@ def lightning_pose(
     """
 
     if ckpts_path is None:
-        ckpts_path = download_lit_model()
+        ckpts_path = download_lp_models()
 
     # initiate
     mp4_file = Path(mp4_file)  # e.g. '_iblrig_leftCamera.raw.mp4'
@@ -416,7 +416,7 @@ if __name__ == '__main__':
     # cam = 'body'
 
     test_dir = _download_lp_test_data()
-    ckpts_path_local = download_lit_model()
+    ckpts_path_local = download_lp_models()
 
     alf_file = lightning_pose(
         mp4_file=Path(test_dir).joinpath(f'input/_iblrig_{cam}Camera.raw.mp4'),

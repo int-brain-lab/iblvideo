@@ -79,7 +79,7 @@ def _download_lp_test_data(version=__lp_version__, one=None, target_path=None, o
     ----------
     version : str
         Version of the test data to download.
-        Should be the same as the version in weights.download_lit_model
+        Should be the same as the version in weights.download_lp_models
     one : ONE
         An instance of ONE to use for downloading.
         Defaults is None, in which case a new instance pointing to the internal IBL database is
