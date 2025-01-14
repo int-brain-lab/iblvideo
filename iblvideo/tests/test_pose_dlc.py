@@ -1,20 +1,17 @@
 import shutil
+
 import numpy as np
 import pandas as pd
 
-from one.api import ONE
 from iblvideo.choiceworld import dlc
+from iblvideo.tests.download_test_data import _download_dlc_test_data
 from iblvideo.weights import download_weights
-from iblvideo.tests import _download_dlc_test_data
-from iblvideo import __version__
 
 
-def test_dlc(version=__version__):
+def test_dlc():
 
-    one = ONE()
-
-    test_data = _download_dlc_test_data(one=one)
-    path_dlc = download_weights(version=version, one=one)
+    test_data = _download_dlc_test_data()
+    path_dlc = download_weights()
 
     for cam in ['body', 'left', 'right']:
         file_mp4 = test_data.joinpath('input', f'_iblrig_{cam}Camera.raw.mp4')
@@ -25,8 +22,7 @@ def test_dlc(version=__version__):
         assert (tmp_dir.is_dir() is False)
 
         out_pqt = pd.read_parquet(out_file)
-        ctrl_pqt = pd.read_parquet(
-            test_data.joinpath('output', f'_ibl_{cam}Camera.dlc.pqt'))
+        ctrl_pqt = pd.read_parquet(test_data.joinpath('output', f'_ibl_{cam}Camera.dlc.pqt'))
 
         assert np.all(out_pqt.columns == ctrl_pqt.columns)
 

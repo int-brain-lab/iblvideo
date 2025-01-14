@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import cv2
 
-from iblvideo.params import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
+from iblvideo.params_dlc import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
 from iblvideo.utils import _run_command
 from ibllib.io.video import get_video_meta
 

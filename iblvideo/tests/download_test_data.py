@@ -3,66 +3,101 @@ import shutil
 from pathlib import Path
 
 from one.api import ONE
-from iblvideo import __version__
+from iblvideo import __dlc_version__, __lp_version__
+from iblvideo.utils import download_and_unzip_file_from_aws
 
 _logger = logging.getLogger('ibllib')
 
 
-def _download_dlc_test_data(version=__version__, one=None):
-    """Download test data from FlatIron."""
-    # Read one_params file
+def _download_dlc_test_data(version=__dlc_version__, one=None, target_path=None, overwrite=False):
+    """Download DLC test data from AWS, unzip it, and return file name.
 
-    # if there is a test dir in the current path, use this one. Useful for Docker deployment
-    local_test_dir = Path(f"dlc_test_data_v{'.'.join(version.split('_')[-1].split('.')[:-1])}").absolute()
-    if local_test_dir.exists():
-        _logger.warning(f'Using cached directory at {local_test_dir}')
-        return local_test_dir
+    Parameters
+    ----------
+    version : str
+        Version of the test data to download.
+        Should be the same as the version in weights.download_weights
+    one : ONE
+        An instance of ONE to use for downloading.
+        Defaults is None, in which case a new instance pointing to the internal IBL database is
+        instantiated.
+    target_path : Path
+        Path to download test data to. If None, the default cache directory is used.
+        Defaults to None.
+    overwrite : bool
+        If True, will re-download test data even if they exist locally and file sizes match.
+        Defaults to False.
 
-    # otherwise get it from the SDSC server
-    one = one or ONE()
-    data_dir = Path('resources', 'dlc')
+    Returns
+    -------
+    pathlib.Path
+        Path to the directory containing the test data
 
-    # Create target directory if it doesn't exist
-    local_path = Path(ONE().cache_dir).joinpath(data_dir)
-    local_path.mkdir(exist_ok=True, parents=True)
+    """
 
-    # Construct URL and call download
-    url = '{}/dlc_test_data_v{}.zip'.format(str(data_dir), '.'.join(version.split('_')[-1].split('.')[:-1]))
-    file_name, hash = one.alyx.download_file(url, target_dir=local_path, return_md5=True, silent=True)
-    file_name = Path(file_name)
-    _logger.info(f"Downloaded test data hash: {hash}, {file_name}")
-    # unzip file
-    test_dir = file_name.parent.joinpath(file_name.stem)
-    if not test_dir.exists():
-        shutil.unpack_archive(str(file_name), local_path)
-
-    return Path(test_dir)
+    directory = 'dlc'
+    filename = f'dlc_test_data_{version}'
+    return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def _download_me_test_data(one=None):
-    """Download test data from FlatIron."""
-    # eid: cde63527-7f5a-4cc3-8ac2-215d82e7da26
-    # if there is a test dir in the current path, use this one. Useful for Docker deployment
-    local_test_dir = Path("me_test_data").absolute()
-    if local_test_dir.exists():
-        _logger.warning(f'Using cached directory at {local_test_dir}')
-        return local_test_dir
+def _download_me_test_data(one=None, target_path=None, overwrite=False, tracker='dlc'):
+    """Download motion energy test data from AWS, unzip it, and return file name.
 
-    # Read one_params file
-    one = one or ONE()
-    data_dir = Path('resources', 'dlc')
+    eid: cde63527-7f5a-4cc3-8ac2-215d82e7da26
 
-    # Create target directory if it doesn't exist
-    local_path = Path(ONE().cache_dir).joinpath(data_dir)
-    local_path.mkdir(exist_ok=True, parents=True)
+    Parameters
+    ----------
+    one : ONE
+        An instance of ONE to use for downloading.
+        Defaults is None, in which case a new instance pointing to the internal IBL database is
+        instantiated.
+    target_path : Path
+        Path to download test data to. If None, the default cache directory is used.
+        Defaults to None.
+    overwrite : bool
+        If True, will re-download test data even if they exist locally and file sizes match.
+        Defaults to False.
+    tracker : str
+        'dlc' or 'lightning_pose'
 
-    # Construct URL and call download
-    url = '{}/me_test_data.zip'.format(str(data_dir))
-    file_name, hash = one.alyx.download_file(url, target_dir=local_path, return_md5=True, silent=True)
-    file_name = Path(file_name)
-    # unzip file
-    test_dir = file_name.parent.joinpath(file_name.stem)
-    if not test_dir.exists():
-        shutil.unpack_archive(file_name, local_path)
+    Returns
+    -------
+    pathlib.Path
+        Path to the directory containing the test data
 
-    return Path(test_dir)
+    """
+
+    directory = tracker
+    filename = 'me_test_data'
+    return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
+
+
+def _download_lp_test_data(version=__lp_version__, one=None, target_path=None, overwrite=False):
+    """Download LP test data from AWS, unzip it, and return file name.
+
+    Parameters
+    ----------
+    version : str
+        Version of the test data to download.
+        Should be the same as the version in weights.download_lp_models
+    one : ONE
+        An instance of ONE to use for downloading.
+        Defaults is None, in which case a new instance pointing to the internal IBL database is
+        instantiated.
+    target_path : Path
+        Path to download test data to. If None, the default cache directory is used.
+        Defaults to None.
+    overwrite : bool
+        If True, will re-download test data even if they exist locally and file sizes match.
+        Defaults to False.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the directory containing the test data
+
+    """
+
+    directory = 'lightning_pose'
+    filename = f'lp_test_data_{version}'
+    return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
