@@ -15,7 +15,6 @@ _logger = logging.getLogger('ibllib')
 def download_weights(version=__dlc_version__, one=None, target_path=None, overwrite=False):
     """Download the DLC weights associated with current version from AWS.
 
-
     Parameters
     ----------
     version : str

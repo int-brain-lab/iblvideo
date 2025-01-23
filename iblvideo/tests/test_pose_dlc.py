@@ -3,7 +3,7 @@ import shutil
 import numpy as np
 import pandas as pd
 
-from iblvideo.choiceworld import dlc
+from iblvideo.pose_dlc import dlc
 from iblvideo.tests.download_test_data import _download_dlc_test_data
 from iblvideo.weights import download_weights
 
