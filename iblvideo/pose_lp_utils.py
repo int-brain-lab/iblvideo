@@ -260,7 +260,7 @@ def build_dataloader(
         crop_w, crop_h, crop_x, crop_y = crop_window
         frame_height, frame_width = original_dims
 
-        # first, adjust crop_x and crop_y to ensure they stay within frame boundaries
+        # check if crop extends beyond left/top edge
         if crop_x < 0:
             crop_x = 0
         if crop_y < 0:
