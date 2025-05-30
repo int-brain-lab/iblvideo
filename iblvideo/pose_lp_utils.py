@@ -260,6 +260,18 @@ def build_dataloader(
         crop_w, crop_h, crop_x, crop_y = crop_window
         frame_height, frame_width = original_dims
 
+        # check if crop extends beyond left/top edge
+        if crop_x < 0:
+            crop_x = 0
+        if crop_y < 0:
+            crop_y = 0
+
+        # check if crop extends beyond right/bottom edge
+        if crop_x + crop_w > frame_width:
+            crop_x = frame_width - crop_w
+        if crop_y + crop_h > frame_height:
+            crop_y = frame_height - crop_h
+
         # dali normalizes crop params in a funny way
         crop_x_norm = crop_x / (frame_width - crop_w)
         crop_y_norm = crop_y / (frame_height - crop_h)
