@@ -150,7 +150,7 @@ def _run_eks(
     network_params: dict,
     force: bool = False,
 ) -> Tuple[Path, bool]:
-    """Step 1: run Lightning Pose networks.
+    """Step 2: run ensembling with EKS.
 
     :param tdir: temporary directory to store outputs
     :param mp4_file: path to video
@@ -195,7 +195,7 @@ def _extract_pose_alf(
     roi_df_file: Path,
     force: bool = False,
 ) -> Path:
-    """Step 2: collect all outputs into a single file.
+    """Step 3: collect all outputs into a single file.
 
     :param tdir: temporary directory to store outputs
     :param file_label: name of video, used for naming alf file
@@ -265,7 +265,7 @@ def _create_labeled_video(
     preds_file: Path,
     dotsize: int | float,
 ) -> None:
-    """Step 3: plot all outputs on original video.
+    """Step 4: plot all outputs on original video.
 
     :param mp4_file: path to video
     :param preds_file: pose predictions parquet file
