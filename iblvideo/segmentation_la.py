@@ -25,11 +25,11 @@ def _run_network(
     pose_timestamp_file: Path,
     wheel_file: Path,
     wheel_timestamp_file: Path,
-    file_label: str,
     paw_label: str,
     model_path: Path,
     camera_params: dict,
     ensemble_number: int = 0,
+    sequence_length: int = 500,
     force: bool = False,
 ) -> Tuple[Path, bool]:
     """Step 1: run Lightning Action networks.
@@ -39,26 +39,23 @@ def _run_network(
     :param pose_timestamp_file: timestamps associated with pose file
     :param wheel_file: wheel file
     :param wheel_timestamp_file: timestamps associated with wheel file
-    :param file_label: which video to run network on
     :param paw_label: which paw to run network on
     :param model_path: path to model directory
     :param camera_params: parameters for camera, see LEFT_VIDEO etc in params_lp.py
     :param ensemble_number: unique integer to track predictions from different ensemble members
+    :param sequence_length: number of consecutive time frames to process simultaneously
     :param force: whether to overwrite existing intermediate files
     return: path to dataframe with results, updated force parameter
     """
     step = '01'
     action = f'Inference for network {ensemble_number} on {paw_label} in {pose_file.name}'
 
-    file_out = tdir.joinpath(f'{file_label}.{paw_label}.{ensemble_number}.csv')
+    file_out = tdir.joinpath(f'{paw_label}.{ensemble_number}.csv')
 
     if file_out.exists() and not force:
         _logger.info(f'STEP {step}: {action} exists, not computing.')
     else:
         _logger.info(f'STEP {step}: START {action}')
-
-        # get batch size
-        sequence_length = 500
 
         analyze_video(
             tdir=tdir,
@@ -86,7 +83,6 @@ def _run_network(
 def _run_ensembling(
     tdir: Path,
     pose_file: Path,
-    file_label: str,
     paw_label: str,
     force: bool = False,
 ) -> Tuple[Path, bool]:
@@ -94,7 +90,6 @@ def _run_ensembling(
 
     :param tdir: temporary directory to store outputs
     :param pose_file: path to pose
-    :param file_label: which video to run network on
     :param paw_label: which paw to run network on
     :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
     :param force: whether to overwrite existing intermediate files
@@ -103,7 +98,7 @@ def _run_ensembling(
     step = '02'
     action = f'Ensembling for {paw_label} network on {pose_file.name}'
 
-    file_out = tdir.joinpath(f'{file_label}.{paw_label}.csv')
+    file_out = tdir.joinpath(f'{paw_label}.csv')
 
     if file_out.exists() and not force:
         _logger.info(f'STEP {step}: {action} exists, not computing.')
@@ -111,10 +106,9 @@ def _run_ensembling(
         _logger.info(f'STEP {step}: START {action}')
 
         # important! there is a * before .csv to capture ensemble number
-        ens_files = list(tdir.glob(f'*{file_label}.{paw_label}*.csv'))
+        ens_files = list(tdir.glob(f'*{paw_label}*.csv'))
 
         run_ensembling(
-            paw_label=paw_label,
             csv_files=ens_files,
             file_out=file_out,
         )
@@ -127,7 +121,7 @@ def _run_ensembling(
     return file_out, force
 
 
-def _extract_pose_alf(
+def _extract_actions_alf(
     tdir: Path,
     file_label: str,
     paw_labels: list[str],
@@ -145,7 +139,7 @@ def _extract_pose_alf(
     action = f'Extract ALF files for {file_label}'
 
     # Create alf path to store final files
-    alf_path = tdir.parent.parent.joinpath('alf')
+    alf_path = tdir.parent.joinpath('alf')
     alf_path.mkdir(exist_ok=True, parents=True)
     file_alf = alf_path.joinpath(f'_ibl_{file_label}.pawstates.pqt')
 
@@ -154,7 +148,23 @@ def _extract_pose_alf(
     else:
         _logger.info(f'STEP {step}: START {action}')
 
-        # TODO
+        # load ensembled files for each paw
+        paw_dfs = []
+        for paw_label in paw_labels:
+            paw_file = tdir.joinpath(f'{paw_label}.csv')
+            if paw_file.exists():
+                df = pd.read_csv(paw_file, index_col=0, header=[0])
+                # Add paw prefix to column names to avoid conflicts
+                df.columns = [f'{paw_label}_{col}' for col in df.columns]
+                paw_dfs.append(df)
+            else:
+                _logger.warning(f'Ensembled file not found: {paw_file}')
+
+        if not paw_dfs:
+            raise FileNotFoundError(f'No ensembled files found for paws: {paw_labels}')
+
+        # concatenate along column dimension
+        df_full = pd.concat(paw_dfs, axis=1)
 
         # save in alf path
         df_full.to_parquet(file_alf)
@@ -165,11 +175,12 @@ def _extract_pose_alf(
 
 
 def lightning_action(
-    pose_file: str,
-    pose_timestamp_file: str,
-    wheel_file: str,
-    wheel_timestamp_file: str,
-    ckpts_path: Path | None = None,
+    pose_file: str | Path,
+    pose_timestamp_file: str | Path,
+    wheel_file: str | Path,
+    wheel_timestamp_file: str | Path,
+    ckpts_path: str | Path | None = None,
+    sequence_length: int = 500,
     force: bool = False,
     remove_files: bool = True,
 ) -> Path:
@@ -185,6 +196,7 @@ def lightning_action(
     :param wheel_file: wheel file
     :param wheel_timestamp_file: timestamps associated with wheel file
     :param ckpts_path: path to folder with Lightning Pose weights
+    :param sequence_length: number of consecutive time frames to process simultaneously
     :param force: whether to overwrite existing intermediate files
     :param remove_files: True (default) to remove temp files, False to leave (for debugging)
     :return out_file: path to Lightning Pose table in parquet file format
@@ -210,10 +222,9 @@ def lightning_action(
     tdir = pose_path.joinpath(f'la_tmp_iblrig_{file_label}')
     tdir.mkdir(exist_ok=True)
 
-    net_weights = sorted(Path(ckpts_path).glob('paw-*'))
-
     # run networks on each paw
     for paw_label in paw_labels:
+        net_weights = sorted(Path(ckpts_path).joinpath(f'{paw_label}_networks').glob('network-*'))
         # loop over multiple networks (for ensembling)
         for m, model_path in enumerate(net_weights):
             _run_network(
@@ -222,27 +233,27 @@ def lightning_action(
                 pose_timestamp_file=Path(pose_timestamp_file),
                 wheel_file=Path(wheel_file),
                 wheel_timestamp_file=Path(wheel_timestamp_file),
-                file_label=file_label,
                 paw_label=paw_label,
                 model_path=model_path,
                 camera_params=camera_params,
                 ensemble_number=m,
+                sequence_length=sequence_length,
                 force=force,
             )
 
     # run ensembling
     for paw_label in paw_labels:
+        net_weights = sorted(Path(ckpts_path).joinpath(f'{paw_label}_networks').glob('network-*'))
         if len(list(net_weights)) > 1:
             _run_ensembling(
                 tdir=tdir,
                 pose_file=Path(pose_file),
-                file_label=file_label,
                 paw_label=paw_label,
                 force=force,
             )
 
     # collect all outputs into a single file
-    out_file = _extract_pose_alf(
+    out_file = _extract_actions_alf(
         tdir=tdir,
         file_label=file_label,
         paw_labels=paw_labels,
