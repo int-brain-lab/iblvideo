@@ -319,12 +319,14 @@ def run_ensembling(
     # create output dataframe with same index as input
     result_df = pd.DataFrame(index=dfs[0].index)
 
-    # calculate ensemble means for each prediction column
+    # calculate ensemble means and variances for each prediction column
     for col in pred_columns:
         # stack all predictions for this column
         stacked_preds = pd.concat([df[col] for df in dfs], axis=1)
         # calculate mean across networks
         result_df[col] = stacked_preds.mean(axis=1)
+        # calculate variance across networks
+        result_df[f'{col}_ens_var'] = stacked_preds.var(axis=1)
 
     # add individual network predictions with network suffix
     for i, (df, net_num) in enumerate(zip(dfs, network_nums)):
@@ -332,7 +334,7 @@ def run_ensembling(
             result_df[f'{col}_{net_num}'] = df[col]
 
     # reorder columns: ensemble means first, then individual network predictions
-    ensemble_cols = pred_columns
+    ensemble_cols = pred_columns + [f'{col}_ens_var' for col in pred_columns]
     individual_cols = [f'{col}_{net_num}' for net_num in network_nums for col in pred_columns]
 
     # final column order
