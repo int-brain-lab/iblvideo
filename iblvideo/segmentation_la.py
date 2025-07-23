@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 import torch
 
+from iblvideo import download_la_models
 from iblvideo.segmentation_la_utils import analyze_video, run_ensembling
 from iblvideo.params_lp import LEFT_VIDEO, RIGHT_VIDEO
-from iblvideo.weights import download_la_models
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')

@@ -6,4 +6,4 @@ __lp_version__ = 'v2.1'   # versioning for LP weights/test data
 __la_version__ = 'v1.0'   # versioning for LA weights/test data
 
 from iblvideo.run import run_session, run_queue
-from iblvideo.weights import download_lp_models, download_weights
+from iblvideo.weights import download_lp_models, download_la_models, download_weights

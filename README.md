@@ -1,6 +1,7 @@
 # IBL video processing pipeline
 
-This README details how to set up an environment that uses Lightning Pose for pose estimation.
+This README details how to set up an environment that uses Lightning Pose for pose estimation
+and Lightning Action for action segmentation.
 You can find the README for pose estimation with DLC [here](README_DLC.md). 
 
 ## Video acquisition in IBL
@@ -23,6 +24,9 @@ In addition, we track the `'tail_start'` in the body videos:
 
 ## Getting started
 
+Note that currently pose estimation and action segmentation must be run in separate environments; 
+see installation instructions below.
+ 
 ### Running LP for one mp4 video - stand-alone local run
 
 ```python
@@ -36,6 +40,27 @@ path_models = download_lp_models()
 
 # Run lightning pose on a video
 output = lightning_pose("Path/to/file.mp4", ckpts_path=path_models)
+```
+
+### Running LA for one video - stand-alone local run
+
+```python
+from one.api import ONE
+from iblvideo import download_la_models
+from iblvideo.segmentation_la import lightning_action
+
+# Download the lightning action models using ONE
+one = ONE()
+path_models = download_la_models()
+
+# Run lightning action on a video
+output = lightning_pose(
+    pose_file="/path/to/pose.pqt",
+    pose_timestamp_file="/path/to/pose_timestamps.npy",
+    wheel_file="/path/to/wheel.npy",
+    wheel_timestamp_file="/path/to/wheel_timestamps.npy",
+    ckpts_path=path_models,
+)
 ```
 
 ## Installing LP locally on an IBL server
@@ -99,6 +124,28 @@ Eventually run the tests. You need to find the iblvideo installation path (e.g. 
 pytest ./tests/test_pose_lp.py
 ```
 
+## Installing LA locally on an IBL server
+
+Follow the same instructions as installing LP locally.
+Name the environment `litaction`:
+
+```bash
+mkdir -p ~/Documents/PYTHON/envs
+cd ~/Documents/PYTHON/envs
+python3.10 -m venv litaction
+```
+
+Activate the environment and install packages
+```bash
+#CUDA_VERSION=11.8
+#export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
+#export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
+source ~/Documents/PYTHON/envs/litaction/bin/activate
+
+pip install ibllib
+pip install lightning-action=0.2.0
+pip install git+https://github.com/int-brain-lab/iblvideo.git
+```
 
 ## Releasing a new version (for devs)
 

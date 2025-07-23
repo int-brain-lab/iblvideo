@@ -7,18 +7,16 @@ import pandas as pd
 import pytest
 import torch
 
+from iblvideo import download_la_models
 from iblvideo.segmentation_la import lightning_action
 from iblvideo.segmentation_la_utils import combine_input_streams, resample_dataframe
 from iblvideo.tests.download_test_data import _download_la_test_data
-from iblvideo.weights import download_la_models
 
 
 def _test_lightning_action(cam):
 
-    # test_data = _download_la_test_data()
-    # ckpts_path = download_la_models()
-    test_data = Path('/media/mattw/ibl2/raw_data/resources/lightning_action/la_test_data_v1.0')
-    ckpts_path = Path('/home/mattw/Dropbox/tmp/paw-state-networks')
+    test_data = _download_la_test_data()
+    ckpts_path = download_la_models()
 
     pose_file = test_data.joinpath('input', f'_ibl_{cam}Camera.lightningPose.pqt')
     pose_timestamp_file = test_data.joinpath('input', f'_ibl_{cam}Camera.times.npy')
