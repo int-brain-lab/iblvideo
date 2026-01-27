@@ -111,10 +111,15 @@ def _run_network(
         sequence_length = network_params['sequence_length']
         if camera_params['scale'] == 2:
             sequence_length *= 3
+
         # can also increase batch size with larger GPU memory (ensure multiple of 2)
         mem = torch.cuda.get_device_properties(0).total_memory / 1e9  # in GB
         if mem >= 16.0:
             sequence_length = int(2.0 * sequence_length / 2) * 2
+        elif mem >= 14.0:
+            sequence_length = int(1.8 * sequence_length / 2) * 2
+        elif mem >= 12.0:
+            sequence_length = int(1.5 * sequence_length / 2) * 2
         elif mem >= 10.0:
             sequence_length = int(1.2 * sequence_length / 2) * 2
 
