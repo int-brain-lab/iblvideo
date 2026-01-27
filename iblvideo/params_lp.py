@@ -12,7 +12,7 @@ SIDE_FEATURES = {
         'features': ['nose_tip'],  # window anchor from roi network
         'weights': 'nose_tip-*',
         'crop': lambda x, y, s: [100 / s, 100 / s, x - 50 / s, y - 50 / s],
-        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU (smaller network)
+        'sequence_length': 116,  # batch size for inference; 116 works for 8GB GPU (smaller network)
         'eks_params': {},
     },
     'eye': {
@@ -41,7 +41,7 @@ SIDE_FEATURES = {
         'features': ['tube_top', 'tube_bottom'],  # window anchor from roi network
         'weights': 'tongue-mic-*',
         'crop': lambda x, y, s: [160 / s, 160 / s, x - 60 / s, y - 100 / s],
-        'sequence_length': 96,  # batch size for inference; 96 works for 8GB GPU (smaller network)
+        'sequence_length': 116,  # batch size for inference; 116 works for 8GB GPU (smaller network)
         'eks_params': {},
     },
 }
