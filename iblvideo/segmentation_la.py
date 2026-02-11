@@ -136,7 +136,7 @@ def _extract_actions_alf(
     action = f'Extract ALF files for {file_label}'
 
     # Create alf path to store final files
-    alf_path = tdir.parent.joinpath('alf')
+    alf_path = tdir.parent.joinpath('alf').joinpath('lightningaction')
     alf_path.mkdir(exist_ok=True, parents=True)
     file_alf = alf_path.joinpath(f'_ibl_{file_label}.pawstates.pqt')
 
