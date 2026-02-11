@@ -301,25 +301,55 @@ class TestCombineInputStreams:
         assert result_poses[paw_y_col].min() >= original_y_range[0] - 10
         assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
 
-    def test_fps_30_error_handling(self, setup_test_data):
-        """Test that 30 Hz data triggers appropriate error/warning handling"""
+    def test_fps_30_upsampling(self, setup_test_data):
+        """Test that 30 Hz data is properly upsampled to 60 Hz"""
 
         # Create test data at 30 Hz
-        test_data = setup_test_data(fps=30, duration=5.0)
+        duration = 5.0
+        test_data = setup_test_data(fps=30, duration=duration)
 
-        # For now, since you mentioned you'll implement error handling later,
-        # we'll test that it currently processes but prints warning
-        with pytest.raises(RuntimeError):
-            combine_input_streams(
-                pose_file=test_data['pose_file'],
-                pose_timestamp_file=test_data['pose_timestamp_file'],
-                wheel_file=test_data['wheel_file'],
-                wheel_timestamp_file=test_data['wheel_timestamp_file'],
-                paw_label=test_data['paw_label'],
-                flip=False,
-                original_dims=[480, 640],
-                file_out=test_data['output_file'],
-            )
+        # Run function
+        result_poses, result_timestamps, result_resampled = combine_input_streams(
+            pose_file=test_data['pose_file'],
+            pose_timestamp_file=test_data['pose_timestamp_file'],
+            wheel_file=test_data['wheel_file'],
+            wheel_timestamp_file=test_data['wheel_timestamp_file'],
+            paw_label=test_data['paw_label'],
+            flip=False,
+            original_dims=[480, 640],
+            file_out=test_data['output_file'],
+        )
+
+        # Assertions
+        # Should be upsampled to approximately 60 Hz
+        assert result_resampled
+        expected_frames_60hz = int(duration * 60) + 1
+        assert len(result_timestamps) == expected_frames_60hz
+        assert len(result_poses) == expected_frames_60hz
+
+        # Timestamps should be uniformly spaced at 60 Hz
+        dt = np.diff(result_timestamps)
+        expected_dt = 1.0 / 60.0
+        np.testing.assert_allclose(dt, expected_dt, rtol=1e-10)
+
+        # Check that timestamps span the original duration
+        assert abs(result_timestamps[0] - test_data['original_timestamps'][0]) < 1e-10
+        assert abs(result_timestamps[-1] - test_data['original_timestamps'][-1]) < 1e-10
+
+        # Pose data should be interpolated (values should be reasonable)
+        paw_x_col = f"{test_data['paw_label']}_x"
+        paw_y_col = f"{test_data['paw_label']}_y"
+
+        # Check that interpolated values are within reasonable bounds
+        original_x_range = (test_data['original_poses'][paw_x_col].min(),
+                            test_data['original_poses'][paw_x_col].max())
+        original_y_range = (test_data['original_poses'][paw_y_col].min(),
+                            test_data['original_poses'][paw_y_col].max())
+
+        assert result_poses[paw_x_col].min() >= original_x_range[0] - 10  # small tolerance for extrapolation
+        assert result_poses[paw_x_col].max() <= original_x_range[1] + 10
+        assert result_poses[paw_y_col].min() >= original_y_range[0] - 10
+        assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
 
     def test_flip_coordinates(self, setup_test_data):
         """Test that coordinate flipping works correctly"""
