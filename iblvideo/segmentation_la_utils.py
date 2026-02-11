@@ -153,7 +153,9 @@ def combine_input_streams(
     fps_tolerance = 10.0
 
     resampled = False
-    if fps > (target_fps + fps_tolerance):
+    if abs(fps - target_fps) <= fps_tolerance:
+        _logger.info(f'Framerate {fps:.1f} Hz within tolerance, no resampling needed')
+    else:
         _logger.info(f'Framerate {fps:.1f} Hz > {target_fps + fps_tolerance} Hz, downsampling to {target_fps} Hz')
 
         # create new uniform timestamp array at target fps
@@ -170,13 +172,6 @@ def combine_input_streams(
 
         _logger.info(f'Resampled from {n_frames_beg} to {n_frames_end} frames')
 
-    elif abs(fps - target_fps) <= fps_tolerance:
-        _logger.info(f'Framerate {fps:.1f} Hz within tolerance, no resampling needed')
-    else:
-        msg = f'Framerate {fps:.1f} Hz < {target_fps - fps_tolerance} Hz, consider upsampling upstream'
-        _logger.error(msg)
-        raise RuntimeError(msg)
-
     # load wheel data
     wheel_ticks = np.load(wheel_file)
     wheel_ticks_times = np.load(wheel_timestamp_file)
@@ -187,9 +182,13 @@ def combine_input_streams(
     wheel_vel, _ = velocity_filtered(wheel_pos, freq)
 
     # interpolate wheel data to match pose timestamps
-    interpolator = interp1d(wheel_t, wheel_vel, fill_value='extrapolate')
+    interpolator = interp1d(
+        wheel_t,
+        wheel_vel,
+        fill_value=(wheel_vel[0], wheel_vel[-1]),
+        bounds_error=False,
+    )
     wheel_vel_aligned = interpolator(pose_t)
-
 
     # flip x coordinates and wheel velocity if necessary (right camera)
     if flip:
@@ -257,7 +256,7 @@ def analyze_video(
     model.predict(
         data_path=tdir,
         input_dir='features',
-        output_dir=None,
+        output_dir=str(Path(file_out).parent),  # cannot be None, update in LA
         output_file=file_out,
         expt_ids=[f'{paw_label}.{ensemble_number}'],
     )
@@ -329,17 +328,18 @@ def run_ensembling(
         result_df[f'{col}_ens_var'] = stacked_preds.var(axis=1)
 
     # add individual network predictions with network suffix
-    for i, (df, net_num) in enumerate(zip(dfs, network_nums)):
-        for col in pred_columns:
-            result_df[f'{col}_{net_num}'] = df[col]
+    # for i, (df, net_num) in enumerate(zip(dfs, network_nums)):
+    #     for col in pred_columns:
+    #         result_df[f'{col}_{net_num}'] = df[col]
 
     # reorder columns: ensemble means first, then individual network predictions
     ensemble_cols = pred_columns + [f'{col}_ens_var' for col in pred_columns]
-    individual_cols = [f'{col}_{net_num}' for net_num in network_nums for col in pred_columns]
+    # individual_cols = [f'{col}_{net_num}' for net_num in network_nums for col in pred_columns]
 
     # final column order
-    final_columns = ensemble_cols + individual_cols
-    result_df = result_df[final_columns]
+    # final_columns = ensemble_cols + individual_cols
+    # result_df = result_df[final_columns]
+    result_df = result_df[ensemble_cols]
 
     # save to CSV
     result_df.to_csv(file_out)

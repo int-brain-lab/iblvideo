@@ -29,7 +29,7 @@ def _run_network(
     model_path: Path,
     camera_params: dict,
     ensemble_number: int = 0,
-    sequence_length: int = 500,
+    sequence_length: int = 250,
     force: bool = False,
 ) -> Tuple[Path, bool]:
     """Step 1: run Lightning Action networks.
