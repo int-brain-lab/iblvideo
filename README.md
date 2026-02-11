@@ -143,7 +143,7 @@ Activate the environment and install packages
 source ~/Documents/PYTHON/envs/litaction/bin/activate
 
 pip install ibllib
-pip install lightning-action=0.2.0
+pip install lightning-action=0.2.4
 pip install git+https://github.com/int-brain-lab/iblvideo.git
 ```
 

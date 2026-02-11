@@ -272,7 +272,7 @@ def _create_labeled_video(
     return: None
     """
 
-    mp4_file_labeled = Path(str(mp4_file).replace('.mp4', f'.labeled.mp4'))
+    mp4_file_labeled = Path(str(mp4_file).replace('.mp4', '.labeled.mp4'))
     video_clip = VideoFileClip(str(mp4_file))
     preds_df = pd.read_parquet(preds_file)
     # transform df to numpy array

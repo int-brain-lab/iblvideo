@@ -6,10 +6,7 @@ import sys
 from pathlib import Path
 from typing import Tuple
 
-import cv2
-import numpy as np
 import pandas as pd
-import torch
 
 from iblvideo import download_la_models
 from iblvideo.segmentation_la_utils import analyze_video, run_ensembling
@@ -280,8 +277,8 @@ if __name__ == '__main__':
     alf_file = lightning_action(
         pose_file=Path(test_dir).joinpath(f'input/_ibl_{cam}Camera.lightningPose.pqt'),
         pose_timestamp_file=Path(test_dir).joinpath(f'input/_ibl_{cam}Camera.times.npy'),
-        wheel_file=Path(test_dir).joinpath(f'input/_ibl_wheel.position.npy'),
-        wheel_timestamp_file=Path(test_dir).joinpath(f'input/_ibl_wheel.timestamps.npy'),
+        wheel_file=Path(test_dir).joinpath('input/_ibl_wheel.position.npy'),
+        wheel_timestamp_file=Path(test_dir).joinpath('input/_ibl_wheel.timestamps.npy'),
         ckpts_path=ckpts_path_local,
         force=False,
     )

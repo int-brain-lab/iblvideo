@@ -6,7 +6,7 @@ SIDE_FEATURES = {
         'crop': lambda x, y, s: None,
         'sequence_length': 16,  # batch size for inference; 16 works for 8GB GPU
         'eks_params': {},
-     },
+    },
     'nose_tip': {
         'label': 'nose_tip',
         'features': ['nose_tip'],  # window anchor from roi network

@@ -1,8 +1,5 @@
 import logging
-import shutil
-from pathlib import Path
 
-from one.api import ONE
 from iblvideo import __dlc_version__, __lp_version__, __la_version__
 from iblvideo.utils import download_and_unzip_file_from_aws
 

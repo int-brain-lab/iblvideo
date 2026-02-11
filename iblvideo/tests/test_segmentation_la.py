@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import torch
 
 from iblvideo import download_la_models
 from iblvideo.segmentation_la import lightning_action
