@@ -415,7 +415,7 @@ def run_eks(
     """
 
     if len(csv_files) == 0:
-        raise FileNotFoundError(f'Empty csv_files list provided to run_eks function')
+        raise FileNotFoundError('Empty csv_files list provided to run_eks function')
 
     # get framerate of video in order to modify smoothing params
     clip = VideoFileClip(mp4_file)
