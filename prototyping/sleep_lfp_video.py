@@ -36,6 +36,7 @@ STEP_SEC      = 2.0          # sliding window step
 DELTA         = (0.5,  4.0)  # NREM delta + slow oscillations (mouse)
 THETA         = (6.0, 10.0)  # hippocampal theta (mouse)
 RIPPLE        = (100,  250)  # CA1 sharp-wave ripples (Buzsáki 2015)
+EMG_BAND      = (300,  600)  # above SWR, within LF Nyquist — muscle artifact band
 TOTAL         = (0.5, 50.0)  # denominator band for power ratios
 N_TOP         = 5            # most-outward non-void/root channels
 N_BOT         = 5            # deepest  non-void/root channels
@@ -179,6 +180,21 @@ def _compute(pid, one):
                            np.abs(np.gradient(wheel["position"], wheel["timestamps"]))
                            if wheel else None)
 
+    # EMG from LFP: mean pairwise cross-channel correlation in 300-600 Hz
+    # top+bot channels span the full probe — muscle artifact is correlated probe-wide,
+    # genuine neural signals are not, making this a robust movement proxy from LFP alone
+    lfp_emg = np.stack([_bandpass(lfp[:, ch].astype(np.float64), fs, *EMG_BAND)
+                        for ch in top_raw], axis=1)   # (n_samp, N_CH)
+    emg_win = []
+    for i in range(n_win):
+        win  = lfp_emg[i*step_samp: i*step_samp + win_samp, :].T   # (N_CH, win_samp)
+        corr = np.corrcoef(win)
+        idx  = np.triu_indices(len(top_raw), k=1)
+        emg_win.append(float(np.nanmean(corr[idx])))
+    emg_win = np.array(emg_win)
+    del lfp_emg
+    print(f"EMG-from-LFP: {n_win} windows, band {EMG_BAND[0]}–{EMG_BAND[1]} Hz")
+
     # per-channel sleep score: mean of z-scored [delta, -pupil, -wheel]
     zscore    = lambda x: (x - np.nanmean(x)) / (np.nanstd(x) + 1e-12)
     pupil_z   = -zscore(pupil_win);  wheel_z = -zscore(wheel_win)
@@ -223,6 +239,7 @@ def _compute(pid, one):
     return dict(win_times=win_times, sleep_score=sleep_score,
                 delta_ratio=delta_ratio, theta_ratio=theta_ratio,
                 pupil_win=pupil_win, wheel_win=wheel_win,
+                emg_win=emg_win,
                 trial_times=trial_times, trial_end_times=trial_ends,
                 asleep_mask=asleep_mask, ripple_rate=ripple_rate,
                 lfp_ds=lfp_ds, lfp_ca1_ds=lfp_ca1_ds,
@@ -262,6 +279,7 @@ def explore_session(pid, one=None, recompute=False, save_png=False):
     trial_end_times         = d["trial_end_times"]
     asleep_mask             = d["asleep_mask"]
     ripple_rate             = d["ripple_rate"]
+    emg_win                 = d["emg_win"]
     lfp_ds, lfp_ca1_ds      = d["lfp_ds"], d["lfp_ca1_ds"]
     ca1_axial, top_axial    = d["ca1_axial"], d["top_axial"]
     t_ds                    = d["t_ds"]
@@ -304,17 +322,17 @@ def explore_session(pid, one=None, recompute=False, save_png=False):
 
     # ── figure ────────────────────────────────────────────────────────────────
     ca1_h   = max(1.0, min(n_ca1, 10) * 0.25 + 0.5)
-    heights = [0.35, 0.9, 0.9, 1.2, 1.8, 1.8, 1.8, 0.9, ca1_h, 2.5]
+    heights = [0.35, 0.9, 0.9, 1.2, 0.9, 1.8, 1.8, 1.8, 0.9, ca1_h, 2.5]
 
     plt.ion()
     fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
     try: fig.canvas.manager.window.showMaximized()
     except Exception: pass
 
-    gs   = gridspec.GridSpec(10, 1, hspace=0.06, height_ratios=heights,
+    gs   = gridspec.GridSpec(11, 1, hspace=0.06, height_ratios=heights,
                              left=0.06, right=0.99, top=0.98, bottom=0.08)
     ax0  = fig.add_subplot(gs[0])
-    axes = [ax0] + [fig.add_subplot(gs[i], sharex=ax0) for i in range(1, 10)]
+    axes = [ax0] + [fig.add_subplot(gs[i], sharex=ax0) for i in range(1, 11)]
 
     # 0 — trial epochs (red = asleep, grey = awake)
     for ts, te, sl in zip(to_min(trial_times), to_min(trial_end_times), asleep_mask):
@@ -337,21 +355,26 @@ def explore_session(pid, one=None, recompute=False, save_png=False):
     shade_sleep(ax, t_min, mean_score)
     ax.set_ylabel("Motion\nenergy", fontsize=8); ax.legend(fontsize=6, loc="upper right", ncol=3)
 
-    # 4-6 — sleep score / delta / theta  (steelblue = top-5 channels, darkorange = bot-5)
-    for panel, data, ylabel in [(4, sleep_score, "Sleep score"),
-                                 (5, delta_ratio, "Delta ratio\n(0.5–4 Hz)"),
-                                 (6, theta_ratio, "Theta ratio\n(6–10 Hz)")]:
+    # 4 — EMG from LFP (300-600 Hz mean cross-channel correlation, top+bot channels)
+    axes[4].plot(t_min, emg_win, color="firebrick", lw=0.8)
+    shade_sleep(axes[4], t_min, mean_score)
+    axes[4].set_ylabel(f"EMG\nfrom LFP\n({EMG_BAND[0]}–{EMG_BAND[1]} Hz)", fontsize=8)
+
+    # 5-7 — sleep score / delta / theta  (steelblue = top-5 channels, darkorange = bot-5)
+    for panel, data, ylabel in [(5, sleep_score, "Sleep score"),
+                                 (6, delta_ratio, "Delta ratio\n(0.5–4 Hz)"),
+                                 (7, theta_ratio, "Theta ratio\n(6–10 Hz)")]:
         ax = axes[panel]
         for ch in range(n_ch):
             ax.plot(t_min, data[:, ch], color=ch_color(ch), lw=0.6, alpha=0.7)
-        if panel == 4:
+        if panel == 5:
             ax.axhline(SLEEP_THRESHOLD, color="k", lw=0.8, ls="--", alpha=0.5,
                        label=f"thr={SLEEP_THRESHOLD}")
             ax.legend(fontsize=6, loc="upper right")
         shade_sleep(ax, t_min, mean_score); ax.set_ylabel(ylabel, fontsize=8)
 
-    # 7 — SWR rate (CA1sp preferred, 100-250 Hz, MAD z-score)
-    ax = axes[7]
+    # 8 — SWR rate (CA1sp preferred, 100-250 Hz, MAD z-score)
+    ax = axes[8]
     if not np.all(np.isnan(ripple_rate)):
         ax.fill_between(t_min, ripple_rate, color="darkorange", alpha=0.7, lw=0)
         ax.set_ylabel("SWR rate\n(evt/s)", fontsize=8)
@@ -363,8 +386,8 @@ def explore_session(pid, one=None, recompute=False, save_png=False):
 
     ms_ds = np.interp(t_ds, win_times, mean_score)   # mean score on LFP time grid
 
-    # 8 — CA1 LFP waterfall (up to N_CA1_PLOT topmost CA1 channels)
-    ax = axes[8]
+    # 9 — CA1 LFP waterfall (up to N_CA1_PLOT topmost CA1 channels)
+    ax = axes[9]
     if n_ca1 > 0:
         shade_sleep(ax, t_ds_min, ms_ds)
         lfp_waterfall(ax, t_ds_min, lfp_ca1_ds, ca1_axial, "darkorange")
@@ -374,8 +397,8 @@ def explore_session(pid, one=None, recompute=False, save_png=False):
                 ha="center", va="center", fontsize=8, color="gray")
         ax.set_yticks([]); ax.set_ylabel("CA1 LFP", fontsize=8)
 
-    # 9 — top-5 + bottom-5 LFP waterfall with gap and dashed separator
-    ax = axes[9]
+    # 10 — top-5 + bottom-5 LFP waterfall with gap and dashed separator
+    ax = axes[10]
     shade_sleep(ax, t_ds_min, ms_ds)
     sp   = 3.0
     norm = lfp_ds / (np.percentile(np.abs(lfp_ds), 90, axis=0) + 1e-12)
@@ -389,12 +412,14 @@ def explore_session(pid, one=None, recompute=False, save_png=False):
     ax.set_ylabel("Top/bot 5 LFP\n(axial pos.)", fontsize=8)
     ax.set_xlabel("Time in window (min)", fontsize=9)
 
-    # secondary x-axis: absolute session MM:SS — same clock as video
+    # secondary x-axis: absolute session MM:SS.mmm — shows ms precision when zoomed
     secax = ax.secondary_xaxis("bottom",
                                 functions=(lambda x: x*60 + t0, lambda s: (s - t0)/60))
     secax.xaxis.set_major_formatter(
-        mticker.FuncFormatter(lambda s, _: f"{int(s)//60:02d}:{int(s)%60:02d}"))
-    secax.tick_params(labelsize=7); secax.set_xlabel("Session time (MM:SS)", fontsize=9)
+        mticker.FuncFormatter(lambda s, _: f"{int(s)//60:02d}:{s % 60:06.3f}"))
+    secax.xaxis.set_minor_locator(mticker.AutoMinorLocator(10))
+    secax.tick_params(labelsize=7); secax.set_xlabel("Session time (MM:SS.mmm)", fontsize=9)
+    ax.xaxis.set_minor_locator(mticker.AutoMinorLocator(10))   # primary axis (minutes)
 
     # shared formatting
     n_asleep = int(asleep_mask.sum()); n_trials = len(trial_times)
