@@ -266,7 +266,7 @@ def lightning_action(
 
 if __name__ == '__main__':
 
-    from iblvideo.tests.download_test_data import _download_la_test_data
+    from tests import _download_la_test_data
 
     cam = 'left'
     # cam = 'right'
