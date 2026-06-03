@@ -1,4 +1,7 @@
 import logging
+from pathlib import Path
+
+from one.api import ONE
 
 from iblvideo import __dlc_version__, __la_version__, __lp_version__
 from iblvideo.utils import download_and_unzip_file_from_aws
@@ -6,7 +9,12 @@ from iblvideo.utils import download_and_unzip_file_from_aws
 _logger = logging.getLogger('ibllib')
 
 
-def _download_dlc_test_data(version=__dlc_version__, one=None, target_path=None, overwrite=False):
+def _download_dlc_test_data(
+    version: str = __dlc_version__,
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
+) -> Path | None:
     """Download DLC test data from AWS, unzip it, and return file name.
 
     Parameters
@@ -37,7 +45,12 @@ def _download_dlc_test_data(version=__dlc_version__, one=None, target_path=None,
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def _download_me_test_data(one=None, target_path=None, overwrite=False, tracker='dlc'):
+def _download_me_test_data(
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
+    tracker: str = 'dlc',
+) -> Path | None:
     """Download motion energy test data from AWS, unzip it, and return file name.
 
     eid: cde63527-7f5a-4cc3-8ac2-215d82e7da26
@@ -69,7 +82,12 @@ def _download_me_test_data(one=None, target_path=None, overwrite=False, tracker=
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def _download_lp_test_data(version=__lp_version__, one=None, target_path=None, overwrite=False):
+def _download_lp_test_data(
+    version: str = __lp_version__,
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
+) -> Path | None:
     """Download LP test data from AWS, unzip it, and return file name.
 
     Parameters
@@ -100,7 +118,12 @@ def _download_lp_test_data(version=__lp_version__, one=None, target_path=None, o
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def _download_la_test_data(version=__la_version__, one=None, target_path=None, overwrite=False):
+def _download_la_test_data(
+    version: str = __la_version__,
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
+) -> Path | None:
     """Download LA test data from AWS, unzip it, and return file name.
 
     Parameters
