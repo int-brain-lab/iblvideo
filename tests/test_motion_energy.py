@@ -8,7 +8,7 @@ from iblvideo.motion_energy import motion_energy
 from tests.download_test_data import _download_me_test_data
 
 
-def test_motion_energy_with_dlc():
+def test_motion_energy_with_dlc() -> None:
 
     test_data = _download_me_test_data(tracker='dlc')
     for cam in ['body', 'left', 'right']:
@@ -29,7 +29,7 @@ def test_motion_energy_with_dlc():
         os.remove(roi_file)
 
 
-def test_motion_energy_with_lp():
+def test_motion_energy_with_lp() -> None:
 
     test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
@@ -50,7 +50,7 @@ def test_motion_energy_with_lp():
         os.remove(roi_file)
 
 
-def test_with_chunks():
+def test_with_chunks() -> None:
 
     test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
@@ -71,7 +71,7 @@ def test_with_chunks():
         os.remove(roi_file)
 
 
-def test_with_nans():
+def test_with_nans() -> None:
     test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")

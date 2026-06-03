@@ -12,7 +12,13 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
 
 
-def interpolate_position(re_ts, re_pos, freq=1000, kind='linear', fill_gaps=None):
+def interpolate_position(
+    re_ts: np.ndarray,
+    re_pos: np.ndarray,
+    freq: float = 1000,
+    kind: str = 'linear',
+    fill_gaps: float | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Return linearly interpolated wheel position.
 
@@ -53,7 +59,12 @@ def interpolate_position(re_ts, re_pos, freq=1000, kind='linear', fill_gaps=None
     return yinterp, t
 
 
-def velocity_filtered(pos, fs, corner_frequency=20, order=8):
+def velocity_filtered(
+    pos: np.ndarray,
+    fs: float,
+    corner_frequency: float = 20,
+    order: int = 8,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute wheel velocity from uniformly sampled wheel data.
 

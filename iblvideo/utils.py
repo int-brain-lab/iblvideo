@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import shutil
 from pathlib import Path
@@ -9,7 +11,11 @@ _logger = logging.getLogger('ibllib')
 
 
 def download_and_unzip_file_from_aws(
-    directory, filename, one=None, target_path=None, overwrite=False,
+    directory: str,
+    filename: str,
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
 ) -> Path | None:
     """Download zipfile from AWS `resources/lightning_pose` bucket, unzip, return directory name.
 

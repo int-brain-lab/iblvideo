@@ -8,7 +8,7 @@ from iblvideo.weights import download_weights
 from tests.download_test_data import _download_dlc_test_data
 
 
-def test_dlc():
+def test_dlc() -> None:
 
     test_data = _download_dlc_test_data()
     path_dlc = download_weights()

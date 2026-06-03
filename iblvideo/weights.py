@@ -1,5 +1,10 @@
 """Functions to handle model weights."""
+from __future__ import annotations
+
 import logging
+from pathlib import Path
+
+from one.api import ONE
 
 from iblvideo import __dlc_version__, __la_version__, __lp_version__
 from iblvideo.utils import download_and_unzip_file_from_aws
@@ -7,7 +12,12 @@ from iblvideo.utils import download_and_unzip_file_from_aws
 _logger = logging.getLogger('ibllib')
 
 
-def download_weights(version=__dlc_version__, one=None, target_path=None, overwrite=False):
+def download_weights(
+    version: str = __dlc_version__,
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
+) -> Path | None:
     """Download the DLC weights associated with current version from AWS.
 
     Parameters
@@ -37,7 +47,12 @@ def download_weights(version=__dlc_version__, one=None, target_path=None, overwr
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def download_lp_models(version=__lp_version__, one=None, target_path=None, overwrite=False):
+def download_lp_models(
+    version: str = __lp_version__,
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
+) -> Path | None:
     """Downloads specific LP networks version from AWS, unzips it, and returns file name.
 
     Parameters
@@ -67,7 +82,12 @@ def download_lp_models(version=__lp_version__, one=None, target_path=None, overw
     return download_and_unzip_file_from_aws(directory, filename, one, target_path, overwrite)
 
 
-def download_la_models(version=__la_version__, one=None, target_path=None, overwrite=False):
+def download_la_models(
+    version: str = __la_version__,
+    one: ONE | None = None,
+    target_path: Path | None = None,
+    overwrite: bool = False,
+) -> Path | None:
     """Downloads specific LA networks version from AWS, unzips it, and returns file name.
 
     Parameters

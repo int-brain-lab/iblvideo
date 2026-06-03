@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +13,7 @@ from iblvideo.segmentation_la_utils import combine_input_streams, resample_dataf
 from tests.download_test_data import _download_la_test_data
 
 
-def _test_lightning_action(cam):
+def _test_lightning_action(cam: str) -> None:
 
     test_data = _download_la_test_data()
     ckpts_path = download_la_models()
@@ -62,17 +63,17 @@ def _test_lightning_action(cam):
     shutil.rmtree(str(alf_path))
 
 
-def test_lightning_action_left():
+def test_lightning_action_left() -> None:
     _test_lightning_action('left')
 
 
-def test_lightning_action_right():
+def test_lightning_action_right() -> None:
     _test_lightning_action('right')
 
 
 class TestResampleDataframe:
 
-    def test_basic_interpolation(self):
+    def test_basic_interpolation(self) -> None:
         """Test basic linear interpolation functionality"""
         # Create simple test data
         x1 = np.array([0, 1, 2, 3, 4])
@@ -96,7 +97,7 @@ class TestResampleDataframe:
         np.testing.assert_allclose(y2_result['col1'], expected_col1)
         np.testing.assert_allclose(y2_result['col2'], expected_col2)
 
-    def test_extrapolation(self):
+    def test_extrapolation(self) -> None:
         """Test that extrapolation works correctly"""
         x1 = np.array([1, 2, 3])
         y1 = pd.DataFrame({'col1': [10, 20, 30]})
@@ -111,7 +112,7 @@ class TestResampleDataframe:
         expected = [0, 15, 40]
         np.testing.assert_allclose(y2_result['col1'], expected)
 
-    def test_single_valid_point(self):
+    def test_single_valid_point(self) -> None:
         """Test handling when only one valid data point exists"""
         x1 = np.array([0, 1, 2, 3])
         y1 = pd.DataFrame({
@@ -128,7 +129,7 @@ class TestResampleDataframe:
         # col2 should be interpolated normally
         assert not y2_result['col2'].isna().any()
 
-    def test_all_nan_column(self):
+    def test_all_nan_column(self) -> None:
         """Test handling when entire column is NaN"""
         x1 = np.array([0, 1, 2, 3])
         y1 = pd.DataFrame({
@@ -145,7 +146,7 @@ class TestResampleDataframe:
         # col2 should be interpolated normally
         assert not y2_result['col2'].isna().any()
 
-    def test_partial_nan_interpolation(self):
+    def test_partial_nan_interpolation(self) -> None:
         """Test interpolation with some NaN values"""
         x1 = np.array([0, 1, 2, 3, 4])
         y1 = pd.DataFrame({
@@ -164,7 +165,7 @@ class TestResampleDataframe:
 class TestCombineInputStreams:
 
     @pytest.fixture
-    def setup_test_data(self):
+    def setup_test_data(self) -> Callable[..., dict]:
         """Create temporary test data files"""
         temp_dir = Path(tempfile.mkdtemp())
 
@@ -216,7 +217,7 @@ class TestCombineInputStreams:
 
         return create_test_files
 
-    def test_fps_60_no_resampling(self, setup_test_data):
+    def test_fps_60_no_resampling(self, setup_test_data) -> None:
         """Test that 60 Hz data is not resampled"""
 
         # Create test data at 60 Hz
@@ -254,7 +255,7 @@ class TestCombineInputStreams:
         # Output file should be created
         assert test_data['output_file'].exists()
 
-    def test_fps_150_downsampling(self, setup_test_data):
+    def test_fps_150_downsampling(self, setup_test_data) -> None:
         """Test that 150 Hz data is properly downsampled to 60 Hz"""
 
         # Create test data at 150 Hz
@@ -305,7 +306,7 @@ class TestCombineInputStreams:
         assert result_poses[paw_y_col].min() >= original_y_range[0] - 10
         assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
 
-    def test_fps_30_upsampling(self, setup_test_data):
+    def test_fps_30_upsampling(self, setup_test_data) -> None:
         """Test that 30 Hz data is properly upsampled to 60 Hz"""
 
         # Create test data at 30 Hz
@@ -356,7 +357,7 @@ class TestCombineInputStreams:
         assert result_poses[paw_y_col].min() >= original_y_range[0] - 10
         assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
 
-    def test_flip_coordinates(self, setup_test_data):
+    def test_flip_coordinates(self, setup_test_data) -> None:
         """Test that coordinate flipping works correctly"""
 
         # Create test data
@@ -380,7 +381,7 @@ class TestCombineInputStreams:
         paw_x_col = f"{test_data['paw_label']}_x"
         np.testing.assert_array_almost_equal(result_poses[paw_x_col], expected_x)
 
-    def test_file_creation(self, setup_test_data):
+    def test_file_creation(self, setup_test_data) -> None:
         """Test that output files are created correctly"""
 
         test_data = setup_test_data(fps=60, duration=2.0)

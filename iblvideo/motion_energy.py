@@ -10,6 +10,7 @@ left(right)Camera: cut whisker pad region
 
 import logging
 import time
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -20,11 +21,11 @@ from ibllib.io.video import get_video_frames_preload, label_from_path
 _log = logging.getLogger('ibllib')
 
 
-def grayscale(x):
+def grayscale(x: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
 
 
-def get_pose_midpoints(dlc_pqt, target):
+def get_pose_midpoints(dlc_pqt: Path, target: str) -> list[int]:
     # Load dataframe
     dlc_df = pd.read_parquet(dlc_pqt)
     # Set values to nan if likelihood is too low and calcualte midpoints
@@ -37,7 +38,7 @@ def get_pose_midpoints(dlc_pqt, target):
         return mloc
 
 
-def motion_energy(file_mp4, pose_pqt, frames=10000):
+def motion_energy(file_mp4: Path, pose_pqt: Path, frames: int | None = 10000) -> tuple[Path, Path]:
     """
     Compute motion energy on cropped frames of a single video
 

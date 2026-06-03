@@ -11,7 +11,7 @@ from iblvideo.weights import download_lp_models
 from tests.download_test_data import _download_lp_test_data
 
 
-def _run_test_in_process(cam):
+def _run_test_in_process(cam: str) -> None:
     """Run tests in different processes to better handle GPU memory management."""
     try:
         _test_lightning_pose(cam=cam)
@@ -21,7 +21,7 @@ def _run_test_in_process(cam):
         torch.cuda.synchronize()
 
 
-def _test_lightning_pose(cam):
+def _test_lightning_pose(cam: str) -> None:
 
     test_data = _download_lp_test_data()
     ckpts_path = download_lp_models()
@@ -71,19 +71,19 @@ def _test_lightning_pose(cam):
     shutil.rmtree(str(alf_path))
 
 
-def test_lightning_pose_left():
+def test_lightning_pose_left() -> None:
     process = multiprocessing.Process(target=_run_test_in_process, args=('left',))
     process.start()
     process.join()
 
 
-def test_lightning_pose_right():
+def test_lightning_pose_right() -> None:
     process = multiprocessing.Process(target=_run_test_in_process, args=('right',))
     process.start()
     process.join()
 
 
-def test_lightning_pose_body():
+def test_lightning_pose_body() -> None:
     process = multiprocessing.Process(target=_run_test_in_process, args=('body',))
     process.start()
     process.join()

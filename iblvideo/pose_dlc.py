@@ -20,7 +20,7 @@ from iblvideo.params_dlc import BODY_FEATURES, BODY_VIDEO, LEFT_VIDEO, RIGHT_VID
 _logger = logging.getLogger('ibllib')
 
 
-def _set_dlc_paths(path_dlc):
+def _set_dlc_paths(path_dlc: Path) -> None:
     """Replace hard-coded paths in the config.yaml file."""
     for yaml_file in path_dlc.rglob('config.yaml'):
         # read the yaml config file
@@ -39,7 +39,10 @@ def _set_dlc_paths(path_dlc):
                     yaml_data['project_path'], str(yaml_file.parent)))
 
 
-def _dlc_init(file_mp4, path_dlc):
+def _dlc_init(
+    file_mp4: str | Path,
+    path_dlc: str | Path,
+) -> tuple[Path, dict, dict, Path, dict, str]:
     """Prepare inputs and create temporary filenames."""
     # Prepare inputs
     file_mp4 = Path(file_mp4)  # _iblrig_leftCamera.raw.mp4
@@ -64,7 +67,7 @@ def _dlc_init(file_mp4, path_dlc):
     return file_mp4, dlc_params, networks, tdir, tfile, file_label
 
 
-def _get_crop_window(file_df_crop, network):
+def _get_crop_window(file_df_crop: Path, network: dict) -> list:
     """
     Get average position of a pivot point for autocropping.
     :param file_df_crop: Path to data frame from hdf5 file from video data
@@ -91,7 +94,12 @@ def _get_crop_window(file_df_crop, network):
     return network['crop'](*xy)
 
 
-def _s00_transform_rightCam(file_mp4, tdir, nframes, force=False):
+def _s00_transform_rightCam(
+    file_mp4: Path,
+    tdir: Path,
+    nframes: int,
+    force: bool = False,
+) -> tuple[str, bool]:
     """
     Flip and rotate the right cam and increase spatial resolution.
     Such that the rightCamera video looks like the leftCamera video.
@@ -129,7 +137,7 @@ def _s00_transform_rightCam(file_mp4, tdir, nframes, force=False):
     return file_out2, force
 
 
-def _s01_subsample(file_in, file_out, force=False):
+def _s01_subsample(file_in: Path, file_out: Path, force: bool = False) -> tuple[Path, bool]:
     """
     Step 1 subsample video for detection.
     Put 500 uniformly sampled frames into new video.
@@ -163,7 +171,13 @@ def _s01_subsample(file_in, file_out, force=False):
     return file_out, force
 
 
-def _s02_detect_rois(tdir, sparse_video, dlc_params, create_labels=False, force=False):
+def _s02_detect_rois(
+    tdir: Path,
+    sparse_video: Path,
+    dlc_params: dict,
+    create_labels: bool = False,
+    force: bool = False,
+) -> tuple[Path | None, bool]:
     """
     Step 2 run DLC to detect ROIS.
     returns: Path to dataframe used to crop video
@@ -183,7 +197,14 @@ def _s02_detect_rois(tdir, sparse_video, dlc_params, create_labels=False, force=
     return file_out, force
 
 
-def _s03_crop_videos(file_df_crop, file_in, file_out, network, nframes, force=False):
+def _s03_crop_videos(
+    file_df_crop: Path,
+    file_in: Path,
+    file_out: Path,
+    network: dict,
+    nframes: int,
+    force: bool = False,
+) -> tuple[Path, bool]:
     """
     Step 3 crop videos using ffmpeg.
     returns: dictionary of cropping coordinates relative to upper left corner
@@ -213,7 +234,7 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, nframes, force=Fa
     return file_out, force
 
 
-def _s04_brightness_eye(file_in, nframes, force=False):
+def _s04_brightness_eye(file_in: Path, nframes: int, force: bool = False) -> tuple[Path, bool]:
     """
     Adjust brightness for eye for better network performance.
     wget -O- http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 | tar xj
@@ -239,7 +260,12 @@ def _s04_brightness_eye(file_in, nframes, force=False):
     return file_out, force
 
 
-def _s04_resample_paws(file_in, tdir, nframes, force=False):
+def _s04_resample_paws(
+    file_in: Path,
+    tdir: Path,
+    nframes: int,
+    force: bool = False,
+) -> tuple[Path, bool]:
     """For paws, spatially downsample to speed up processing x100."""
     file_in = Path(file_in)
     file_out = Path(tdir) / file_in.name.replace('raw', 'paws_downsampled')
@@ -261,7 +287,13 @@ def _s04_resample_paws(file_in, tdir, nframes, force=False):
     return file_out, force
 
 
-def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=False, force=True):
+def _s05_run_dlc_specialized_networks(
+    dlc_params: Path,
+    tfile: Path,
+    network: str,
+    create_labels: bool = False,
+    force: bool = True,
+) -> None:
 
     # Check if final result exists
     result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
@@ -279,7 +311,13 @@ def _s05_run_dlc_specialized_networks(dlc_params, tfile, network, create_labels=
     return
 
 
-def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
+def _s06_extract_dlc_alf(
+    tdir: Path,
+    file_label: str,
+    networks: dict,
+    file_mp4: Path,
+    *args,
+) -> Path:
     """
     Output an ALF matrix.
     Column names contain the full DLC results [nframes, nfeatures]
@@ -336,7 +374,12 @@ def _s06_extract_dlc_alf(tdir, file_label, networks, file_mp4, *args):
     return file_alf
 
 
-def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
+def dlc(
+    file_mp4: str | Path,
+    path_dlc: Path | None = None,
+    force: bool = False,
+    dlc_timer: OrderedDict | None = None,
+) -> tuple[Path, OrderedDict]:
     """
     Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut.
 
