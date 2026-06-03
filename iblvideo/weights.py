@@ -1,4 +1,6 @@
 """Functions to handle model weights."""
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 
