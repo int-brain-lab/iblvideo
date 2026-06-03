@@ -9,7 +9,7 @@ import pytest
 from iblvideo import download_la_models
 from iblvideo.segmentation_la import lightning_action
 from iblvideo.segmentation_la_utils import combine_input_streams, resample_dataframe
-from iblvideo.tests.download_test_data import _download_la_test_data
+from tests.download_test_data import _download_la_test_data
 
 
 def _test_lightning_action(cam):

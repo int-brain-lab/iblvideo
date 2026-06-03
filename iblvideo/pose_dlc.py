@@ -1,4 +1,6 @@
 """Functions to run DLC on IBL data with existing networks."""
+import subprocess
+
 import deeplabcut  # needs to be imported first
 import os
 import shutil
@@ -14,7 +16,6 @@ import pandas as pd
 import cv2
 
 from iblvideo.params_dlc import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
-from iblvideo.utils import _run_command
 from ibllib.io.video import get_video_meta
 
 _logger = logging.getLogger('ibllib')
@@ -419,3 +420,24 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
     dlc_timer['DLC total'] = time_total_off - time_total_on
 
     return out_file, dlc_timer
+
+
+def _run_command(command: str) -> dict:
+    """
+    Run a shell command using subprocess.
+
+    :param command: command to run
+    :return: dictionary with keys: process, stdout, stderr
+    """
+    process = subprocess.Popen(
+        command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    info, error = process.communicate()
+    return {
+        'process': process,
+        'stdout': info.decode(),
+        'stderr': error.decode(),
+    }
