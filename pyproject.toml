@@ -38,6 +38,9 @@ Homepage = "https://www.internationalbrainlab.com/"
 [tool.ruff]
 line-length = 99
 
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
 [tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors

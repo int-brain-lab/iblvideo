@@ -1,6 +1,6 @@
 import logging
 
-from iblvideo import __dlc_version__, __lp_version__, __la_version__
+from iblvideo import __dlc_version__, __la_version__, __lp_version__
 from iblvideo.utils import download_and_unzip_file_from_aws
 
 _logger = logging.getLogger('ibllib')

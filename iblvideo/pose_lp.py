@@ -4,7 +4,6 @@ import logging
 import shutil
 import sys
 from pathlib import Path
-from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -25,7 +24,7 @@ def _subsample_video(
     file_in: Path,
     file_out: Path,
     force: bool = False
-) -> Tuple[Path, bool]:
+) -> tuple[Path, bool]:
     """Step 0: subsample video for ROI detection using 500 uniformly sampled frames.
 
     :param file_in: path to video file to subsample
@@ -74,14 +73,15 @@ def _run_network(
     camera_params: dict,
     ensemble_number: int = 0,
     force: bool = False,
-    roi_df_file: Optional[Path] = None,
-) -> Tuple[Path, bool]:
+    roi_df_file: Path | None = None,
+) -> tuple[Path, bool]:
     """Step 1: run Lightning Pose networks.
 
     :param tdir: temporary directory to store outputs
     :param mp4_file: path to video
     :param model_path: path to model directory
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
+        params_lp.py
     :param camera_params: parameters for camera, see LEFT_VIDEO etc in params_lp.py
     :param ensemble_number: unique integer to track predictions from different ensemble members
     :param force: whether to overwrite existing intermediate files
@@ -149,12 +149,13 @@ def _run_eks(
     mp4_file: Path,
     network_params: dict,
     force: bool = False,
-) -> Tuple[Path, bool]:
+) -> tuple[Path, bool]:
     """Step 2: run ensembling with EKS.
 
     :param tdir: temporary directory to store outputs
     :param mp4_file: path to video
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
+        params_lp.py
     :param force: whether to overwrite existing intermediate files
     return: path to dataframe with results, updated force parameter
     """
@@ -297,7 +298,7 @@ def _create_labeled_video(
 
 def lightning_pose(
     mp4_file: str,
-    ckpts_path: Optional[Path] = None,
+    ckpts_path: Path | None = None,
     force: bool = False,
     create_labels: bool = False,
     remove_files: bool = True,

@@ -3,7 +3,6 @@
 import gc
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 import lightning.pytorch as pl
 import numpy as np
@@ -29,7 +28,8 @@ def get_crop_window(roi_df_file: Path, network_params: dict, scale: int) -> list
     """Get average position of a anchor point for autocropping.
 
     :param roi_df_file: path to dataframe output by ROI network
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
+        params_lp.py
     :param scale: downsampling factor; >1 means reduce crop window parameters
     :return: list of floats [width, height, x, y] defining window used for cropping
     """
@@ -55,18 +55,18 @@ def get_crop_window(roi_df_file: Path, network_params: dict, scale: int) -> list
 @pipeline_def
 def video_pipe_crop_resize_flip(
     # arguments for video reader:
-    filenames: Union[List[str], str],
+    filenames: list[str] | str,
     sequence_length: int = 32,
     pad_sequences: bool = True,
     pad_last_batch: bool = False,
     step: int = 1,
     name: str = 'reader',  # arbitrary
     # arguments for frame manipulations:
-    crop_params: Optional[Dict] = None,
-    normalization_mean: List[float] = _IMAGENET_MEAN,
-    normalization_std: List[float] = _IMAGENET_STD,
-    resize_dims: Optional[List[int]] = None,
-    brightness: Optional[float] = None,
+    crop_params: dict | None = None,
+    normalization_mean: list[float] = _IMAGENET_MEAN,
+    normalization_std: list[float] = _IMAGENET_STD,
+    resize_dims: list[int] | None = None,
+    brightness: float | None = None,
     flip: bool = False,
     # arguments consumed by decorator:
     # batch_size,
@@ -211,7 +211,7 @@ def build_dataloader(
     flip: bool,
     resize_dims: list,
     original_dims: list,
-    crop_window: Optional[list] = None,
+    crop_window: list | None = None,
 ) -> LitDaliWrapper:
     """Build pytorch data loader that wraps DALI pipeline.
 
@@ -313,10 +313,10 @@ def analyze_video(
     model_path: str,
     flip: bool,
     original_dims: list,
-    crop_window: Optional[list] = None,
+    crop_window: list | None = None,
     ensemble_number: int = 0,
     sequence_length: int = 32,
-    save_dir: Optional[str] = None,
+    save_dir: str | None = None,
 ) -> pd.DataFrame:
     """Analyze video with a single network.
 
@@ -344,8 +344,8 @@ def analyze_video(
     if not cfg_file.exists():
         cfg_file = Path(model_path).joinpath('config.yaml')
         if not cfg_file.exists():
-            raise IOError(f'Did not find {network} config.yaml file in model directory')
-    cfg = DictConfig(yaml.safe_load(open(str(cfg_file), 'r')))
+            raise OSError(f'Did not find {network} config.yaml file in model directory')
+    cfg = DictConfig(yaml.safe_load(open(str(cfg_file))))
 
     # initialize data loader
     predict_loader = build_dataloader(

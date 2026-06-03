@@ -8,14 +8,14 @@ bodyCamera: cut ROI such that mouse body but not wheel motion is in ROI
 left(right)Camera: cut whisker pad region
 """
 
+import logging
 import time
+
+import cv2
 import numpy as np
 import pandas as pd
-import cv2
-import logging
-
-from ibllib.io.video import get_video_frames_preload, label_from_path
 from ibllib.io.extractors.camera import get_video_length
+from ibllib.io.video import get_video_frames_preload, label_from_path
 
 _log = logging.getLogger('ibllib')
 
