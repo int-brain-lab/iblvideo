@@ -7,8 +7,8 @@ import pandas as pd
 import torch
 
 from iblvideo.pose_lp import lightning_pose
-from tests.download_test_data import _download_lp_test_data
 from iblvideo.weights import download_lp_models
+from tests.download_test_data import _download_lp_test_data
 
 
 def _run_test_in_process(cam):

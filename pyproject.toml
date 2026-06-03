@@ -10,9 +10,45 @@ readme = "README.md"
 license = {text = "MIT"}
 authors = [{name = "IBL Staff"}]
 requires-python = ">=3.10"
+dependencies = [
+    "ibllib",
+]
+
+[project.optional-dependencies]
+action = [
+    "lightning-action==0.2.4",
+]
+pose = [
+    "lightning-pose==1.6.1",
+    "ensemble-kalman-smoother==3.0.0",
+]
+all = [
+    "iblvideo[action]",
+    "iblvideo[pose]",
+]
+dev = [
+    "pre-commit",
+    "pytest",
+    "ruff",
+]
 
 [project.urls]
 Homepage = "https://www.internationalbrainlab.com/"
+
+[tool.ruff]
+line-length = 99
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes (unused imports, undefined names, etc.)
+    "I",  # isort (import ordering)
+    "UP",  # pyupgrade (modernize syntax: Tuple->tuple, Union->|, etc.)
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "iblvideo.__version__"}

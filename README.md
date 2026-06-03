@@ -2,7 +2,8 @@
 
 This README details how to set up an environment that uses Lightning Pose for pose estimation
 and Lightning Action for action segmentation.
-You can find the README for pose estimation with DLC [here](README_DLC.md). 
+You can find the README for pose estimation with DLC [here](README_DLC.md).
+If you would like to contribute to this project, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Video acquisition in IBL
 
@@ -27,41 +28,9 @@ In addition, we track the `'tail_start'` in the body videos:
 Note that currently pose estimation and action segmentation must be run in separate environments; 
 see installation instructions below.
  
-### Running LP for one mp4 video - stand-alone local run
 
-```python
-from one.api import ONE
-from iblvideo import download_lp_models
-from iblvideo.pose_lp import lightning_pose
 
-# Download the lightning pose models using ONE
-one = ONE()
-path_models = download_lp_models()
 
-# Run lightning pose on a video
-output = lightning_pose("Path/to/file.mp4", ckpts_path=path_models)
-```
-
-### Running LA for one video - stand-alone local run
-
-```python
-from one.api import ONE
-from iblvideo import download_la_models
-from iblvideo.segmentation_la import lightning_action
-
-# Download the lightning action models using ONE
-one = ONE()
-path_models = download_la_models()
-
-# Run lightning action on a video
-output = lightning_pose(
-    pose_file="/path/to/pose.pqt",
-    pose_timestamp_file="/path/to/pose_timestamps.npy",
-    wheel_file="/path/to/wheel.npy",
-    wheel_timestamp_file="/path/to/wheel_timestamps.npy",
-    ckpts_path=path_models,
-)
-```
 
 ## Installing LP locally on an IBL server
 
@@ -97,10 +66,9 @@ Activate the environment and install packages
 #export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 source ~/Documents/PYTHON/envs/litpose/bin/activate
 
-pip install ibllib
-pip install lightning-pose==1.6.1
-pip install ensemble-kalman-smoother==3.0.0
-pip install git+https://github.com/int-brain-lab/iblvideo.git
+git clone https://github.com/int-brain-lab/iblvideo.git
+cd iblvideo
+pip install -e ".[pose]"
 ```
 
 Test if your install was successful. Make sure that the environment is activated and that you have the correct CUDA version set.
@@ -118,10 +86,24 @@ alias litpose='export CUDA_VERSION=11.8; export PATH=/usr/local/cuda-"$CUDA_VERS
 ```
 After opening a new terminal you should be able to type `litpose` and end up in an environment in which you can import lightning-pose like above.
 
-
-Eventually run the tests. You need to find the iblvideo installation path (e.g. using `python -c "import iblvideo; print(iblvideo.__file__)"`) and navigate into it. Then run:
+Run the tests from the repo root:
 ```bash
-pytest ./tests/test_pose_lp.py
+pytest tests/test_pose_lp.py
+```
+
+### Running LP for one mp4 video - stand-alone local run
+
+```python
+from one.api import ONE
+from iblvideo import download_lp_models
+from iblvideo.pose_lp import lightning_pose
+
+# Download the lightning pose models using ONE
+one = ONE()
+path_models = download_lp_models()
+
+# Run lightning pose on a video
+output = lightning_pose("Path/to/file.mp4", ckpts_path=path_models)
 ```
 
 ## Installing LA locally on an IBL server
@@ -142,29 +124,33 @@ Activate the environment and install packages
 #export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 source ~/Documents/PYTHON/envs/litaction/bin/activate
 
-pip install ibllib
-pip install lightning-action==0.2.4
-pip install git+https://github.com/int-brain-lab/iblvideo.git
+git clone https://github.com/int-brain-lab/iblvideo.git
+cd iblvideo
+pip install -e ".[action]"
 ```
 
-## Releasing a new version (for devs)
-
-We use semantic versioning, with a prefix: `iblvideo_MAJOR.MINOR.PATCH`. If you update the version, see below for what to adapt.
-
-### Any version update
-Update the version in
+Run the tests from the repo root:
+```bash
+pytest tests/test_segmentation_la.py
 ```
-iblvideo/iblvideo/__init__.py
+
+### Running LA for one video - stand-alone local run
+
+```python
+from one.api import ONE
+from iblvideo import download_la_models
+from iblvideo.segmentation_la import lightning_action
+
+# Download the lightning action models using ONE
+one = ONE()
+path_models = download_la_models()
+
+# Run lightning action on a video
+output = lightning_pose(
+    pose_file="/path/to/pose.pqt",
+    pose_timestamp_file="/path/to/pose_timestamps.npy",
+    wheel_file="/path/to/wheel.npy",
+    wheel_timestamp_file="/path/to/wheel_timestamps.npy",
+    ckpts_path=path_models,
+)
 ```
-Afterwards, tag the new version on Github.
-
-
-### Network model versioning
-As of `iblvideo v3.0.0` we are no longer linking the versioning of the networks models with the code version. 
-When the models are updated the test data should also be updated.
-Then upload both to the private and public S3 bucket in resources/lightning_pose with filename `networks_vX.Y.zip` and `lp_test_data_vX.Y.zip` respectively. 
-Always keep the old models for reproducibility.
-Then update the default LP version number to the new version `vX.Y` in `iblvideo.__init__.py` (parameter `__lp_version__`).
-
-You should always also bump the code version in `iblvideo/__init__.py` when you update the models. 
-This way, the code version that is stored in the alyx task can always be linked to a specific model version.

@@ -156,7 +156,10 @@ def combine_input_streams(
     if abs(fps - target_fps) <= fps_tolerance:
         _logger.info(f'Framerate {fps:.1f} Hz within tolerance, no resampling needed')
     else:
-        _logger.info(f'Framerate {fps:.1f} Hz > {target_fps + fps_tolerance} Hz, downsampling to {target_fps} Hz')
+        _logger.info(
+            f'Framerate {fps:.1f} Hz > {target_fps + fps_tolerance} Hz, '
+            f'downsampling to {target_fps} Hz'
+        )
 
         # create new uniform timestamp array at target fps
         n_frames_beg = pose_t.shape[0]
@@ -275,7 +278,9 @@ def analyze_video(
 
         # interpolate pose data to new timestamps
         probs = resample_dataframe(pose_t_resampled, probs_resampled, pose_t)
-        assert probs.shape[0] == pose_t.shape[0], f'probs (n_t={probs.shape[0]}) and timestamps (n_t={pose_t.shape[0]}) mismatch'
+        assert probs.shape[0] == pose_t.shape[0], (
+            f'probs (n_t={probs.shape[0]}) and timestamps (n_t={pose_t.shape[0]}) mismatch'
+        )
 
         # re-save probabilities
         probs.to_csv(file_out)

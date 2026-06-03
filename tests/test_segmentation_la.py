@@ -244,7 +244,11 @@ class TestCombineInputStreams:
         assert len(result_timestamps) == test_data['n_frames']
 
         # Pose data should contain the correct columns
-        expected_columns = [f"{test_data['paw_label']}_x", f"{test_data['paw_label']}_y", 'wheel_vel']
+        expected_columns = [
+            f"{test_data['paw_label']}_x",
+            f"{test_data['paw_label']}_y",
+            'wheel_vel',
+        ]
         assert list(result_poses.columns) == expected_columns
 
         # Output file should be created
@@ -295,7 +299,8 @@ class TestCombineInputStreams:
         original_y_range = (test_data['original_poses'][paw_y_col].min(),
                             test_data['original_poses'][paw_y_col].max())
 
-        assert result_poses[paw_x_col].min() >= original_x_range[0] - 10  # small tolerance for extrapolation
+        # small tolerance for extrapolation
+        assert result_poses[paw_x_col].min() >= original_x_range[0] - 10
         assert result_poses[paw_x_col].max() <= original_x_range[1] + 10
         assert result_poses[paw_y_col].min() >= original_y_range[0] - 10
         assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
@@ -345,7 +350,8 @@ class TestCombineInputStreams:
         original_y_range = (test_data['original_poses'][paw_y_col].min(),
                             test_data['original_poses'][paw_y_col].max())
 
-        assert result_poses[paw_x_col].min() >= original_x_range[0] - 10  # small tolerance for extrapolation
+        # small tolerance for extrapolation
+        assert result_poses[paw_x_col].min() >= original_x_range[0] - 10
         assert result_poses[paw_x_col].max() <= original_x_range[1] + 10
         assert result_poses[paw_y_col].min() >= original_y_range[0] - 10
         assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
@@ -400,5 +406,9 @@ class TestCombineInputStreams:
 
         # Load and verify CSV structure
         output_df = pd.read_csv(test_data['output_file'], index_col=0)
-        expected_columns = [f"{test_data['paw_label']}_x", f"{test_data['paw_label']}_y", 'wheel_vel']
+        expected_columns = [
+            f"{test_data['paw_label']}_x",
+            f"{test_data['paw_label']}_y",
+            'wheel_vel',
+        ]
         assert list(output_df.columns) == expected_columns

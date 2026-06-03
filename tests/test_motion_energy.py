@@ -1,7 +1,9 @@
 import os
-import pytest
+
 import numpy as np
 import pandas as pd
+import pytest
+
 from iblvideo.motion_energy import motion_energy
 from tests.download_test_data import _download_me_test_data
 

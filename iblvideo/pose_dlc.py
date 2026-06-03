@@ -1,22 +1,21 @@
 """Functions to run DLC on IBL data with existing networks."""
-import subprocess
-
-import deeplabcut  # needs to be imported first
+import deeplabcut  # needs to be imported first  # isort: skip
+import logging
 import os
 import shutil
-import logging
-import yaml
+import subprocess
 import time
+from collections import OrderedDict
 from glob import glob
 from pathlib import Path
-from collections import OrderedDict
 
+import cv2
 import numpy as np
 import pandas as pd
-import cv2
-
-from iblvideo.params_dlc import BODY_FEATURES, SIDE_FEATURES, LEFT_VIDEO, RIGHT_VIDEO, BODY_VIDEO
+import yaml
 from ibllib.io.video import get_video_meta
+
+from iblvideo.params_dlc import BODY_FEATURES, BODY_VIDEO, LEFT_VIDEO, RIGHT_VIDEO, SIDE_FEATURES
 
 _logger = logging.getLogger('ibllib')
 
@@ -196,10 +195,14 @@ def _s03_crop_videos(file_df_crop, file_in, file_out, network, nframes, force=Fa
         _logger.info(f'STEP 03 Cropped video {file_out.name} exists, not computing.')
     else:
         _logger.info(f'STEP 03 START generating cropped video {file_out.name}')
-        crop_command = ('ffmpeg -nostats -y -loglevel 0  -i {file_in} -frames:v {nframes} -vf "crop={w[0]}:{w[1]}:'
-                        '{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}')
+        crop_command = (
+            'ffmpeg -nostats -y -loglevel 0  -i {file_in} -frames:v {nframes}'
+            ' -vf "crop={w[0]}:{w[1]}:{w[2]}:{w[3]}" -c:v libx264 -crf 11 -c:a copy {file_out}'
+        )
         whxy = _get_crop_window(file_df_crop, network)
-        pop = _run_command(crop_command.format(file_in=file_in, file_out=file_out, nframes=nframes, w=whxy))
+        pop = _run_command(
+            crop_command.format(file_in=file_in, file_out=file_out, nframes=nframes, w=whxy)
+        )
         if pop['process'].returncode != 0:
             _logger.error(f'DLC 3/6: Cropping ffmpeg failed for ROI \
                           {network["label"]}, file: {file_in}')
@@ -245,8 +248,10 @@ def _s04_resample_paws(file_in, tdir, nframes, force=False):
         _logger.info(f'STEP 04 resampled paws {file_out.name} exists, not computing')
     else:
         _logger.info(f'STEP 04 START generating resampled paws video {file_out.name}')
-        cmd = (f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -frames:v {nframes} -vf scale=128:102 -c:v libx264 -crf 23'
-               f' -c:a copy {file_out}')  # was 112:100
+        cmd = (
+            f'ffmpeg -nostats -y -loglevel 0 -i {file_in} -frames:v {nframes}'
+            f' -vf scale=128:102 -c:v libx264 -crf 23 -c:a copy {file_out}'  # was 112:100
+        )
         pop = _run_command(cmd)
         if pop['process'].returncode != 0:
             _logger.error(f"DLC 4/6: Subsampling paws failed: {file_in}")
@@ -362,7 +367,8 @@ def dlc(file_mp4, path_dlc=None, force=False, dlc_timer=None):
         file2segment = file_mp4
     else:
         time_on = time.time()
-        file2segment, force = _s00_transform_rightCam(file_mp4, tdir, nframes, force=force)  # CPU Python
+        # CPU Python
+        file2segment, force = _s00_transform_rightCam(file_mp4, tdir, nframes, force=force)
         time_off = time.time()
         dlc_timer['Transform right camera'] = time_off - time_on
 

@@ -1,0 +1,43 @@
+name: Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# To cancel a currently running workflow from the same PR, branch or tag when a new workflow is triggered
+# https://stackoverflow.com/a/72408109
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install linters
+        run: pip install ruff
+
+      - name: Lint with ruff
+        id: ruff
+        run: ruff check iblvideo tests
+        # Reads config from [tool.ruff] in pyproject.toml
+
+      - name: Show fix instructions if linting failed
+        if: always() && steps.ruff.outcome == 'failure'
+        run: |
+          echo ""
+          echo "Linting failed!"
+          echo ""
+          echo "To auto-fix issues locally, run:"
+          echo "  ruff check --fix iblvideo tests"
+          echo ""
+          echo "To see all violations without fixing, run:"
+          echo "  ruff check iblvideo tests"
+          echo ""

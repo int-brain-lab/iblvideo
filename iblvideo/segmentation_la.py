@@ -4,13 +4,12 @@ import logging
 import shutil
 import sys
 from pathlib import Path
-from typing import Tuple
 
 import pandas as pd
 
 from iblvideo import download_la_models
-from iblvideo.segmentation_la_utils import analyze_video, run_ensembling
 from iblvideo.params_lp import LEFT_VIDEO, RIGHT_VIDEO
+from iblvideo.segmentation_la_utils import analyze_video, run_ensembling
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 _logger = logging.getLogger('ibllib')
@@ -28,7 +27,7 @@ def _run_network(
     ensemble_number: int = 0,
     sequence_length: int = 250,
     force: bool = False,
-) -> Tuple[Path, bool]:
+) -> tuple[Path, bool]:
     """Step 1: run Lightning Action networks.
 
     :param tdir: temporary directory to store outputs
@@ -82,13 +81,14 @@ def _run_ensembling(
     pose_file: Path,
     paw_label: str,
     force: bool = False,
-) -> Tuple[Path, bool]:
+) -> tuple[Path, bool]:
     """Step 2: run ensembling.
 
     :param tdir: temporary directory to store outputs
     :param pose_file: path to pose
     :param paw_label: which paw to run network on
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
+        params_lp.py
     :param force: whether to overwrite existing intermediate files
     return: path to dataframe with results, updated force parameter
     """

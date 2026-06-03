@@ -8,7 +8,9 @@ from one.remote import aws
 _logger = logging.getLogger('ibllib')
 
 
-def download_and_unzip_file_from_aws(directory, filename, one=None, target_path=None, overwrite=False) -> Path | None:
+def download_and_unzip_file_from_aws(
+    directory, filename, one=None, target_path=None, overwrite=False,
+) -> Path | None:
     """Download zipfile from AWS `resources/lightning_pose` bucket, unzip, return directory name.
 
     Parameters
