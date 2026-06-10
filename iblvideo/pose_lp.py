@@ -9,8 +9,8 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
-from lightning_pose.utils.predictions import create_labeled_video
-from moviepy.editor import VideoFileClip
+from lightning_pose.utils.predictions import _create_labeled_video as create_labeled_video
+from moviepy import VideoFileClip
 
 from iblvideo.params_lp import BODY_VIDEO, LEFT_VIDEO, RIGHT_VIDEO
 from iblvideo.pose_lp_utils import analyze_video, get_crop_window, run_eks

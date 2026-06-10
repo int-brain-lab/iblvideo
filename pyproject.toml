@@ -19,7 +19,7 @@ action = [
     "lightning-action==0.2.4",
 ]
 pose = [
-    "lightning-pose==1.6.1",
+    "lightning-pose==2.2.0",
     "ensemble-kalman-smoother==3.0.0",
 ]
 all = [
