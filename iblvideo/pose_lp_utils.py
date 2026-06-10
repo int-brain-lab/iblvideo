@@ -14,11 +14,12 @@ import yaml
 from eks.ibl_pupil_smoother import ensemble_kalman_smoother_ibl_pupil
 from eks.singlecam_smoother import ensemble_kalman_smoother_singlecam
 from eks.utils import convert_lp_dlc
+from lightning_pose.api.model import load_model_from_checkpoint
 from lightning_pose.data import _IMAGENET_MEAN, _IMAGENET_STD
 from lightning_pose.data.dali import LitDaliWrapper
 from lightning_pose.data.utils import count_frames
-from lightning_pose.utils.predictions import PredictionHandler, load_model_from_checkpoint
-from moviepy.editor import VideoFileClip
+from lightning_pose.utils.predictions import PredictionHandler
+from moviepy import VideoFileClip
 from nvidia.dali import pipeline_def
 from nvidia.dali.plugin.pytorch import LastBatchPolicy
 from omegaconf import DictConfig
