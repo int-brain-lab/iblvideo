@@ -1,3 +1,5 @@
+"""Tests for the segmentation_la module."""
+
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -14,7 +16,11 @@ from tests.download_test_data import _download_la_test_data
 
 
 def _test_lightning_action(cam: str) -> None:
+    """Test Lightning Action segmentation pipeline for a given camera.
 
+    Args:
+        cam: camera name; 'left' or 'right'
+    """
     test_data = _download_la_test_data()
     ckpts_path = download_la_models()
 
@@ -64,17 +70,20 @@ def _test_lightning_action(cam: str) -> None:
 
 
 def test_lightning_action_left() -> None:
+    """Test Lightning Action pipeline on left camera pose file."""
     _test_lightning_action('left')
 
 
 def test_lightning_action_right() -> None:
+    """Test Lightning Action pipeline on right camera pose file."""
     _test_lightning_action('right')
 
 
 class TestResampleDataframe:
+    """Test the resample_dataframe function."""
 
     def test_basic_interpolation(self) -> None:
-        """Test basic linear interpolation functionality"""
+        """Test basic linear interpolation functionality."""
         # Create simple test data
         x1 = np.array([0, 1, 2, 3, 4])
         y1 = pd.DataFrame({
@@ -98,7 +107,7 @@ class TestResampleDataframe:
         np.testing.assert_allclose(y2_result['col2'], expected_col2)
 
     def test_extrapolation(self) -> None:
-        """Test that extrapolation works correctly"""
+        """Test that extrapolation works correctly."""
         x1 = np.array([1, 2, 3])
         y1 = pd.DataFrame({'col1': [10, 20, 30]})
         x2 = np.array([0, 1.5, 4])  # includes points outside x1 range
@@ -113,7 +122,7 @@ class TestResampleDataframe:
         np.testing.assert_allclose(y2_result['col1'], expected)
 
     def test_single_valid_point(self) -> None:
-        """Test handling when only one valid data point exists"""
+        """Test handling when only one valid data point exists."""
         x1 = np.array([0, 1, 2, 3])
         y1 = pd.DataFrame({
             'col1': [np.nan, 10, np.nan, np.nan],  # only one valid point
@@ -130,7 +139,7 @@ class TestResampleDataframe:
         assert not y2_result['col2'].isna().any()
 
     def test_all_nan_column(self) -> None:
-        """Test handling when entire column is NaN"""
+        """Test handling when entire column is NaN."""
         x1 = np.array([0, 1, 2, 3])
         y1 = pd.DataFrame({
             'col1': [np.nan, np.nan, np.nan, np.nan],
@@ -147,7 +156,7 @@ class TestResampleDataframe:
         assert not y2_result['col2'].isna().any()
 
     def test_partial_nan_interpolation(self) -> None:
-        """Test interpolation with some NaN values"""
+        """Test interpolation with some NaN values."""
         x1 = np.array([0, 1, 2, 3, 4])
         y1 = pd.DataFrame({
             'col1': [0, np.nan, 20, np.nan, 40]  # NaN at indices 1,3
@@ -163,14 +172,15 @@ class TestResampleDataframe:
 
 
 class TestCombineInputStreams:
+    """Test the combine_input_streams function."""
 
     @pytest.fixture
     def setup_test_data(self) -> Callable[..., dict]:
-        """Create temporary test data files"""
+        """Create temporary test data files for combine_input_streams tests."""
         temp_dir = Path(tempfile.mkdtemp())
 
         def create_test_files(fps, duration=5.0, paw_label='paw_l'):
-            """Create test files for given fps"""
+            """Create test files for given fps."""
             n_frames = int(fps * duration)
 
             # Create pose timestamps
@@ -218,7 +228,7 @@ class TestCombineInputStreams:
         return create_test_files
 
     def test_fps_60_no_resampling(self, setup_test_data) -> None:
-        """Test that 60 Hz data is not resampled"""
+        """Test that 60 Hz data is not resampled."""
 
         # Create test data at 60 Hz
         test_data = setup_test_data(fps=60, duration=5.0)
@@ -256,7 +266,7 @@ class TestCombineInputStreams:
         assert test_data['output_file'].exists()
 
     def test_fps_150_downsampling(self, setup_test_data) -> None:
-        """Test that 150 Hz data is properly downsampled to 60 Hz"""
+        """Test that 150 Hz data is properly downsampled to 60 Hz."""
 
         # Create test data at 150 Hz
         duration = 5.0
@@ -307,7 +317,7 @@ class TestCombineInputStreams:
         assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
 
     def test_fps_30_upsampling(self, setup_test_data) -> None:
-        """Test that 30 Hz data is properly upsampled to 60 Hz"""
+        """Test that 30 Hz data is properly upsampled to 60 Hz."""
 
         # Create test data at 30 Hz
         duration = 5.0
@@ -358,7 +368,7 @@ class TestCombineInputStreams:
         assert result_poses[paw_y_col].max() <= original_y_range[1] + 10
 
     def test_flip_coordinates(self, setup_test_data) -> None:
-        """Test that coordinate flipping works correctly"""
+        """Test that coordinate flipping works correctly."""
 
         # Create test data
         test_data = setup_test_data(fps=60, duration=2.0)
@@ -382,7 +392,7 @@ class TestCombineInputStreams:
         np.testing.assert_array_almost_equal(result_poses[paw_x_col], expected_x)
 
     def test_file_creation(self, setup_test_data) -> None:
-        """Test that output files are created correctly"""
+        """Test that output files are created correctly."""
 
         test_data = setup_test_data(fps=60, duration=2.0)
 

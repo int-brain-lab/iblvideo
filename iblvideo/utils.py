@@ -1,3 +1,5 @@
+"""Utility functions for downloading and unpacking files from AWS."""
+
 from __future__ import annotations
 
 import logging
@@ -17,30 +19,18 @@ def download_and_unzip_file_from_aws(
     target_path: Path | None = None,
     overwrite: bool = False,
 ) -> Path | None:
-    """Download zipfile from AWS `resources/lightning_pose` bucket, unzip, return directory name.
+    """Download a zipfile from AWS, unzip it, and return the directory path.
 
-    Parameters
-    ----------
-    directory : str
-        name of directory under 'resources' in AWS
-    filename : str
-        name of zipped file to download from AWS, without '.zip' extension
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download test data to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download test data even if they exist locally and file sizes match.
-        Defaults to False.
+    Args:
+        directory: name of directory under 'resources' in AWS
+        filename: name of zipped file to download, without the '.zip' extension
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download data to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
 
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the unzipped file
-
+    Returns:
+        path to the directory containing the unzipped file, or None if download failed
     """
 
     # if there is a weight dir in the current path, use this one. Useful for Docker deployment

@@ -27,10 +27,13 @@ def _subsample_video(
 ) -> tuple[Path, bool]:
     """Step 0: subsample video for ROI detection using 500 uniformly sampled frames.
 
-    :param file_in: path to video file to subsample
-    :param file_out: path to subsampled video file
-    :param force: whether to overwrite existing intermediate files
-    :return: path subsampled video, updated force parameter
+    Args:
+        file_in: path to video file to subsample
+        file_out: path to write subsampled video file
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to subsampled video file, updated force flag)
     """
     step = '00'
     action = f'Subsample video {file_out.name} for ROI detection'
@@ -77,16 +80,18 @@ def _run_network(
 ) -> tuple[Path, bool]:
     """Step 1: run Lightning Pose networks.
 
-    :param tdir: temporary directory to store outputs
-    :param mp4_file: path to video
-    :param model_path: path to model directory
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
-        params_lp.py
-    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params_lp.py
-    :param ensemble_number: unique integer to track predictions from different ensemble members
-    :param force: whether to overwrite existing intermediate files
-    :param roi_df_file: path to dataframe output by ROI network, for computing crop window
-    return: path to dataframe with results, updated force parameter
+    Args:
+        tdir: temporary directory to store outputs
+        mp4_file: path to video
+        model_path: path to model directory
+        network_params: parameters for network; see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+        camera_params: parameters for camera; see LEFT_VIDEO etc in params_lp.py
+        ensemble_number: unique integer to track predictions from different ensemble members
+        force: whether to overwrite existing intermediate files
+        roi_df_file: path to dataframe output by ROI network, for computing crop window
+
+    Returns:
+        tuple of (path to CSV file with results, updated force flag)
     """
     step = '01'
     action = f'Inference for {network_params["label"]} network on {mp4_file.name}'
@@ -152,12 +157,14 @@ def _run_eks(
 ) -> tuple[Path, bool]:
     """Step 2: run ensembling with EKS.
 
-    :param tdir: temporary directory to store outputs
-    :param mp4_file: path to video
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
-        params_lp.py
-    :param force: whether to overwrite existing intermediate files
-    return: path to dataframe with results, updated force parameter
+    Args:
+        tdir: temporary directory to store outputs
+        mp4_file: path to video
+        network_params: parameters for network; see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to EKS-smoothed CSV file, updated force flag)
     """
     step = '02'
     action = f'EKS for {network_params["label"]} network on {mp4_file.name}'
@@ -196,14 +203,17 @@ def _extract_pose_alf(
     roi_df_file: Path,
     force: bool = False,
 ) -> Path:
-    """Step 3: collect all outputs into a single file.
+    """Step 3: collect all network outputs into a single ALF parquet file.
 
-    :param tdir: temporary directory to store outputs
-    :param file_label: name of video, used for naming alf file
-    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params_lp.py
-    :param roi_df_file: path to dataframe output by ROI network, for computing crop window
-    :param force: whether to overwrite existing intermediate files
-    return: path to dataframe with results, updated force parameter
+    Args:
+        tdir: temporary directory to store outputs
+        file_label: camera label string used to name the output file
+        camera_params: parameters for camera; see LEFT_VIDEO etc in params_lp.py
+        roi_df_file: path to dataframe output by ROI network, for computing crop window
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        path to the output ALF parquet file
     """
     step = '03'
     action = f'Extract ALF files for {file_label}'
@@ -266,11 +276,12 @@ def _create_labeled_video(
     preds_file: Path,
     dotsize: int | float,
 ) -> None:
-    """Step 4: plot all outputs on original video.
+    """Step 4: plot all pose outputs overlaid on the original video.
 
-    :param mp4_file: path to video
-    :param preds_file: pose predictions parquet file
-    return: None
+    Args:
+        mp4_file: path to video
+        preds_file: path to pose predictions parquet file
+        dotsize: radius of keypoint dots drawn on the video
     """
 
     mp4_file_labeled = Path(str(mp4_file).replace('.mp4', '.labeled.mp4'))
@@ -307,16 +318,19 @@ def lightning_pose(
 
     The process consists of 4 steps:
     0. temporally subsample video frames using ffmpeg for ROI network
-    1. run Lightning Pose to detect ROIS for: 'eye', 'nose_tip', 'tongue', 'paws'
+    1. run Lightning Pose to detect ROIs for: 'eye', 'nose_tip', 'tongue', 'paws'
     2. run specialized networks on each ROI
     3. output ALF dataset for the raw Lightning Pose output
 
-    :param mp4_file: video file to run
-    :param ckpts_path: path to folder with Lightning Pose weights
-    :param force: whether to overwrite existing intermediate files
-    :param create_labels: create labeled videos for debugging
-    :param remove_files: True (default) to remove temp files, False to leave (for debugging)
-    :return out_file: path to Lightning Pose table in parquet file format
+    Args:
+        mp4_file: video file to run
+        ckpts_path: path to folder with Lightning Pose weights
+        force: whether to overwrite existing intermediate files
+        create_labels: whether to create labeled videos for debugging
+        remove_files: if True remove temp files, if False leave them (for debugging)
+
+    Returns:
+        path to Lightning Pose table in parquet file format
     """
 
     if ckpts_path is None:

@@ -20,26 +20,15 @@ def download_weights(
 ) -> Path | None:
     """Download the DLC weights associated with current version from AWS.
 
-    Parameters
-    ----------
-    version : str
-        Version of the network models to download.
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download the network models to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download networks even if they exist locally and file sizes match.
-        Defaults to False.
+    Args:
+        version: version of the network models to download
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download models to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
 
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the networks models
-
+    Returns:
+        path to the directory containing the network models, or None if download failed
     """
 
     directory = 'dlc'
@@ -53,28 +42,17 @@ def download_lp_models(
     target_path: Path | None = None,
     overwrite: bool = False,
 ) -> Path | None:
-    """Downloads specific LP networks version from AWS, unzips it, and returns file name.
+    """Download Lightning Pose networks from AWS, unzip, and return directory path.
 
-    Parameters
-    ----------
-    version : str
-        Version of the network models to download.
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download the network models to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download networks even if they exist locally and file sizes match.
-        Defaults to False.
+    Args:
+        version: version of the network models to download
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download models to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
 
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the networks models
-
+    Returns:
+        path to the directory containing the network models, or None if download failed
     """
 
     directory = 'lightning_pose'
@@ -88,28 +66,17 @@ def download_la_models(
     target_path: Path | None = None,
     overwrite: bool = False,
 ) -> Path | None:
-    """Downloads specific LA networks version from AWS, unzips it, and returns file name.
+    """Download Lightning Action networks from AWS, unzip, and return directory path.
 
-    Parameters
-    ----------
-    version : str
-        Version of the network models to download.
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download the network models to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download networks even if they exist locally and file sizes match.
-        Defaults to False.
+    Args:
+        version: version of the network models to download
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download models to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
 
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the networks models
-
+    Returns:
+        path to the directory containing the network models, or None if download failed
     """
 
     directory = 'lightning_action'

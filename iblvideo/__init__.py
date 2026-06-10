@@ -1,3 +1,4 @@
+"""iblvideo package for pose estimation and motion energy on IBL behavioral video data."""
 
 __version__ = '3.1.0'     # This is the only place where the version is hard coded, only adapt here
 

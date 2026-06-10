@@ -1,3 +1,5 @@
+"""Tests for the pose_dlc module."""
+
 import shutil
 
 import numpy as np
@@ -9,7 +11,7 @@ from tests.download_test_data import _download_dlc_test_data
 
 
 def test_dlc() -> None:
-
+    """Test DLC pose estimation pipeline on body, left, and right camera videos."""
     test_data = _download_dlc_test_data()
     path_dlc = download_weights()
 

@@ -30,18 +30,21 @@ def _run_network(
 ) -> tuple[Path, bool]:
     """Step 1: run Lightning Action networks.
 
-    :param tdir: temporary directory to store outputs
-    :param pose_file: pose file
-    :param pose_timestamp_file: timestamps associated with pose file
-    :param wheel_file: wheel file
-    :param wheel_timestamp_file: timestamps associated with wheel file
-    :param paw_label: which paw to run network on
-    :param model_path: path to model directory
-    :param camera_params: parameters for camera, see LEFT_VIDEO etc in params_lp.py
-    :param ensemble_number: unique integer to track predictions from different ensemble members
-    :param sequence_length: number of consecutive time frames to process simultaneously
-    :param force: whether to overwrite existing intermediate files
-    return: path to dataframe with results, updated force parameter
+    Args:
+        tdir: temporary directory to store outputs
+        pose_file: pose file
+        pose_timestamp_file: timestamps associated with pose file
+        wheel_file: wheel file
+        wheel_timestamp_file: timestamps associated with wheel file
+        paw_label: which paw to run network on
+        model_path: path to model directory
+        camera_params: parameters for camera; see LEFT_VIDEO etc in params_lp.py
+        ensemble_number: unique integer to track predictions from different ensemble members
+        sequence_length: number of consecutive time frames to process simultaneously
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to output CSV file, updated force flag)
     """
     step = '01'
     action = f'Inference for network {ensemble_number} on {paw_label} in {pose_file.name}'
@@ -82,15 +85,16 @@ def _run_ensembling(
     paw_label: str,
     force: bool = False,
 ) -> tuple[Path, bool]:
-    """Step 2: run ensembling.
+    """Step 2: run ensembling across ensemble member predictions.
 
-    :param tdir: temporary directory to store outputs
-    :param pose_file: path to pose
-    :param paw_label: which paw to run network on
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
-        params_lp.py
-    :param force: whether to overwrite existing intermediate files
-    return: path to dataframe with results, updated force parameter
+    Args:
+        tdir: temporary directory to store outputs
+        pose_file: path to pose file
+        paw_label: which paw to run network on
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to ensembled CSV file, updated force flag)
     """
     step = '02'
     action = f'Ensembling for {paw_label} network on {pose_file.name}'
@@ -124,13 +128,16 @@ def _extract_actions_alf(
     paw_labels: list[str],
     force: bool = False,
 ) -> Path:
-    """Step 3: collect all outputs into a single file.
+    """Step 3: collect all paw outputs into a single ALF parquet file.
 
-    :param tdir: temporary directory to store outputs
-    :param file_label: name of video, used for naming alf file
-    :param paw_labels: names of paws model is run on
-    :param force: whether to overwrite existing intermediate files
-    return: path to dataframe with results, updated force parameter
+    Args:
+        tdir: temporary directory to store outputs
+        file_label: camera label string used to name the output file
+        paw_labels: names of the paws the model is run on
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        path to the output ALF parquet file
     """
     step = '03'
     action = f'Extract ALF files for {file_label}'
@@ -183,20 +190,23 @@ def lightning_action(
 ) -> Path:
     """Analyse poses from a leftCamera or rightCamera video with Lightning Action.
 
-    The process consists of 4 steps:
+    The process consists of 3 steps:
     1. run Lightning Action on 'paw_r'
     2. run Lightning Action on 'paw_l'
     3. output ALF dataset for the raw Lightning Action output
 
-    :param pose_file: pose file
-    :param pose_timestamp_file: timestamps associated with pose file
-    :param wheel_file: wheel file
-    :param wheel_timestamp_file: timestamps associated with wheel file
-    :param ckpts_path: path to folder with Lightning Pose weights
-    :param sequence_length: number of consecutive time frames to process simultaneously
-    :param force: whether to overwrite existing intermediate files
-    :param remove_files: True (default) to remove temp files, False to leave (for debugging)
-    :return out_file: path to Lightning Pose table in parquet file format
+    Args:
+        pose_file: pose file
+        pose_timestamp_file: timestamps associated with pose file
+        wheel_file: wheel file
+        wheel_timestamp_file: timestamps associated with wheel file
+        ckpts_path: path to folder with Lightning Action weights
+        sequence_length: number of consecutive time frames to process simultaneously
+        force: whether to overwrite existing intermediate files
+        remove_files: if True remove temp files, if False leave them (for debugging)
+
+    Returns:
+        path to Lightning Action paw states table in parquet file format
     """
 
     if ckpts_path is None:
