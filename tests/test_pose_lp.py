@@ -1,3 +1,5 @@
+"""Tests for the pose_lp module."""
+
 import gc
 import multiprocessing
 import shutil
@@ -22,7 +24,11 @@ def _run_test_in_process(cam: str) -> None:
 
 
 def _test_lightning_pose(cam: str) -> None:
+    """Test Lightning Pose estimation pipeline for a given camera.
 
+    Args:
+        cam: camera name; 'left', 'right', or 'body'
+    """
     test_data = _download_lp_test_data()
     ckpts_path = download_lp_models()
 
@@ -72,18 +78,21 @@ def _test_lightning_pose(cam: str) -> None:
 
 
 def test_lightning_pose_left() -> None:
+    """Test Lightning Pose pipeline on left camera video."""
     process = multiprocessing.Process(target=_run_test_in_process, args=('left',))
     process.start()
     process.join()
 
 
 def test_lightning_pose_right() -> None:
+    """Test Lightning Pose pipeline on right camera video."""
     process = multiprocessing.Process(target=_run_test_in_process, args=('right',))
     process.start()
     process.join()
 
 
 def test_lightning_pose_body() -> None:
+    """Test Lightning Pose pipeline on body camera video."""
     process = multiprocessing.Process(target=_run_test_in_process, args=('body',))
     process.start()
     process.join()

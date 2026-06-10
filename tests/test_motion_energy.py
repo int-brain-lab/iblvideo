@@ -1,3 +1,5 @@
+"""Tests for the motion_energy module."""
+
 import os
 
 import numpy as np
@@ -9,7 +11,7 @@ from tests.download_test_data import _download_me_test_data
 
 
 def test_motion_energy_with_dlc() -> None:
-
+    """Test motion energy computation using DLC pose estimates."""
     test_data = _download_me_test_data(tracker='dlc')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
@@ -30,7 +32,7 @@ def test_motion_energy_with_dlc() -> None:
 
 
 def test_motion_energy_with_lp() -> None:
-
+    """Test motion energy computation using Lightning Pose estimates."""
     test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
@@ -51,7 +53,7 @@ def test_motion_energy_with_lp() -> None:
 
 
 def test_with_chunks() -> None:
-
+    """Test motion energy computation with frame chunking."""
     test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")
@@ -72,6 +74,7 @@ def test_with_chunks() -> None:
 
 
 def test_with_nans() -> None:
+    """Test that all-NaN pose columns raise ValueError."""
     test_data = _download_me_test_data(tracker='lightning_pose')
     for cam in ['body', 'left', 'right']:
         print(f"Running test for {cam}")

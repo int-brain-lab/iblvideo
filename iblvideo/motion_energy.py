@@ -22,10 +22,23 @@ _log = logging.getLogger('ibllib')
 
 
 def grayscale(x: np.ndarray) -> np.ndarray:
+    """Convert BGR image to grayscale."""
     return cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
 
 
 def get_pose_midpoints(dlc_pqt: Path, target: str) -> list[int]:
+    """Compute the mean x/y pixel location of a body part across frames.
+
+    Args:
+        dlc_pqt: path to pose estimation parquet file
+        target: body part label to compute midpoint for
+
+    Returns:
+        mean [x, y] pixel location of the target body part
+
+    Raises:
+        ValueError: if all likelihood-filtered values for the target are NaN
+    """
     # Load dataframe
     dlc_df = pd.read_parquet(dlc_pqt)
     # Set values to nan if likelihood is too low and calcualte midpoints
@@ -39,21 +52,23 @@ def get_pose_midpoints(dlc_pqt: Path, target: str) -> list[int]:
 
 
 def motion_energy(file_mp4: Path, pose_pqt: Path, frames: int | None = 10000) -> tuple[Path, Path]:
-    """
-    Compute motion energy on cropped frames of a single video
+    """Compute motion energy on cropped frames of a single video.
 
-    :param file_mp4: Video file to run motion energy for
-    :param pose_pqt: Path to pose estimation result in pqt file format.
-    :param frames: Number of frames to load into memory at once. If None all frames are loaded.
-    :return me_file: Path to numpy file contaiing motion energy.
-    :return me_roi: Path to numpy file containing ROI coordinates.
-
-    The frames parameter determines how many cropped frames per camera are loaded into memory at
-    once and should be set depending on availble RAM. Some approximate numbers for orientation,
+    The frames parameter controls how many cropped frames per camera are loaded into memory at
+    once and should be set depending on available RAM. Some approximate numbers for orientation,
     assuming 90 min video and frames set to:
     1       : 152 KB (body),   54 KB (left),   15 KB (right)
     50000   : 7.6 GB (body),  2.7 GB (left), 0.75 GB (right)
     None    :  25 GB (body), 17.5 GB (left), 12.5 GB (right)
+
+    Args:
+        file_mp4: video file to run motion energy for
+        pose_pqt: path to pose estimation result in pqt file format
+        frames: number of frames to load into memory at once; if None all frames are loaded
+
+    Returns:
+        tuple of (path to numpy file containing motion energy,
+        path to numpy file containing ROI coordinates)
     """
 
     start_T = time.time()

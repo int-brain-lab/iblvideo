@@ -1,3 +1,5 @@
+"""Configuration parameters and network definitions for DLC pose estimation pipelines."""
+
 SIDE_FEATURES = {
     'roi_detect':
         {'label': 'roi_detect',

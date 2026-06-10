@@ -1,3 +1,5 @@
+"""Functions to download test data from AWS for the iblvideo test suite."""
+
 from __future__ import annotations
 
 import logging
@@ -17,29 +19,17 @@ def _download_dlc_test_data(
     target_path: Path | None = None,
     overwrite: bool = False,
 ) -> Path | None:
-    """Download DLC test data from AWS, unzip it, and return file name.
+    """Download DLC test data from AWS, unzip it, and return the directory path.
 
-    Parameters
-    ----------
-    version : str
-        Version of the test data to download.
-        Should be the same as the version in weights.download_weights
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download test data to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download test data even if they exist locally and file sizes match.
-        Defaults to False.
+    Args:
+        version: version of the test data to download; should match weights.download_weights
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download test data to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
 
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the test data
-
+    Returns:
+        path to the directory containing the test data, or None if download failed
     """
 
     directory = 'dlc'
@@ -53,30 +43,17 @@ def _download_me_test_data(
     overwrite: bool = False,
     tracker: str = 'dlc',
 ) -> Path | None:
-    """Download motion energy test data from AWS, unzip it, and return file name.
+    """Download motion energy test data from AWS, unzip it, and return the directory path.
 
-    eid: cde63527-7f5a-4cc3-8ac2-215d82e7da26
+    Args:
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download test data to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
+        tracker: pose tracker used for the test data; 'dlc' or 'lightning_pose'
 
-    Parameters
-    ----------
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download test data to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download test data even if they exist locally and file sizes match.
-        Defaults to False.
-    tracker : str
-        'dlc' or 'lightning_pose'
-
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the test data
-
+    Returns:
+        path to the directory containing the test data, or None if download failed
     """
 
     directory = tracker
@@ -90,29 +67,17 @@ def _download_lp_test_data(
     target_path: Path | None = None,
     overwrite: bool = False,
 ) -> Path | None:
-    """Download LP test data from AWS, unzip it, and return file name.
+    """Download Lightning Pose test data from AWS, unzip it, and return the directory path.
 
-    Parameters
-    ----------
-    version : str
-        Version of the test data to download.
-        Should be the same as the version in weights.download_lp_models
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download test data to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download test data even if they exist locally and file sizes match.
-        Defaults to False.
+    Args:
+        version: version of the test data to download; should match weights.download_lp_models
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download test data to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
 
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the test data
-
+    Returns:
+        path to the directory containing the test data, or None if download failed
     """
 
     directory = 'lightning_pose'
@@ -126,29 +91,17 @@ def _download_la_test_data(
     target_path: Path | None = None,
     overwrite: bool = False,
 ) -> Path | None:
-    """Download LA test data from AWS, unzip it, and return file name.
+    """Download Lightning Action test data from AWS, unzip it, and return the directory path.
 
-    Parameters
-    ----------
-    version : str
-        Version of the test data to download.
-        Should be the same as the version in weights.download_lp_models
-    one : ONE
-        An instance of ONE to use for downloading.
-        Defaults is None, in which case a new instance pointing to the internal IBL database is
-        instantiated.
-    target_path : Path
-        Path to download test data to. If None, the default cache directory is used.
-        Defaults to None.
-    overwrite : bool
-        If True, will re-download test data even if they exist locally and file sizes match.
-        Defaults to False.
+    Args:
+        version: version of the test data to download; should match weights.download_la_models
+        one: an instance of ONE to use for downloading; if None a new instance pointing to
+            the internal IBL database is instantiated
+        target_path: path to download test data to; if None the default cache directory is used
+        overwrite: if True re-download even if files exist locally and sizes match
 
-    Returns
-    -------
-    pathlib.Path
-        Path to the directory containing the test data
-
+    Returns:
+        path to the directory containing the test data, or None if download failed
     """
 
     directory = 'lightning_action'

@@ -1,3 +1,5 @@
+"""Helper functions for running Lightning Action on IBL pose and wheel data."""
+
 import logging
 import sys
 from pathlib import Path
@@ -19,30 +21,20 @@ def interpolate_position(
     kind: str = 'linear',
     fill_gaps: float | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Return linearly interpolated wheel position.
+    """Return linearly interpolated wheel position.
 
     Copied from brainbox.behavior.wheel to avoid additional dependencies.
 
-    Parameters
-    ----------
-    re_ts : array_like
-        Array of timestamps
-    re_pos: array_like
-        Array of unwrapped wheel positions
-    freq : float
-        frequency in Hz of the interpolation
-    kind : {'linear', 'cubic'}
-        Type of interpolation. Defaults to linear interpolation.
-    fill_gaps : float
-        Minimum gap length to fill. For gaps over this time (seconds),
-        forward fill values before interpolation
-    Returns
-    -------
-    yinterp : array
-        Interpolated position
-    t : array
-        Timestamps of interpolated positions
+    Args:
+        re_ts: array of timestamps
+        re_pos: array of unwrapped wheel positions
+        freq: frequency in Hz of the interpolation
+        kind: type of interpolation; 'linear' or 'cubic'
+        fill_gaps: minimum gap length to fill; for gaps over this time (seconds),
+            forward-fills values before interpolating
+
+    Returns:
+        tuple of (interpolated position array, timestamps of interpolated positions)
     """
     t = np.arange(re_ts[0], re_ts[-1], 1 / freq)  # Evenly resample at frequency
     if t[-1] > re_ts[-1]:
@@ -65,26 +57,18 @@ def velocity_filtered(
     corner_frequency: float = 20,
     order: int = 8,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Compute wheel velocity from uniformly sampled wheel data.
+    """Compute wheel velocity from uniformly sampled wheel data.
 
     Copied from brainbox.behavior.wheel to avoid additional dependencies.
 
-    pos: array_like
-        Vector of uniformly sampled wheel positions.
-    fs : float
-        Frequency in Hz of the sampling frequency.
-    corner_frequency : float
-       Corner frequency of low-pass filter.
-    order : int
-        Order of Butterworth filter.
+    Args:
+        pos: vector of uniformly sampled wheel positions
+        fs: sampling frequency in Hz
+        corner_frequency: corner frequency of the low-pass filter
+        order: order of the Butterworth filter
 
-    Returns
-    -------
-    vel : np.ndarray
-        Array of velocity values.
-    acc : np.ndarray
-        Array of acceleration values.
+    Returns:
+        tuple of (velocity array, acceleration array)
     """
     sos = butter(**{'N': order, 'Wn': corner_frequency / fs * 2, 'btype': 'lowpass'}, output='sos')
     vel = np.insert(np.diff(sosfiltfilt(sos, pos)), 0, 0) * fs
@@ -95,10 +79,13 @@ def velocity_filtered(
 def resample_dataframe(x1: np.ndarray, y1: pd.DataFrame, x2: np.ndarray) -> pd.DataFrame:
     """Resample columns of dataframe.
 
-    :param x1: initial timestamps
-    :param y1: initial data in dataframe
-    :param x2: final timestamps
-    :return: dataframe with resampled data
+    Args:
+        x1: initial timestamps
+        y1: initial data in dataframe
+        x2: final timestamps to resample to
+
+    Returns:
+        dataframe with data resampled to x2 timestamps
     """
 
     # interpolate pose data to new timestamps
@@ -135,16 +122,19 @@ def combine_input_streams(
 ) -> tuple[pd.DataFrame, np.ndarray, bool]:
     """Combine pose and wheel data for paw segmentation model input.
 
-    :param pose_file: pose file
-    :param pose_timestamp_file: timestamps associated with pose file
-    :param wheel_file: wheel file
-    :param wheel_timestamp_file: timestamps associated with wheel file
-    :param paw_label: which paw to run network on
-    :param flip: true to flip coordinates around vertical axis before feeding into network
-    :param original_dims: [height, width] of original video (for flipping)
-    :param file_out: where to save combined data
-    return: dataframe with combined data and numpy array with timestamps (original or interpolated)
+    Args:
+        pose_file: pose file
+        pose_timestamp_file: timestamps associated with pose file
+        wheel_file: wheel file
+        wheel_timestamp_file: timestamps associated with wheel file
+        paw_label: which paw to run network on
+        flip: if True flip coordinates around vertical axis before feeding into network
+        original_dims: [height, width] of original video (used for flipping)
+        file_out: where to save combined data
 
+    Returns:
+        tuple of (dataframe with combined pose and wheel data, timestamp array,
+        bool indicating whether pose data was resampled)
     """
     # load poses and extract paw of interest
     poses = pd.read_parquet(pose_file)
@@ -234,19 +224,19 @@ def analyze_video(
 ) -> pd.DataFrame:
     """Run Lightning Action network on a set of input files.
 
-    :param tdir: temporary directory for intermediate files
-    :param pose_file: pose file
-    :param pose_timestamp_file: timestamps associated with pose file
-    :param wheel_file: wheel file
-    :param wheel_timestamp_file: timestamps associated with wheel file
-    :param paw_label: which paw to run network on
-    :param ensemble_number: unique integer to track predictions from different ensemble members
-    :param model_path: path to model directory
-    :param flip: true to flip coordinates around vertical axis before feeding into network
-    :param original_dims: [height, width] of original video (for flipping)
-    :param sequence_length: length of temporal sequences for processing
-    :param file_out: where to save model outputs
-    return: dataframe with results
+    Args:
+        tdir: temporary directory for intermediate files
+        pose_file: pose file
+        pose_timestamp_file: timestamps associated with pose file
+        wheel_file: wheel file
+        wheel_timestamp_file: timestamps associated with wheel file
+        paw_label: which paw to run network on
+        ensemble_number: unique integer to track predictions from different ensemble members
+        model_path: path to model directory
+        flip: if True flip coordinates around vertical axis before feeding into network
+        original_dims: [height, width] of original video (used for flipping)
+        sequence_length: length of temporal sequences for processing
+        file_out: where to save model outputs
     """
 
     # load pose and wheel data, combine, and save to a new tmp file
@@ -303,8 +293,9 @@ def run_ensembling(
 ) -> None:
     """Ensemble predictions from multiple networks by averaging probabilities.
 
-    :param csv_files: list of paths to individual network prediction CSV files
-    :param file_out: path where ensembled results will be saved
+    Args:
+        csv_files: list of paths to individual network prediction CSV files
+        file_out: path where ensembled results will be saved
     """
     if not csv_files:
         raise ValueError("No CSV files provided for ensembling")

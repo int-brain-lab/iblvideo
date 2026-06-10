@@ -21,7 +21,11 @@ _logger = logging.getLogger('ibllib')
 
 
 def _set_dlc_paths(path_dlc: Path) -> None:
-    """Replace hard-coded paths in the config.yaml file."""
+    """Replace hard-coded paths in the config.yaml file.
+
+    Args:
+        path_dlc: path to directory containing DLC weights
+    """
     for yaml_file in path_dlc.rglob('config.yaml'):
         # read the yaml config file
         with open(yaml_file) as fid:
@@ -43,7 +47,16 @@ def _dlc_init(
     file_mp4: str | Path,
     path_dlc: str | Path,
 ) -> tuple[Path, dict, dict, Path, dict, str]:
-    """Prepare inputs and create temporary filenames."""
+    """Prepare inputs and create temporary filenames.
+
+    Args:
+        file_mp4: path to input video file
+        path_dlc: path to directory containing DLC weights
+
+    Returns:
+        tuple of (video path, dlc config paths dict, networks dict, temp directory,
+        temp file paths dict, camera label string)
+    """
     # Prepare inputs
     file_mp4 = Path(file_mp4)  # _iblrig_leftCamera.raw.mp4
     file_label = file_mp4.stem.split('.')[0].split('_')[-1]
@@ -68,13 +81,14 @@ def _dlc_init(
 
 
 def _get_crop_window(file_df_crop: Path, network: dict) -> list:
-    """
-    Get average position of a pivot point for autocropping.
-    :param file_df_crop: Path to data frame from hdf5 file from video data
-    :param network: dictionary describing the networks.
-                    See constants SIDE and BODY
-    :return: list of floats [width, height, x, y] defining window used for
-             ffmpeg crop command
+    """Get average position of a pivot point for autocropping.
+
+    Args:
+        file_df_crop: path to dataframe from hdf5 file from video data
+        network: dictionary describing the network; see constants SIDE and BODY
+
+    Returns:
+        list of floats [width, height, x, y] defining window used for ffmpeg crop command
     """
     df_crop = pd.read_hdf(file_df_crop)
     XYs = []
@@ -100,9 +114,18 @@ def _s00_transform_rightCam(
     nframes: int,
     force: bool = False,
 ) -> tuple[str, bool]:
-    """
-    Flip and rotate the right cam and increase spatial resolution.
-    Such that the rightCamera video looks like the leftCamera video.
+    """Flip and rotate the right cam and increase spatial resolution.
+
+    Transforms the rightCamera video so it looks like the leftCamera video.
+
+    Args:
+        file_mp4: path to input video file
+        tdir: temporary directory for intermediate files
+        nframes: number of frames in the video
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to transformed video file, updated force flag)
     """
     file_out1 = str(Path(tdir).joinpath(str(file_mp4).replace('.raw.', '.flipped.')))
     # If flipped right cam does not exist, compute
@@ -138,9 +161,15 @@ def _s00_transform_rightCam(
 
 
 def _s01_subsample(file_in: Path, file_out: Path, force: bool = False) -> tuple[Path, bool]:
-    """
-    Step 1 subsample video for detection.
-    Put 500 uniformly sampled frames into new video.
+    """Step 1: subsample video for detection using 500 uniformly sampled frames.
+
+    Args:
+        file_in: path to input video file
+        file_out: path to write subsampled video
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to subsampled video file, updated force flag)
     """
     file_in = Path(file_in)
     file_out = Path(file_out)
@@ -178,9 +207,17 @@ def _s02_detect_rois(
     create_labels: bool = False,
     force: bool = False,
 ) -> tuple[Path | None, bool]:
-    """
-    Step 2 run DLC to detect ROIS.
-    returns: Path to dataframe used to crop video
+    """Step 2: run DLC to detect ROIs.
+
+    Args:
+        tdir: temporary directory for intermediate files
+        sparse_video: path to temporally subsampled video
+        dlc_params: mapping of network name to DLC config file path
+        create_labels: whether to create labeled videos for debugging
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to dataframe used to crop video or None, updated force flag)
     """
     file_out = next(tdir.glob('*subsampled*.h5'), None)
     if file_out is None or force is True:
@@ -205,9 +242,18 @@ def _s03_crop_videos(
     nframes: int,
     force: bool = False,
 ) -> tuple[Path, bool]:
-    """
-    Step 3 crop videos using ffmpeg.
-    returns: dictionary of cropping coordinates relative to upper left corner
+    """Step 3: crop videos using ffmpeg.
+
+    Args:
+        file_df_crop: path to dataframe with ROI detection results
+        file_in: path to input video file
+        file_out: path to write cropped video
+        network: dictionary describing the network; see constants SIDE and BODY
+        nframes: number of frames in the video
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to cropped video file, updated force flag)
     """
     # Don't run if outputs exist and force is False
     file_out = Path(file_out)
@@ -235,9 +281,15 @@ def _s03_crop_videos(
 
 
 def _s04_brightness_eye(file_in: Path, nframes: int, force: bool = False) -> tuple[Path, bool]:
-    """
-    Adjust brightness for eye for better network performance.
-    wget -O- http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 | tar xj
+    """Step 4a: adjust brightness for eye video for better network performance.
+
+    Args:
+        file_in: path to input eye video file
+        nframes: number of frames in the video
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to brightness-adjusted video file, updated force flag)
     """
     # This function renames the input to 'eye.nobright' and then saves the adjusted
     # output under the same name as the original input. Therefore:
@@ -266,7 +318,17 @@ def _s04_resample_paws(
     nframes: int,
     force: bool = False,
 ) -> tuple[Path, bool]:
-    """For paws, spatially downsample to speed up processing x100."""
+    """Step 4b: spatially downsample paws video to speed up processing.
+
+    Args:
+        file_in: path to input video file
+        tdir: temporary directory for intermediate files
+        nframes: number of frames in the video
+        force: whether to overwrite existing intermediate files
+
+    Returns:
+        tuple of (path to downsampled video file, updated force flag)
+    """
     file_in = Path(file_in)
     file_out = Path(tdir) / file_in.name.replace('raw', 'paws_downsampled')
 
@@ -294,7 +356,15 @@ def _s05_run_dlc_specialized_networks(
     create_labels: bool = False,
     force: bool = True,
 ) -> None:
+    """Step 5: run a specialized DLC network on a pre-processed video.
 
+    Args:
+        dlc_params: path to DLC config file for this network
+        tfile: path to pre-processed video file for this network
+        network: network label (e.g. 'eye', 'tongue')
+        create_labels: whether to create labeled videos for debugging
+        force: whether to overwrite existing intermediate files
+    """
     # Check if final result exists
     result = next(tfile.parent.glob(f'*{network}*filtered.h5'), None)
     if result and force is not True:
@@ -318,9 +388,18 @@ def _s06_extract_dlc_alf(
     file_mp4: Path,
     *args,
 ) -> Path:
-    """
-    Output an ALF matrix.
-    Column names contain the full DLC results [nframes, nfeatures]
+    """Step 6: collect all DLC outputs into a single ALF parquet file.
+
+    Output matrix has shape [nframes, nfeatures] with column names from DLC results.
+
+    Args:
+        tdir: temporary directory containing per-network DLC result files
+        file_label: camera label string used to name the output file
+        networks: mapping of network name to network parameter dict
+        file_mp4: path to original video file
+
+    Returns:
+        path to the output ALF parquet file
     """
     _logger.info(f'STEP 06 START wrap-up and extract ALF files {file_label}')
     if 'bodyCamera' in file_label:
@@ -380,22 +459,25 @@ def dlc(
     force: bool = False,
     dlc_timer: OrderedDict | None = None,
 ) -> tuple[Path, OrderedDict]:
-    """
-    Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut.
+    """Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut.
 
-    The process consists in 7 steps:
-    0- Check if rightCamera video, then make it look like leftCamera video
-    1- subsample video frames using ffmpeg
-    2- run DLC to detect ROIS: 'eye', 'nose_tip', 'tongue', 'paws'
-    3- crop videos for each ROIs using ffmpeg, subsample paws videos
-    4- downsample the paw videos
-    5- run DLC specialized networks on each ROIs
-    6- output ALF dataset for the raw DLC output
+    The process consists of 7 steps:
+    0. check if rightCamera video, then make it look like leftCamera video
+    1. subsample video frames using ffmpeg
+    2. run DLC to detect ROIs: 'eye', 'nose_tip', 'tongue', 'paws'
+    3. crop videos for each ROI using ffmpeg, subsample paws videos
+    4. downsample the paw videos
+    5. run DLC specialized networks on each ROI
+    6. output ALF dataset for the raw DLC output
 
-    :param file_mp4: Video file to run
-    :param path_dlc: Path to folder with DLC weights
-    :param force: bool, whether to overwrite existing intermediate files
-    :return out_file: Path to DLC table in parquet file format
+    Args:
+        file_mp4: video file to run
+        path_dlc: path to folder with DLC weights
+        force: whether to overwrite existing intermediate files
+        dlc_timer: ordered dict to accumulate per-step timing; created if None
+
+    Returns:
+        tuple of (path to DLC table in parquet file format, timing dict)
     """
     # Set up timing
     dlc_timer = dlc_timer or OrderedDict()
@@ -472,11 +554,13 @@ def dlc(
 
 
 def _run_command(command: str) -> dict:
-    """
-    Run a shell command using subprocess.
+    """Run a shell command using subprocess.
 
-    :param command: command to run
-    :return: dictionary with keys: process, stdout, stderr
+    Args:
+        command: shell command string to run
+
+    Returns:
+        dict with keys 'process', 'stdout', and 'stderr'
     """
     process = subprocess.Popen(
         command,

@@ -25,13 +25,15 @@ from omegaconf import DictConfig
 
 
 def get_crop_window(roi_df_file: Path, network_params: dict, scale: int) -> list:
-    """Get average position of a anchor point for autocropping.
+    """Get average position of an anchor point for autocropping.
 
-    :param roi_df_file: path to dataframe output by ROI network
-    :param network_params: parameters for network, see SIDE_FEATURES and BODY_FEATURES in
-        params_lp.py
-    :param scale: downsampling factor; >1 means reduce crop window parameters
-    :return: list of floats [width, height, x, y] defining window used for cropping
+    Args:
+        roi_df_file: path to dataframe output by ROI network
+        network_params: parameters for network; see SIDE_FEATURES and BODY_FEATURES in params_lp.py
+        scale: downsampling factor; values >1 reduce crop window parameters
+
+    Returns:
+        list of floats [width, height, x, y] defining window used for cropping
     """
     df_crop = pd.read_csv(roi_df_file, header=[0, 1, 2], index_col=0)
     XYs = []
@@ -75,31 +77,29 @@ def video_pipe_crop_resize_flip(
 ) -> tuple:
     """Video reader pipeline that loads videos, normalizes, crops, and optionally flips.
 
-    :param filenames: list of absolute paths of video files to feed through pipeline
-    :param sequence_length: number of frames to load per sequence
-    :param pad_sequences: allows creation of incomplete sequences if there is an insufficient
-        number of frames at the very end of the video
-    :param pad_last_batch: pad final batch with empty sequences
-    :param step: number of frames to advance on each read; will be different for context
-        vs non-context models
-    :param name: pipeline name, used to string together DALI DataNode elements
-    :param crop_params: keys are
-        - 'crop_h': height in pixels
-        - 'crop_w': width in pixels
-        - 'crop_pos_x': x position of top left corner; normalized in (0, 1)
-        - 'crop_pos_y': y position of top left corner; normalized in (0, 1)
-    :param normalization_mean: mean values in (0, 1) to subtract from each channel
-    :param normalization_std: standard deviation values to divide by for each channel
-    :param resize_dims: [height, width] to resize raw frames
-    :param brightness: multiplicative factor to increase brightness of frames
-    :param flip: True to flip frame around vertical axis
-    :param batch_size: number of sequences per batch
-    :param num_threads: number of cpu threads used by the pipeline
-    :param device_id: id of the gpu used by the pipeline
-    :return:
-        pipeline object to be fed to DALIGenericIterator
-        placeholder int to represent unused "transforms" field in dataloader
+    Args:
+        filenames: list of absolute paths of video files to feed through pipeline
+        sequence_length: number of frames to load per sequence
+        pad_sequences: allows creation of incomplete sequences if there is an insufficient
+            number of frames at the very end of the video
+        pad_last_batch: pad final batch with empty sequences
+        step: number of frames to advance on each read; differs for context vs non-context models
+        name: pipeline name, used to string together DALI DataNode elements
+        crop_params: dict with keys 'crop_h', 'crop_w', 'crop_pos_x', 'crop_pos_y'
+            where positions are normalized in (0, 1)
+        normalization_mean: mean values in (0, 1) to subtract from each channel
+        normalization_std: standard deviation values to divide by for each channel
+        resize_dims: [height, width] to resize raw frames
+        brightness: multiplicative factor to increase brightness of frames
+        flip: if True flip frame around vertical axis
+        batch_size: number of sequences per batch (consumed by decorator)
+        num_threads: number of cpu threads used by the pipeline (consumed by decorator)
+        device_id: id of the gpu used by the pipeline (consumed by decorator)
 
+    Returns:
+        tuple of (pipeline object for DALIGenericIterator,
+        placeholder int for unused transforms field in dataloader,
+        original frame size tensor)
     """
 
     device = 'gpu'  # pipeline cannot run on cpu
@@ -176,11 +176,14 @@ def compute_num_iters(
 ) -> int:
     """Compute number of iterations necessary to iterate through a video.
 
-    :param video_path: absolute path to video file
-    :param sequence_length: number of frames to load per sequence
-    :param step: number of frames to advance on each read
-    :param model_type: 'baseline' or 'context', affects how sequence_length/step are interpreted
-    :return: number of iterations
+    Args:
+        video_path: absolute path to video file
+        sequence_length: number of frames to load per sequence
+        step: number of frames to advance on each read
+        model_type: 'baseline' or 'context'; affects how sequence_length and step are interpreted
+
+    Returns:
+        number of iterations required to process the full video
     """
     frame_count = count_frames(video_path)
     if model_type == 'baseline':
@@ -215,15 +218,18 @@ def build_dataloader(
 ) -> LitDaliWrapper:
     """Build pytorch data loader that wraps DALI pipeline.
 
-    :param network: network name, key for `camera_params` features dict
-    :param mp4_file: path to video file
-    :param model_type: 'baseline' | 'context'
-    :param sequence_length: number of frames to load per sequence
-    :param flip: True to flip horizontally
-    :param resize_dims: [height, width], resize dims for network resizing
-    :param original_dims: [height, width], original dims of video
-    :param crop_window: list of floats [width, height, x, y] defining window used for cropping
-    :return: pytorch data loader
+    Args:
+        network: network name, key for the camera_params features dict
+        mp4_file: path to video file
+        model_type: 'baseline' or 'context'
+        sequence_length: number of frames to load per sequence
+        flip: if True flip horizontally
+        resize_dims: [height, width] resize dims for network input
+        original_dims: [height, width] original dims of video
+        crop_window: list of floats [width, height, x, y] defining window used for cropping
+
+    Returns:
+        pytorch data loader wrapping the DALI pipeline
     """
 
     if model_type == 'baseline':
@@ -320,16 +326,19 @@ def analyze_video(
 ) -> pd.DataFrame:
     """Analyze video with a single network.
 
-    :param network: network name, key for `camera_params` features dict
-    :param mp4_file: path to video file
-    :param model_path: path to model directory that contains weights
-    :param flip: True to flip horizontally
-    :param original_dims: [height, width], original dims of video
-    :param sequence_length: number of frames to load per sequence
-    :param crop_window: list of floats [width, height, x, y] defining window used for cropping
-    :param ensemble_number: unique integer to track predictions from different ensemble members
-    :param save_dir: path to directory where results are saved in csv format
-    :return: pandas DataFrame containing results
+    Args:
+        network: network name, key for the camera_params features dict
+        mp4_file: path to video file
+        model_path: path to model directory containing weights
+        flip: if True flip horizontally
+        original_dims: [height, width] original dims of video
+        crop_window: list of floats [width, height, x, y] defining window used for cropping
+        ensemble_number: unique integer to track predictions from different ensemble members
+        sequence_length: number of frames to load per sequence
+        save_dir: path to directory where results are saved in csv format
+
+    Returns:
+        pandas DataFrame containing pose predictions
     """
 
     # NOTE: this call is critical; it forces a flusing of the GPU memory, which indirectly mitgates
@@ -406,12 +415,15 @@ def run_eks(
 ) -> pd.DataFrame:
     """Run ensemble Kalman smoother using multiple network predictions.
 
-    :param network: network name, key for `camera_params` features dict
-    :param eks_params: parameters for eks, will be network-specific
-    :param mp4_file: path to video file
-    :param csv_files: paths to individual network outputs
-    :param remove_files: True to remove prediction files from individual ensemble members
-    :return: pandas DataFrame containing eks results
+    Args:
+        network: network name, key for the camera_params features dict
+        eks_params: network-specific parameters for EKS
+        mp4_file: path to video file
+        csv_files: paths to individual network prediction CSV files
+        remove_files: if True remove individual ensemble member prediction files
+
+    Returns:
+        pandas DataFrame containing EKS-smoothed results
     """
 
     if len(csv_files) == 0:
