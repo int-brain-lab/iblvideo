@@ -29,6 +29,7 @@ all = [
 dev = [
     "pre-commit",
     "pytest",
+    "pytest-html",
     "ruff",
 ]
 
