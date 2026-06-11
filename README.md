@@ -23,47 +23,77 @@ In addition, we track the `'tail_start'` in the body videos:
 
 <img src="https://github.com/int-brain-lab/iblvideo/blob/master/_static/body_view.png" width="50%" height="50%">
 
-## Getting started
+## Installation
 
-Note that currently pose estimation and action segmentation must be run in separate environments; 
-see installation instructions below.
- 
+### Standalone / development
 
+Use this if you want to run or develop iblvideo outside the IBL data pipeline.
+iblvideo must be installed on a Linux machine, or a Windows machine via WSL.
 
-
-
-## Installing LP locally on an IBL server
-
-### Pre-requisites
-
-Install local server as per [this instruction](https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4).
-
-Install CUDA 11.8 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l). No need to set up the library paths yet, as we will do it below.
-
-### Create a Python environment with Lightning Pose
-
-Install python3.10 (required by `lightning-pose`)
+Install ffmpeg:
 ```bash
-sudo apt update -y 
-sudo apt install software-properties-common -y  
-sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt update -y
-sudo apt install python3.10 -y
-sudo apt install python3.10-dev python3.10-distutils python3.10-venv -y
+sudo apt-get install ffmpeg
 ```
 
-Create an environment called e.g. `litpose`
+Create and activate a conda environment:
+```bash
+conda create -n iblvideo python=3.10
+conda activate iblvideo
+```
+
+Clone the repo and install all dependencies:
+```bash
+git clone https://github.com/int-brain-lab/iblvideo.git
+cd iblvideo
+pip install -e ".[dev,action,pose]"
+```
+
+One-time setup to connect to the public IBL database for downloading model weights:
+```bash
+python - <<'EOF'
+from one.api import ONE
+ONE.setup(base_url='https://openalyx.internationalbrainlab.org', silent=True)
+one = ONE(password='international', silent=True)
+EOF
+```
+
+Verify the install:
+```bash
+python -c 'import iblvideo'
+```
+
+Run the tests:
+```bash
+pytest tests/ -m "not dlc"
+```
+
+### IBL server (pipeline integration)
+
+Use this when deploying on an IBL acquisition or analysis server where iblvideo is invoked by
+the larger pipeline infrastructure. Separate environments are required because LP and LA are
+called as independent subprocesses.
+
+#### Pre-requisites
+
+Install the local server as per [this instruction](https://docs.google.com/document/d/1NYVlVD8OkwRYUaPeHo3ZFPuwpv_E5zgUVjLsV0V5Ko4).
+
+Install CUDA 11.8 libraries as documented [here](https://docs.google.com/document/d/1UyXUOx21mwrpBtCcS51avnikmyCPCzXEtTRaTetH-Mo/edit#heading=h.39mk45fhbn1l).
+
+Install Python 3.10:
+```bash
+sudo apt update -y
+sudo apt install software-properties-common -y
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt update -y
+sudo apt install python3.10 python3.10-dev python3.10-distutils python3.10-venv -y
+```
+
+#### Lightning Pose environment
+
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
 python3.10 -m venv litpose
-```
-
-Activate the environment and install packages
-```bash
-#CUDA_VERSION=11.8
-#export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
-#export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 source ~/Documents/PYTHON/envs/litpose/bin/activate
 
 git clone https://github.com/int-brain-lab/iblvideo.git
@@ -71,86 +101,57 @@ cd iblvideo
 pip install -e ".[pose]"
 ```
 
-Test if your install was successful. Make sure that the environment is activated and that you have the correct CUDA version set.
-```
-python -c 'import iblvideo'
-```
-
-Once the import goes through without errors, you can set up an alias in your .bashrc file to easily enter the litpose environment:
-```bash
-nano ~/.bashrc
-```
-Enter this line under the other aliases:
+Add an alias to `~/.bashrc` for easy activation with the correct CUDA paths:
 ```bash
 alias litpose='export CUDA_VERSION=11.8; export PATH=/usr/local/cuda-"$CUDA_VERSION"/bin:$PATH; export LD_LIBRARY_PATH=/usr/local/cuda-"$CUDA_VERSION"/lib64:/usr/local/cuda-"$CUDA_VERSION"/extras/CUPTI/lib64:$LD_LIBRARY_PATH; source ~/Documents/PYTHON/envs/litpose/bin/activate'
 ```
-After opening a new terminal you should be able to type `litpose` and end up in an environment in which you can import lightning-pose like above.
 
-Run the tests from the repo root:
+Run the tests:
 ```bash
 pytest tests/test_pose_lp.py
 ```
 
-### Running LP for one mp4 video - stand-alone local run
-
-```python
-from one.api import ONE
-from iblvideo import download_lp_models
-from iblvideo.pose_lp import lightning_pose
-
-# Download the lightning pose models using ONE
-one = ONE()
-path_models = download_lp_models()
-
-# Run lightning pose on a video
-output = lightning_pose("Path/to/file.mp4", ckpts_path=path_models)
-```
-
-## Installing LA locally on an IBL server
-
-Follow the same instructions as installing LP locally.
-Name the environment `litaction`:
+#### Lightning Action environment
 
 ```bash
 mkdir -p ~/Documents/PYTHON/envs
 cd ~/Documents/PYTHON/envs
 python3.10 -m venv litaction
-```
-
-Activate the environment and install packages
-```bash
-#CUDA_VERSION=11.8
-#export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
-#export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH  
 source ~/Documents/PYTHON/envs/litaction/bin/activate
 
-git clone https://github.com/int-brain-lab/iblvideo.git
 cd iblvideo
 pip install -e ".[action]"
 ```
 
-Run the tests from the repo root:
+Run the tests:
 ```bash
 pytest tests/test_segmentation_la.py
 ```
 
-### Running LA for one video - stand-alone local run
+## Usage
+
+### Running LP on a single video
 
 ```python
-from one.api import ONE
+from iblvideo import download_lp_models
+from iblvideo.pose_lp import lightning_pose
+
+path_models = download_lp_models()
+output = lightning_pose("path/to/video.mp4", ckpts_path=path_models)
+```
+
+### Running LA on a single video
+
+```python
 from iblvideo import download_la_models
 from iblvideo.segmentation_la import lightning_action
 
-# Download the lightning action models using ONE
-one = ONE()
 path_models = download_la_models()
-
-# Run lightning action on a video
-output = lightning_pose(
-    pose_file="/path/to/pose.pqt",
-    pose_timestamp_file="/path/to/pose_timestamps.npy",
-    wheel_file="/path/to/wheel.npy",
-    wheel_timestamp_file="/path/to/wheel_timestamps.npy",
+output = lightning_action(
+    pose_file="path/to/pose.pqt",
+    pose_timestamp_file="path/to/pose_timestamps.npy",
+    wheel_file="path/to/wheel.npy",
+    wheel_timestamp_file="path/to/wheel_timestamps.npy",
     ckpts_path=path_models,
 )
 ```
