@@ -4,14 +4,19 @@ import shutil
 
 import numpy as np
 import pandas as pd
+import pytest
 
-from iblvideo.pose_dlc import dlc
 from iblvideo.weights import download_weights
 from tests.download_test_data import _download_dlc_test_data
 
 
+@pytest.mark.dlc
 def test_dlc() -> None:
     """Test DLC pose estimation pipeline on body, left, and right camera videos."""
+
+    # delay import until actually running the test
+    from iblvideo.pose_dlc import dlc
+
     test_data = _download_dlc_test_data()
     path_dlc = download_weights()
 

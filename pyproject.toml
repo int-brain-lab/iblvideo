@@ -36,6 +36,11 @@ dev = [
 [project.urls]
 Homepage = "https://www.internationalbrainlab.com/"
 
+[tool.pytest.ini_options]
+markers = [
+    "dlc: tests that require a DLC installation",
+]
+
 [tool.ruff]
 line-length = 99
 
