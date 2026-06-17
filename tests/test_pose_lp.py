@@ -54,8 +54,8 @@ def _test_lightning_pose(cam: str) -> None:
     targets = np.unique(['_'.join(col.split('_')[:-1]) for col in ctrl_columns])
     for t in targets:
         idx_ctrl = ctrl_pqt.loc[ctrl_pqt[f'{t}_likelihood'] < 0.9].index
-        idx_out = out_pqt.loc[out_pqt[f'{t}_likelihood'] < 0.9].index
-        for idx in [idx_ctrl, idx_out]:
+        # idx_out = out_pqt.loc[out_pqt[f'{t}_likelihood'] < 0.9].index
+        for idx in idx_ctrl:  #, idx_out]:
             ctrl_pqt.loc[idx, [f'{t}_x', f'{t}_y', f'{t}_likelihood']] = np.nan
             out_pqt.loc[idx, [f'{t}_x', f'{t}_y', f'{t}_likelihood']] = np.nan
 
@@ -64,7 +64,7 @@ def _test_lightning_pose(cam: str) -> None:
         # with the context models
         assert np.allclose(
             np.array(out_pqt.loc[:-2, out_columns]), np.array(ctrl_pqt.loc[:-2, ctrl_columns]),
-            rtol=1e-1, equal_nan=True,
+            rtol=1e-2, equal_nan=True,
         )
     except AssertionError:
         diff = np.abs(np.array(out_pqt) - np.array(ctrl_pqt))
@@ -82,6 +82,8 @@ def test_lightning_pose_left() -> None:
     process = multiprocessing.Process(target=_run_test_in_process, args=('left',))
     process.start()
     process.join()
+    assert process.exitcode == 0, \
+        f'Left camera test failed in subprocess (exitcode {process.exitcode})'
 
 
 def test_lightning_pose_right() -> None:
@@ -89,6 +91,8 @@ def test_lightning_pose_right() -> None:
     process = multiprocessing.Process(target=_run_test_in_process, args=('right',))
     process.start()
     process.join()
+    assert process.exitcode == 0, \
+        f'Right camera test failed in subprocess (exitcode {process.exitcode})'
 
 
 def test_lightning_pose_body() -> None:
@@ -96,3 +100,5 @@ def test_lightning_pose_body() -> None:
     process = multiprocessing.Process(target=_run_test_in_process, args=('body',))
     process.start()
     process.join()
+    assert process.exitcode == 0, \
+        f'Body camera test failed in subprocess (exitcode {process.exitcode})'
