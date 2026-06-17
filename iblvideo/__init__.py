@@ -1,9 +1,9 @@
 """iblvideo package for pose estimation and motion energy on IBL behavioral video data."""
 
-__version__ = '3.1.2'     # This is the only place where the version is hard coded, only adapt here
+__version__ = '3.2.0'     # This is the only place where the version is hard coded, only adapt here
 
 __dlc_version__ = 'v2.2'  # versioning for DLC weights/test data
-__lp_version__ = 'v2.1'   # versioning for LP weights/test data
+__lp_version__ = 'v2.2'   # versioning for LP weights/test data
 __la_version__ = 'v1.2'   # versioning for LA weights/test data
 
 import warnings
