@@ -1,4 +1,4 @@
-# See documentation in scripts/buildbot/README
+# See documentation in scripts/buildbot/README.md
 name: Run tests
 
 on:

@@ -157,7 +157,7 @@ def main() -> None:
             )
             jobs[job_name] = job
             print(job.status)  # Pending, Running, Completed, Stopped, Failed
-            time.sleep(1800)  # sleep to prevent simultaneous updates to AWS managed prefix list
+            time.sleep(600)  # sleep to prevent simultaneous updates to AWS managed prefix list
         else:
             try:
                 result = subprocess.run(cmd, check=True, capture_output=False, text=True)
