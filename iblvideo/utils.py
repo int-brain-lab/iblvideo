@@ -25,7 +25,7 @@ def download_and_unzip_file_from_aws(
         directory: name of directory under 'resources' in AWS
         filename: name of zipped file to download, without the '.zip' extension
         one: an instance of ONE to use for downloading; if None a new instance pointing to
-            the internal IBL database is instantiated
+            the default configured Alyx database is instantiated
         target_path: path to download data to; if None the default cache directory is used
         overwrite: if True re-download even if files exist locally and sizes match
 
@@ -39,7 +39,7 @@ def download_and_unzip_file_from_aws(
         _logger.warning(f'Using cached directory at {local_data_dir}')
         return local_data_dir
 
-    one = one or ONE(base_url='https://openalyx.internationalbrainlab.org')
+    one = one or ONE()
 
     if target_path is None:
         target_path = Path(one.cache_dir).joinpath('resources', directory)
