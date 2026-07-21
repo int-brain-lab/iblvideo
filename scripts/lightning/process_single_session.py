@@ -7,17 +7,16 @@ Usage:
 import argparse
 import sys
 import time
-from pathlib import Path
 import traceback
+from pathlib import Path
 
-from one.api import ONE
 from ibllib.pipes.video_tasks import LightningPose, PostLP
-from iblaws.compute import manage_firewall_access
+from one.api import ONE
 
 one = ONE()
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Process a single session with Lightning Pose')
     parser.add_argument('eid', type=str, help='Experiment ID to process')
     parser.add_argument('--run_lp', action='store_true', help='Run Lightning Pose')
@@ -35,15 +34,24 @@ def parse_args():
     return parser.parse_args()
 
 
-def process_lightning_pose(eid, cameras, session_path):
-    """Process Lightning Pose for given cameras."""
+def process_lightning_pose(cameras: list[str], session_path: Path) -> dict[str, str]:
+    """Process Lightning Pose for given cameras.
+
+    Args:
+        cameras: camera names to process
+        session_path: path to the session directory
+
+    Returns:
+        mapping of camera name to error message, for cameras that failed
+    """
     error_task = {}
 
     for camera in cameras:
+        mp4_file = session_path.joinpath(f'raw_video_data/_iblrig_{camera}Camera.raw.mp4')
+        task = None
         try:
             print(f'{camera} camera')
             t_beg = time.time()
-            mp4_file = session_path.joinpath(f'raw_video_data/_iblrig_{camera}Camera.raw.mp4')
             task = LightningPose(session_path, cameras=[camera], one=one, location='ec2')
             task.force = True
             task.lpenv = Path('/home/zeus/miniconda3/envs/cloudspace/bin/activate')
@@ -54,17 +62,27 @@ def process_lightning_pose(eid, cameras, session_path):
             else:
                 error_task[camera] = 'task.status=-1'
             print(f'Processing time: {((t_end - t_beg) / 3600):.2f} hours\n')
-        except Exception as err:
-            error_task[camera] = traceback.format_exc(err)
+        except Exception:
+            error_task[camera] = traceback.format_exc()
         finally:
-            task.cleanUp()
+            if task is not None:
+                task.cleanUp()
             mp4_file.unlink(missing_ok=True)
 
     return error_task
 
 
-def process_post_lp(eid, cameras, session_path):
-    """Process Post-LP."""
+def process_post_lp(cameras: list[str], session_path: Path) -> str | None:
+    """Process Post-LP.
+
+    Args:
+        cameras: camera names to process
+        session_path: path to the session directory
+
+    Returns:
+        error message if the task failed, otherwise None
+    """
+    task = None
     try:
         task = PostLP(session_path, cameras=cameras, one=one, location='ec2')
         task.force = True
@@ -74,14 +92,14 @@ def process_post_lp(eid, cameras, session_path):
             return None
         else:
             return 'task.status=-1'
-    except Exception as err:
-        return err
+    except Exception:
+        return traceback.format_exc()
     finally:
-        task.cleanUp()
+        if task is not None:
+            task.cleanUp()
 
 
-# @manage_firewall_access()
-def main(args, **kwargs):
+def main(args: argparse.Namespace, **kwargs) -> None:
     print(f'ONE Version {ONE.version}')
     print(f'Processing EID: {args.eid}')
     print(f'  Cameras: {args.cameras}')
@@ -97,7 +115,7 @@ def main(args, **kwargs):
     error_task = {}
     if args.run_lp and not args.dry:
         print(f'\nRunning Lightning Pose...')
-        error_task = process_lightning_pose(args.eid, args.cameras, session_path)
+        error_task = process_lightning_pose(args.cameras, session_path)
 
         if error_task:
             print(f'Lightning Pose errors:')
@@ -106,21 +124,21 @@ def main(args, **kwargs):
         else:
             print('Lightning Pose completed successfully')
 
-    # Run Post-LP
+    # run Post-LP
     error_post = None
     if args.run_post_lp and not args.dry:
         print(f'\nRunning Post-LP...')
-        error_post = process_post_lp(args.eid, args.cameras, session_path)
+        error_post = process_post_lp(args.cameras, session_path)
 
         if error_post:
             print(f'Post-LP error: {error_post}')
         else:
             print('Post-LP completed successfully')
 
-    if error_task is None and not error_post:
+    if not error_task and not error_post:
         print(f'\nFinished processing {args.eid}')
-    # else:
-    #     sys.exit(1)
+    else:
+        sys.exit(1)
 
 
 if __name__ == '__main__':

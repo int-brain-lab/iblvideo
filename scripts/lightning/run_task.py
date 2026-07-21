@@ -12,11 +12,14 @@ Each session will run on a new studio, concurrently:
 
 import argparse
 import subprocess
+import sys
 import time
 from pathlib import Path
 
+PROCESS_SESSION_SCRIPT = Path(__file__).parent / 'process_single_session.py'
 
-def parse_args():
+
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Batch process multiple sessions')
     parser.add_argument(
         '--eid_file',
@@ -46,46 +49,49 @@ def parse_args():
     return args
 
 
-def parse_list_arg(list_str):
-    """
-    Parse the --list argument.
+def parse_list_arg(list_str: str) -> list[int]:
+    """Parse the --list argument.
 
     If it contains a comma, treat as comma-separated indices.
     If it contains a single dash, treat as a range (inclusive).
 
-    Returns a list of indices.
+    Args:
+        list_str: raw --list argument, e.g. '0,2,5' or '0-14'
+
+    Returns:
+        list of indices
     """
     if ',' in list_str:
-        # Comma-separated list
+        # comma-separated list
         indices = [int(idx.strip()) for idx in list_str.split(',')]
     elif '-' in list_str:
-        # Range format
+        # range format
         parts = list_str.split('-')
         if len(parts) != 2:
             raise ValueError(f"Invalid range format: {list_str}. Expected format: 'start-end'")
         start, end = int(parts[0].strip()), int(parts[1].strip())
         indices = list(range(start, end + 1))  # +1 to make it inclusive
     else:
-        # Single index
+        # single index
         indices = [int(list_str.strip())]
 
     return indices
 
 
-def load_eids(eid_file):
+def load_eids(eid_file: str) -> list[str]:
     """Load EIDs from a text file."""
     eids = []
     with open(eid_file, 'r') as file:
         for line in file:
             eid = line.strip().replace('\n', '')
-            if eid:  # Skip empty lines
+            if eid:  # skip empty lines
                 eids.append(eid)
     return eids
 
 
-def build_command(eid, run_lp, run_post_lp, cameras):
+def build_command(eid: str, run_lp: bool, run_post_lp: bool, cameras: list[str]) -> list[str]:
     """Build the command to call process_single_session.py."""
-    cmd = ['python', 'process_single_session.py', eid]
+    cmd = [sys.executable, str(PROCESS_SESSION_SCRIPT), eid]
 
     if run_lp:
         cmd.append('--run_lp')
@@ -97,7 +103,7 @@ def build_command(eid, run_lp, run_post_lp, cameras):
     return cmd
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     # load EIDs from file
