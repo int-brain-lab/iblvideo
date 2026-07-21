@@ -66,6 +66,9 @@ Run the tests:
 ```bash
 pytest tests/ -m "not dlc"
 ```
+The tests download sample session data through a plain `ONE()` client (no `base_url` passed), so
+they use whichever Alyx database you set up above as your default — the public IBL database in
+this standalone flow.
 
 ### IBL server (pipeline integration)
 
@@ -155,3 +158,8 @@ output = lightning_action(
     ckpts_path=path_models,
 )
 ```
+
+### Batch processing many sessions on Lightning AI
+
+See [scripts/lightning/README.md](scripts/lightning/README.md) for setting up and running the LP /
+Post-LP pipeline over many sessions on a Lightning AI Studio.

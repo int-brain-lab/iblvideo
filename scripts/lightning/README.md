@@ -15,6 +15,11 @@ These scripts run the Lightning Pose (LP) and Post-LP pipeline steps on many IBL
 1. Sign in at [lightning.ai](https://lightning.ai) and pick the teamspace you want to run under.
 2. Create a new Studio (`+ New Studio`) and give it a descriptive name, e.g. `iblvideo-inference`.
 3. Start the Studio and open a terminal in it. A GPU machine (e.g. T4) is required to run LP.
+4. Switch the Studio's Python version to **3.10.20** before installing anything, in the Studio's
+   environment/interpreter settings. This is a temporary pin: newer Python versions (e.g. 3.12) can
+   hang for a very long time on `pip install -e ".[pose]"` while `nvidia-dali-cuda110` (a
+   Lightning Pose dependency) silently fetches its prebuilt binary in the background with no
+   progress indicator at the `Preparing metadata (pyproject.toml)` step. 3.10.20 is verified to work.
 
 ## 2. Install the environment
 
@@ -26,16 +31,36 @@ with two caveats specific to running on a Lightning Studio:
   `task.lpenv = Path('/home/zeus/miniconda3/envs/cloudspace/bin/activate')` (see
   `process_lightning_pose`). Just run the `pip install -e ".[pose]"` step directly in the Studio's
   default environment.
-- **Don't use the `openalyx` one-time setup snippet.** These scripts register processed datasets
-  back to Alyx, which the public `openalyx` mirror doesn't allow. Instead run `ONE.setup()` pointed
-  at `alyx.internationalbrainlab.org` with your own Alyx username and password:
+- **Don't use the main README's public-database one-time setup snippet on a Studio.** Both
+  `process_single_session.py` and the test suite construct their `ONE` client with no `base_url`
+  (a bare `ONE()`), so whichever database you set up as your default is what both of them use.
+  `process_single_session.py` registers processed datasets back to Alyx, which the public
+  `openalyx` mirror doesn't allow, so set up your own credentials for the **production** Alyx
+  instead, before running anything (including the tests):
 
 ```bash
 python -c "from one.api import ONE; ONE.setup(base_url='https://alyx.internationalbrainlab.org')"
 ```
 
-`lightning_sdk` (used by `run_task.py --run_parallel` and `parse_job_logs.py`) is preinstalled on
-Lightning Studios. If it's missing for some reason: `pip install lightning-sdk`.
+Enter your credentials as prompted.
+With this as your only configured database, `pytest tests/ -m "not dlc"` will also fetch its
+sample data through your production credentials rather than the public mirror.
+
+`lightning_sdk` (used by `run_task.py --run_parallel` and `parse_job_logs.py`) is not installed by
+default:
+
+```bash
+pip install lightning-sdk
+```
+
+`iblscripts` is also required (used by the LP and Post-LP tasks) and isn't part of the main README's
+install flow:
+
+```bash
+mkdir -p /teamspace/studios/this_studio/Documents/PYTHON
+cd /teamspace/studios/this_studio/Documents/PYTHON
+git clone https://github.com/int-brain-lab/iblscripts.git
+```
 
 ## 3. Prepare your EID list
 
@@ -45,6 +70,16 @@ file by 0-based index via `--list`, either as a comma-separated list (`0,2,5,8`)
 range (`0-14`).
 
 ## 4. Launch jobs
+
+**Run these from inside `scripts/lightning/` (or anywhere other than your Studio's home
+directory), not from `~`.** Your Studio's home directory is also where the `iblvideo` repo is
+cloned, i.e. `~/iblvideo`. If your shell's current directory is `~` when you run `python`, Python
+finds that `iblvideo` folder while scanning the current directory for imports and mistakes it for
+an (empty, broken) namespace package — shadowing the real, properly-installed `iblvideo` package
+and causing `AttributeError: module 'iblvideo' has no attribute '__version__'` deep inside the LP
+task. `run_task.py` already works around this for you by `cd`-ing into `scripts/lightning/` before
+launching each session, but a `process_single_session.py` invoked directly from `~` will still hit
+it.
 
 ### Single session
 

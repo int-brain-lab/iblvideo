@@ -149,8 +149,14 @@ def main() -> None:
 
         if args.run_parallel:
             job_name = eid
+            # cd into scripts/lightning first: iblvideo's editable install appends its import
+            # hook to sys.meta_path rather than prepending it, so if the job's default working
+            # directory is the Studio root (which also holds the `iblvideo` repo directory),
+            # Python's PathFinder shadows the real package with a broken empty namespace package
+            # before the editable hook ever runs
+            job_command = f'cd {PROCESS_SESSION_SCRIPT.parent} && ' + ' '.join(cmd)
             job = Job.run(
-                command=' '.join(cmd),
+                command=job_command,
                 name=job_name,
                 machine=Machine.T4_SMALL,
                 studio=studio,
@@ -160,7 +166,10 @@ def main() -> None:
             time.sleep(600)  # sleep to prevent simultaneous updates to AWS managed prefix list
         else:
             try:
-                result = subprocess.run(cmd, check=True, capture_output=False, text=True)
+                result = subprocess.run(
+                    cmd, check=True, capture_output=False, text=True,
+                    cwd=PROCESS_SESSION_SCRIPT.parent,
+                )
             except subprocess.CalledProcessError as e:
                 print(f'\nERROR processing {eid}')
                 errors[eid] = f'Exit code: {e.returncode}'
