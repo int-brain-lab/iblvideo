@@ -3,11 +3,11 @@ Batch process multiple sessions by calling process_single_session.py for each EI
 
 Sessions will run sequentially on the current node:
     python run_task.py --eid_file eids.txt --list 0,2,5,8 --run_lp --run_post_lp --cameras left right body
-    python run_task.py --eid_file eids.txt --list 0-14 --run_lp --run_post_lp --cameras left right body
+    python run_task.py --eid_file eids.txt --list 0-14 --run_la --run_post_la --cameras left right
 
 Each session will run on a new studio, concurrently:
     python run_task.py --eid_file eids.txt --list 0,2,5,8 --run_lp --run_post_lp --run_parallel --cameras left right body
-    python run_task.py --eid_file eids.txt --list 0-14 --run_lp --run_post_lp --run_parallel --cameras left right body
+    python run_task.py --eid_file eids.txt --list 0-14 --run_la --run_post_la --run_parallel --cameras left right
 """
 
 import argparse
@@ -35,6 +35,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument('--run_lp', action='store_true', help='Run Lightning Pose')
     parser.add_argument('--run_post_lp', action='store_true', help='Run Post-LP')
+    parser.add_argument('--run_la', action='store_true', help='Run Lightning Action')
+    parser.add_argument('--run_post_la', action='store_true', help='Run Post-LA')
     parser.add_argument('--run_parallel', action='store_true', help='Run in parallel using Jobs')
     parser.add_argument(
         '--cameras',
@@ -89,7 +91,14 @@ def load_eids(eid_file: str) -> list[str]:
     return eids
 
 
-def build_command(eid: str, run_lp: bool, run_post_lp: bool, cameras: list[str]) -> list[str]:
+def build_command(
+    eid: str,
+    run_lp: bool,
+    run_post_lp: bool,
+    run_la: bool,
+    run_post_la: bool,
+    cameras: list[str],
+) -> list[str]:
     """Build the command to call process_single_session.py."""
     cmd = [sys.executable, str(PROCESS_SESSION_SCRIPT), eid]
 
@@ -97,6 +106,10 @@ def build_command(eid: str, run_lp: bool, run_post_lp: bool, cameras: list[str])
         cmd.append('--run_lp')
     if run_post_lp:
         cmd.append('--run_post_lp')
+    if run_la:
+        cmd.append('--run_la')
+    if run_post_la:
+        cmd.append('--run_post_la')
     if cameras:
         cmd.extend(['--cameras'] + cameras)
 
@@ -119,6 +132,8 @@ def main() -> None:
     print(f'Processing {len(eids)} eids (indices: {args.list} -> {indices})')
     print(f'  Run LP: {args.run_lp}')
     print(f'  Run Post-LP: {args.run_post_lp}')
+    print(f'  Run LA: {args.run_la}')
+    print(f'  Run Post-LA: {args.run_post_la}')
     print(f'  Cameras: {args.cameras}')
     print()
 
@@ -145,7 +160,9 @@ def main() -> None:
         print(f'Processing {i + 1}/{len(eids)}: {eid}')
         print(f'=' * 80)
 
-        cmd = build_command(eid, args.run_lp, args.run_post_lp, args.cameras)
+        cmd = build_command(
+            eid, args.run_lp, args.run_post_lp, args.run_la, args.run_post_la, args.cameras,
+        )
 
         if args.run_parallel:
             job_name = eid
@@ -163,7 +180,7 @@ def main() -> None:
             )
             jobs[job_name] = job
             print(job.status)  # Pending, Running, Completed, Stopped, Failed
-            time.sleep(600)  # sleep to prevent simultaneous updates to AWS managed prefix list
+            time.sleep(120)  # sleep to prevent simultaneous updates to AWS managed prefix list
         else:
             try:
                 result = subprocess.run(
@@ -182,7 +199,7 @@ def main() -> None:
         # this only handles overall job failures, there is error-handling within the video pipeline
         # not picked up here
         while any([str(job.status) in ['Running', 'Pending'] for _, job in jobs.items()]):
-            time.sleep(120)
+            time.sleep(10)
 
         errors = {
             job_name: job.status for job_name, job in jobs.items() if str(job.status) == 'Failed'
