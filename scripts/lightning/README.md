@@ -55,8 +55,8 @@ default:
 pip install lightning-sdk
 ```
 
-`iblscripts` is also required (used by the LP and Post-LP tasks) and isn't part of the main README's
-install flow:
+`iblscripts` is also required (used by the LP, Post-LP, LA, and Post-LA tasks) and isn't part of
+the main README's install flow:
 
 ```bash
 mkdir -p /teamspace/studios/this_studio/Documents/PYTHON
