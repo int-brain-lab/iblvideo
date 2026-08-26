@@ -225,8 +225,13 @@ def lightning_action(
     paw_labels = ['paw_r', 'paw_l']
 
     # create a directory for temporary files
-    pose_path = pose_file.parent.parent
-    tdir = pose_path.joinpath(f'la_tmp_iblrig_{file_label}')
+    # pose_file.parent is the alf folder, or a revision folder (e.g. '#2021-01-01#')
+    # nested inside it, so walk up past a revision folder if present
+    alf_path = pose_file.parent
+    if alf_path.name.startswith('#') and alf_path.name.endswith('#'):
+        alf_path = alf_path.parent
+    session_path = alf_path.parent
+    tdir = session_path.joinpath(f'la_tmp_iblrig_{file_label}')
     tdir.mkdir(exist_ok=True)
 
     # run networks on each paw
